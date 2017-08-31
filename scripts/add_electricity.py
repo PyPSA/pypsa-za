@@ -293,19 +293,16 @@ def attach_storage(n, costs):
     _add_missing_carriers_from_costs(n, costs, carriers)
 
     for carrier in carriers:
-        n.import_components_from_dataframe(
-            pd.DataFrame(dict(
-                bus=n.buses.index,
-                p_nom_extendable=True,
-                capital_cost=costs.at[carrier, 'capital_cost'],
-                marginal_cost=costs.at[carrier, 'marginal_cost'],
-                efficiency_store=costs.at[carrier, 'efficiency'],
-                efficiency_dispatch=costs.at[carrier, 'efficiency'],
-                max_hours=max_hours[carrier],
-                cyclic_state_of_charge=True
-            ), index=carrier + " " + n.buses.index),
-            "StorageUnit"
-        )
+        madd(n, "StorageUnit", carrier,
+             bus=n.buses.index,
+             p_nom_extendable=True,
+             carrier=carrier,
+             capital_cost=costs.at[carrier, 'capital_cost'],
+             marginal_cost=costs.at[carrier, 'marginal_cost'],
+             efficiency_store=costs.at[carrier, 'efficiency'],
+             efficiency_dispatch=costs.at[carrier, 'efficiency'],
+             max_hours=max_hours[carrier],
+             cyclic_state_of_charge=True)
 
 if __name__ == "__main__":
     n = pypsa.Network(snakemake.input.base_network)

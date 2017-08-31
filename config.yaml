@@ -1,4 +1,6 @@
-flexibilities: [EWH, BEV, EWH+BEV, BEV+V2G, EWH+BEV+V2G]
+scenario:
+  mask: ['corridors', 'redz']
+  sectors: [E, E+BEV] #, E+BEV, E+BEV+V2G]
  
 year: "2050"
 historical_year: "2012"
@@ -12,17 +14,17 @@ masks: ['corridors', 'redz']
  # Gives us ball-park the available areas the IWES study reports
 landusetype_percent:
   wind:
-    - [[7, 8, 9, 41], 100]
+    - [[7, 8, 9, 41], 80]
     # - [[5, 6], 50]
     # - [[11, 12, 14, 15], 10]
   solar:
-    - [[7, 8, 9, 41], 100]
+    - [[7, 8, 9, 41], 80]
     # - [[11, 12, 14, 15], 50]
     # - [[46, 47, 51, 56, 64, 68, 72], 10]
 
 capacity_per_sqm:
-  wind: 5   # half of the IWES study: 10
-  solar: 15 # half of the IWES study: 33
+  wind: 5   # half of 10 (IWES)
+  solar: 15 # "half" of 33 (IWES)
 
 hydro_inflow:
   countries: ['ZA', 'MZ']
@@ -39,7 +41,7 @@ max_hours:
 costs:
   EUR_to_ZAR: 15.63
   # costs come from data/internal/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx
-  sheetname: "IRP-Apr2016" # "CSIR-Apr2016"
+  sheetname: "IRP2016-Apr2016" # "CSIR-Apr2016"
   discountrate: 0.08
   # except for lines which are specified here
   line:
@@ -86,3 +88,159 @@ solving:
     crossover: 0 # -1 (Choose freely)
     BarConvTol: 1.e-5
     FeasibilityTol: 1.e-6
+
+plotting:
+  vre_techs: ["Wind", "PV"]
+  conv_techs: ["OCGT", "Diesel", "Coal"]
+  storage_techs: ["PHS", "hydro", "H2", "battery"]
+  store_techs: ["Li ion", "water tanks"]
+  load_carriers: ["AC load", "heat load", "Li ion load"]
+  heat_links: ["heat pump", "resistive heater", "CHP heat", "CHP electric",
+               "gas boiler", "central heat pump", "central resistive heater", "central CHP heat",
+               "central CHP electric", "central gas boiler"]
+  heat_generators: ["gas boiler", "central gas boiler", "solar thermal collector", "central solar thermal collector"]
+  tech_colors:
+    onwind: "b"
+    onshore wind: "b"
+    offwind: "c"
+    offshore wind: "c"
+    hydro: "g"
+    ror: "g"
+    solar: "y"
+    OCGT: "brown"
+    OCGT marginal: "sandybrown"
+    OCGT-heat: "orange"
+    central gas boiler: "orange"
+    gas boiler: "orange"
+    gas boilers: "orange"
+    gas boiler marginal: "orange"
+    gas: "brown"
+    lines: "k"
+    transmission lines: "k"
+    H2: "m"
+    hydrogen storage: "m"
+    battery: "slategray"
+    battery storage: "slategray"
+    Nuclear: "r"
+    Nuclear marginal: "r"
+    Coal: "k"
+    Coal marginal: "k"
+    Lignite: "grey"
+    Lignite marginal: "grey"
+    CCGT: "orange"
+    CCGT marginal: "orange"
+    heat pumps: "green"
+    heat pump: "green"
+    central heat pump: "green"
+    resistive heater: "pink"
+    central resistive heater: "pink"
+    Sabatier: "turquoise"
+    water tanks: "w"
+    CHP: "r"
+    CHP heat: "r"
+    CHP electric: "r"
+    central CHP heat: "r"
+    central CHP electric: "r"
+    PHS: "g"
+    Ambient: "k"
+    Electric load: "b"
+    Heat load: "r"
+    Transport load: "grey"
+    heat: "r"
+    Li ion: "grey"
+    district heating: "#CC4E5C"
+  nice_names:
+    offwind: "offshore wind"
+    onwind: "onshore wind"
+    OCGT: "gas"
+    H2: "hydrogen storage"
+    battery: "battery storage"
+    OCGT marginal: "gas (marginal)"
+    lines: "transmission lines"
+    ror: "run of river"
+  nice_names_n:
+    offwind: "offshore\nwind"
+    onwind: "onshore\nwind"
+    OCGT: "gas"
+    H2: "Hydrogen\nstorage"
+    OCGT marginal: "gas (marginal)"
+    lines: "transmission\nlines"
+    ror: "run of river"
+
+# plotting:
+#   vre_techs: ["windon", "windoff"]
+#   conv_techs: ["OCGT", "gas boiler"]
+#   storage_techs: ["PHS", "hydro", "H2", "battery"]
+#   store_techs: ["Li ion", "water tanks"]
+#   load_carriers: ["AC load", "heat load", "Li ion load"]
+#   heat_links: ["heat pump", "resistive heater", "CHP heat", "CHP electric",
+#                "gas boiler", "central heat pump", "central resistive heater", "central CHP heat",
+#                "central CHP electric", "central gas boiler"]
+#   heat_generators: ["gas boiler", "central gas boiler", "solar thermal collector", "central solar thermal collector"]
+#   tech_colors:
+#     onwind: "b"
+#     onshore wind: "b"
+#     offwind: "c"
+#     offshore wind: "c"
+#     hydro: "g"
+#     ror: "g"
+#     solar: "y"
+#     OCGT: "brown"
+#     OCGT marginal: "sandybrown"
+#     OCGT-heat: "orange"
+#     central gas boiler: "orange"
+#     gas boiler: "orange"
+#     gas boilers: "orange"
+#     gas boiler marginal: "orange"
+#     gas: "brown"
+#     lines: "k"
+#     transmission lines: "k"
+#     H2: "m"
+#     hydrogen storage: "m"
+#     battery: "slategray"
+#     battery storage: "slategray"
+#     Nuclear: "r"
+#     Nuclear marginal: "r"
+#     Coal: "k"
+#     Coal marginal: "k"
+#     Lignite: "grey"
+#     Lignite marginal: "grey"
+#     CCGT: "orange"
+#     CCGT marginal: "orange"
+#     heat pumps: "green"
+#     heat pump: "green"
+#     central heat pump: "green"
+#     resistive heater: "pink"
+#     central resistive heater: "pink"
+#     Sabatier: "turquoise"
+#     water tanks: "w"
+#     CHP: "r"
+#     CHP heat: "r"
+#     CHP electric: "r"
+#     central CHP heat: "r"
+#     central CHP electric: "r"
+#     PHS: "g"
+#     Ambient: "k"
+#     Electric load: "b"
+#     Heat load: "r"
+#     Transport load: "grey"
+#     heat: "r"
+#     Li ion: "grey"
+#     district heating: "#CC4E5C"
+#   nice_names:
+#     offwind: "offshore wind"
+#     onwind: "onshore wind"
+#     OCGT: "gas"
+#     H2: "hydrogen storage"
+#     battery: "battery storage"
+#     OCGT marginal: "gas (marginal)"
+#     lines: "transmission lines"
+#     ror: "run of river"
+#   nice_names_n:
+#     offwind: "offshore\nwind"
+#     onwind: "onshore\nwind"
+#     OCGT: "gas"
+#     H2: "Hydrogen\nstorage"
+#     OCGT marginal: "gas (marginal)"
+#     lines: "transmission\nlines"
+#     ror: "run of river"

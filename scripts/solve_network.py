@@ -63,35 +63,29 @@ def solve_network(n):
 
         return status, termination_condition
 
-    if not n.lines.s_nom_extendable.any():
-        # easy :)
-        status, termination_condition = run_lopf(n)
-    else:
+    lines_ext_b = n.lines.s_nom_extendable
+    if lines_ext_b.any():
         # puh: ok, we need to iterate, since there is a relation
         # between s/p_nom and r, x for branches.
         # msq_threshold = 0.1
         msq_threshold = 0.1
-
-        lines_ext_b = n.lines['s_nom_extendable']
         lines = pd.DataFrame(n.lines.loc[lines_ext_b, ['s_nom', 'r', 'x', 'type', 'num_parallel']])
-
-        if (lines_ext_b & (n.lines.type != '')).any():
+        lines_typed_b = n.lines.type != ''
+        if (lines_ext_b & lines_typed_b).any():
             # compute original s_nom to have something to compare against
-            l = n.lines.loc[lines_ext_b & (n.lines.type != ''), ['type', 'bus0', 'num_parallel']]
-            lines.loc[lines.type != '', 's_nom'] = (
+            l = n.lines.loc[lines_ext_b & lines_typed_b, ['type', 'bus0', 'num_parallel']]
+            lines.loc[lines_typed_b, 's_nom'] = (
                 np.sqrt(3) * l['type'].map(n.line_types.i_nom) * l['bus0'].map(n.buses.v_nom) * l['num_parallel']
             )
-
 
         def update_line_parameters(n, drop_lines_below=10):
             if drop_lines_below > 0:
                 small_lines_i = n.lines.index[n.lines.s_nom_opt < drop_lines_below]
                 lines.drop(small_lines_i, inplace=True)
                 n.lines.drop(small_lines_i, inplace=True)
+                lines_typed_b.drop(small_lines_i, inplace=True)
 
-            lines_ext_b = n.lines['s_nom_extendable']
             lines['s_nom_opt'] = n.lines.loc[lines_ext_b, 's_nom_opt']
-            lines_typed_b = lines.type != ""
 
             if (~lines_typed_b).any():
                 l_b = lines_ext_b & (n.lines.type == '')
@@ -114,23 +108,36 @@ def solve_network(n):
 
         def msq_diff(n):
             lines_err = np.sqrt(((n.lines.loc[lines_ext_b, 's_nom_opt']/lines['s_nom_opt'] - 1)**2).mean())
-            print("Mean square difference after iteration {} is {}".format(iteration, lines_err))
+            logger.info("Mean square difference after iteration {} is {}".format(iteration, lines_err))
             return lines_err
 
-        # def mae_diff(n):
-        #     lines_err = abs(n.lines.loc[lines_ext_b, 's_nom_opt'] - lines['s_nom_opt']).mean()/n.lines.loc[lines_ext_b, 's_nom_opt'].mean()
-        #     logger.info("Mean absolute difference after iteration {} is {}".format(iteration, lines_err))
-        #     return lines_err
-
-        while msq_diff(n) > msq_threshold or iteration < solve_opts.get('min_iterations', 2):
-            if iteration >= solve_opts.get('max_iterations', 999):
-                logger.info("Iteration %d beyond max_iterations %d. Stopping ...", iteration, into_t.categories['max_iterations'])
+        min_iterations = solve_opts.get('min_iterations', 2)
+        max_iterations = solve_opts.get('max_iterations', 999)
+        while msq_diff(n) > msq_threshold or iteration < min_iterations:
+            if iteration >= max_iterations:
+                logger.info("Iteration {} beyond max_iterations {}. Stopping ...".format(iteration, max_iterations))
                 break
 
             update_line_parameters(n)
             iteration += 1
 
+            # TODO take that out again
+            n.export_to_csv_folder(snakemake.output[0])
+
             status, termination_condition = run_lopf(n)
+
+        update_line_parameters(n)
+
+        logger.info("Running one more iteration with fixed line capacities")
+        if lines_ext_b.any():
+            n.lines.loc[lines_ext_b, 's_nom'] = n.lines.loc[lines_ext_b, 's_nom_opt']
+            n.lines.loc[lines_ext_b, 's_nom_extendable'] = False
+
+    status, termination_condition = run_lopf(n)
+
+    if lines_ext_b.any():
+        n.lines.loc[lines_ext_b, 's_nom'] = lines['s_nom']
+        n.lines.loc[lines_ext_b, 's_nom_extendable'] = True
 
     return n
 

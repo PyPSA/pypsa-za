@@ -27,6 +27,8 @@ rule landuse_map_to_tech_and_supply_region:
     params:
         landusetype_percent = lambda w: config['landusetype_percent'][w.tech]
     benchmark: "benchmarks/landuse_map_to_tech_and_supply_region/{tech}_{mask}"
+    threads: 1
+    resources: mem_mb=17000
     script: "scripts/landuse_map_to_tech_and_supply_region.py"
 
 rule inflow_per_country:
@@ -42,6 +44,8 @@ rule base_network:
         centroids='data/external/supply_regions/centroids.shp'
     output: "networks/base"
     benchmark: "benchmarks/base_network"
+    threads: 1
+    resources: mem_mb=1000
     script: "scripts/base_network.py"
 
 rule add_electricity:
@@ -51,7 +55,6 @@ rule add_electricity:
         load='data/external/SystemEnergy2009_13.csv',
         wind_pv_profiles='data/external/Wind_PV_Normalised_Profiles.xlsx',
         wind_area='data/internal/area_wind_{mask}.csv',
-        solar_pv_profiles='data/external/Wind_PV_Normalised_Profiles.xlsx',
         solar_area='data/internal/area_solar_{mask}.csv',
         existing_generators="data/external/Existing Power Stations SA.xlsx",
         hydro_inflow="data/internal/hydro_inflow.csv",
@@ -59,22 +62,37 @@ rule add_electricity:
     output: "networks/elec_{mask}"
     params: costs_sheetname=config['costs']['sheetname']
     benchmark: "benchmarks/add_electricity/elec_{mask}"
+    threads: 1
+    resources: mem_mb=1000
     script: "scripts/add_electricity.py"
 
 rule add_sectors:
     input:
         network="networks/elec_{mask}",
         emobility="data/external/emobility"
-    output: "networks/sector_{mask}_{flexs}"
-    benchmark: "benchmarks/add_sectors/sector_{mask}_{flexs}"
+    output: "networks/sector_{mask}_{sectors}"
+    benchmark: "benchmarks/add_sectors/sector_{mask}_{sectors}"
     script: "scripts/add_sectors.py"
 
 rule solve_network:
-    input: network="networks/{network}"
-    output: "results/{network}"
+    input: network="networks/sector_{network}"
+    output: "results/networks/{network}"
     log: gurobi="logs/{network}_gurobi.log", python="logs/{network}_python.log"
     benchmark: "benchmarks/solve_network/{network}"
+    threads: 4
+    resources: mem_mb=15000 # for electricity only
     script: "scripts/solve_network.py"
+
+rule extract_summaries:
+    input:
+        expand("results/networks/{mask}_{sectors}",
+               mask=config['scenario']['mask'],
+               sectors=config['scenario']['sectors'])
+    output: "results/summaries"
+    params:
+        scenario_tmpl="[mask]_[sectors]",
+        scenarios=config['scenario']
+    script: "scripts/extract_summaries.py"
 
 # rule add_flexibilities:
 #     input:

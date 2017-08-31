@@ -18,7 +18,7 @@ if 'snakemake' not in globals():
     snakemake = Dict()
     snakemake.input = Dict(network='../networks/elec_corridors/',
                            emobility='../data/external/emobility/')
-    snakemake.wildcards = Dict(mask='corridors', flexs='WEH+BEV+V2G')
+    snakemake.wildcards = Dict(mask='corridors', sectors='WEH+BEV+V2G')
     snakemake.output = ['../networks/sector_corridors_WEH+BEV+V2G']
     with open('../config.yaml') as f:
         snakemake.config = yaml.load(f)
@@ -89,7 +89,7 @@ def add_transport(n, V2G=True):
         madd(n, "Link", name="V2G", index=buses,
              bus0=buses_ev_battery, bus1=buses,
              p_nom=charging_discharging_power,
-             p_max_pu=battiery_availability,
+             p_max_pu=battery_availability,
              efficiency=opts['efficiency'])
 
     #TO DO
@@ -287,12 +287,12 @@ def add_water_heating(n):
 
 if __name__ == "__main__":
     n = pypsa.Network(snakemake.input.network)
-    flexs = set(snakemake.wildcards.flexs.split('+'))
+    sectors = set(snakemake.wildcards.sectors.split('+'))
 
-    if 'BEV' in flexs:
-        add_transport(n, V2G='VEG' in flexs)
+    if 'BEV' in sectors:
+        add_transport(n, V2G='V2G' in sectors)
 
-    # if 'WEH' in flexs:
+    # if 'WEH' in sectors:
     #     add_water_heating(n)
 
     n.export_to_csv_folder(snakemake.output[0])
