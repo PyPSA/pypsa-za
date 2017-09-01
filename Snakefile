@@ -7,6 +7,9 @@ configfile: "config.yaml"
 wildcard_constraints:
     mask="[a-zA-Z]+"
 
+rule all:
+    input: "results/summaries"
+
 rule landuse_remove_protected_and_conservation_areas:
     input:
         landuse = "data/external/Original_UTM35north/sa_lcov_2013-14_gti_utm35n_vs22b.tif",
