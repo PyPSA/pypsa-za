@@ -1,52 +1,52 @@
 scenario:
-  mask: ['corridors', 'redz']
-  sectors: [E, E+BEV, E+BEV+V2G]
-  cost: ['IRP2016-Apr2016', 'CSIR-Expected-Apr2016']
+  mask: ['redz'] #, 'corridors']
+  sectors: [E] #, E+BEV, E+BEV+V2G]
+  cost: ['CSIR-Expected-Apr2016'] #, 'IRP2016-Apr2016', ]
+  opts: ['T', 'Co2L', 'Co2L-T']
  
 year: "2050"
 historical_year: "2012"
-demand: 522.e+6 # 344TWh 2030, 428TWh 2040, 522TWh 2050
-                # IRP_Update_Assumptions_1904.pdf
 
-csp: false
+electricity:
+  demand: 522.e+6     # 344TWh 2030, 428TWh 2040, 522TWh 2050
+                      # IRP_Update_Assumptions_1904.pdf
+  co2limit: 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
 
-masks: ['corridors', 'redz']
+  csp: false
 
- # Gives us ball-park the available areas the IWES study reports
-landusetype_percent:
-  wind:
-    - [[7, 8, 9, 41], 80]
-    # - [[5, 6], 50]
-    # - [[11, 12, 14, 15], 10]
-  solar:
-    - [[7, 8, 9, 41], 80]
-    # - [[11, 12, 14, 15], 50]
-    # - [[46, 47, 51, 56, 64, 68, 72], 10]
+  extendable_carriers:
+    Generator: ['OCGT']
+    StorageUnit: ['Battery', 'CAES']
+  max_hours:
+    Battery: 3
+    CAES: 10
 
-capacity_per_sqm:
-  wind: 5   # half of 10 (IWES)
-  solar: 15 # "half" of 33 (IWES)
+potentials:
+  # Gives us ball-park the available areas the IWES study reports
+  landusetype_percent:
+    wind:
+      - [[7, 8, 9, 41], 80]
+      # - [[5, 6], 50]
+      # - [[11, 12, 14, 15], 10]
+    solar:
+      - [[7, 8, 9, 41], 80]
+      # - [[11, 12, 14, 15], 50]
+      # - [[46, 47, 51, 56, 64, 68, 72], 10]
+
+  capacity_per_sqm:
+    wind: 5   # half of 10 (IWES)
+    solar: 15 # "half" of 33 (IWES)
 
 hydro_inflow:
   countries: ['ZA', 'MZ']
   cutout: 'za-mz-2012'
 
-extendable_carriers:
-  Generator: ['OCGT']
-  StorageUnit: ['Battery', 'CAES']
-
-max_hours:
-  Battery: 3
-  CAES: 10
-
 costs:
-  EUR_to_ZAR: 15.63
   # costs come from data/internal/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx
-  sheetname: "IRP2016-Apr2016" # "CSIR-Apr2016"
+  #sheetname: "IRP2016-Apr2016" # "CSIR-Apr2016"
   discountrate: 0.08
   # except for lines which are specified here
   line:
-    transport: false
     overnight: 6000 # R/MWkm 400 * 15.63
     s_nom_factor: 0.7
     length_factor: 1.25
@@ -57,8 +57,10 @@ costs:
   marginal_cost: # 
     PV: 0.01
     Wind: 0.015
+  EUR_to_ZAR: 15.63
 
 transport:
+  # 2014 Energy 702EJ
   # Table 18 in 20170331CSIR_EC_DOE p. 48 (64)
   energy_total: 26.7e+6 # 24 2030, 25.2 2040, 26.7 2050
   # efficiency_gain: 3.5 # Explanation
@@ -121,6 +123,7 @@ plotting:
     hydrogen storage: "m"
     Battery: "slategray"
     battery storage: "slategray"
+    CAES: "lightgray"
     Nuclear: "r"
     Nuclear marginal: "r"
     Coal: "k"
@@ -129,6 +132,8 @@ plotting:
     Lignite marginal: "grey"
     CCGT: "orange"
     CCGT marginal: "orange"
+    Diesel: "darkred"
+    Diesel marginal: "darkred"
     heat pumps: "green"
     heat pump: "green"
     central heat pump: "green"

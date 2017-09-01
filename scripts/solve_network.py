@@ -67,7 +67,6 @@ def solve_network(n):
     if lines_ext_b.any():
         # puh: ok, we need to iterate, since there is a relation
         # between s/p_nom and r, x for branches.
-        # msq_threshold = 0.1
         msq_threshold = 0.1
         lines = pd.DataFrame(n.lines.loc[lines_ext_b, ['s_nom', 'r', 'x', 'type', 'num_parallel']])
         lines_typed_b = n.lines.type != ''

@@ -70,6 +70,12 @@ def base_network():
     )
 
     # Lines from touching regions
+    if 'T' in snakemake.wildcards.opts.split('-'):
+        line_component = 'Link'
+        line_type=''
+    else:
+        line_component = 'Line'
+        line_type='Al/St 240/40 4-bundle 380.0'
     line_costs = snakemake.config['costs']['line']
     def asarray(x): return np.asarray(list(map(np.asarray, x)))
     n.import_components_from_dataframe(
@@ -78,9 +84,9 @@ def base_network():
             length=lambda df: haversine(asarray(df.bus0.map(centroids)),
                                         asarray(df.bus1.map(centroids))) * line_costs['length_factor'],
             s_nom_extendable=True,
-            type='Al/St 240/40 4-bundle 380.0'
+            type=line_type
         ),
-        'Line'
+        line_component
     )
 
     discountrate = snakemake.config['costs']['discountrate']

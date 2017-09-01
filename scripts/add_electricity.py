@@ -19,7 +19,7 @@ from vresutils.costdata import annuity
 
 import pypsa
 
-from _helpers import madd
+from _helpers import madd, pdbcast
 
 def normed(s): return s/s.sum()
 
@@ -86,22 +86,23 @@ def load_costs():
 
 def attach_load(n):
     load = pd.read_csv(snakemake.input.load)
-    load = load.set_index(pd.to_datetime(load['SETTLEMENT_DATE'] + ' ' + load['PERIOD'].astype(str) + ':00').rename('t'))['SYSTEMENERGY']
+    load = load.set_index(
+        pd.to_datetime(load['SETTLEMENT_DATE'] + ' ' +
+                       load['PERIOD'].astype(str) + ':00')
+        .rename('t')
+    )['SYSTEMENERGY']
 
-    n.import_components_from_dataframe(
-        pd.DataFrame(dict(bus=n.buses.index), index=n.buses.index),
-        "Load"
-    )
-
-    demand = snakemake.config['demand'] * normed(load.loc[snakemake.config['historical_year']])
-    n.import_series_from_dataframe((xr.DataArray(demand) * xr.DataArray(normed(n.buses.population))).to_pandas(),
-                                   "Load", "p_set")
+    demand = (snakemake.config['electricity']['demand'] *
+              normed(load.loc[snakemake.config['historical_year']]))
+    madd(n, "Load",
+         bus=n.buses.index,
+         p_set=pdbcast(demand, normed(n.buses.population)))
 
 # ### Generators
 
 def attach_wind_and_solar(n, costs):
     historical_year = snakemake.config['historical_year']
-    capacity_per_sqm = snakemake.config['capacity_per_sqm']
+    capacity_per_sqm = snakemake.config['electricity']['capacity_per_sqm']
 
     ## Wind
 
@@ -256,7 +257,7 @@ def attach_existing_generators(n, costs):
     n.import_components_from_dataframe(hydro, "StorageUnit")
     n.import_series_from_dataframe(hydro_inflow_za, "StorageUnit", "inflow")
 
-    if snakemake.config.get('csp'):
+    if snakemake.config['electricity'].get('csp'):
         n.add("Carrier", "CSP")
 
         csp = (pd.DataFrame(gens.loc[gens.carrier == "CSP"])
@@ -271,8 +272,8 @@ def attach_existing_generators(n, costs):
     n.import_components_from_dataframe(gens, "Generator")
 
 def attach_extendable_generators(n, costs):
-    carriers = snakemake.config['extendable_carriers']['Generator']
-    max_hours = snakemake.config['max_hours']
+    elec_opts = snakemake.config['electricity']
+    carriers = elec_opts['extendable_carriers']['Generator']
 
     _add_missing_carriers_from_costs(n, costs, carriers)
 
@@ -287,8 +288,9 @@ def attach_extendable_generators(n, costs):
 
 
 def attach_storage(n, costs):
-    carriers = snakemake.config['extendable_carriers']['StorageUnit']
-    max_hours = snakemake.config['max_hours']
+    elec_opts = snakemake.config['electricity']
+    carriers = elec_opts['extendable_carriers']['StorageUnit']
+    max_hours = elec_opts['max_hours']
 
     _add_missing_carriers_from_costs(n, costs, carriers)
 
@@ -304,6 +306,11 @@ def attach_storage(n, costs):
              max_hours=max_hours[carrier],
              cyclic_state_of_charge=True)
 
+def add_co2limit(n):
+    n.add("GlobalConstraint", "CO2Limit",
+          carrier_attribute="co2_emissions", sense="<=",
+          constant=snakemake.config['co2limit'])
+
 if __name__ == "__main__":
     n = pypsa.Network(snakemake.input.base_network)
     costs = load_costs()
@@ -312,5 +319,7 @@ if __name__ == "__main__":
     attach_wind_and_solar(n, costs)
     attach_extendable_generators(n, costs)
     attach_storage(n, costs)
+    if 'Co2L' in snakemake.wildcards.opts.split('-'):
+        add_co2limit(n)
 
     n.export_to_csv_folder(snakemake.output[0])

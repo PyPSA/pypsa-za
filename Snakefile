@@ -24,8 +24,6 @@ rule landuse_map_to_tech_and_supply_region:
     output:
         raster = "data/internal/raster_{tech}_percent_{mask}.tiff",
         area = "data/internal/area_{tech}_{mask}.csv"
-    params:
-        landusetype_percent = lambda w: config['landusetype_percent'][w.tech]
     benchmark: "benchmarks/landuse_map_to_tech_and_supply_region/{tech}_{mask}"
     threads: 1
     resources: mem_mb=17000
@@ -59,19 +57,19 @@ rule add_electricity:
         existing_generators="data/external/Existing Power Stations SA.xlsx",
         hydro_inflow="data/internal/hydro_inflow.csv",
         tech_costs="data/external/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx"
-    output: "networks/elec_{cost}_{mask}"
+    output: "networks/elec_{cost}_{mask}_{opts}"
     params: costs_sheetname=lambda w: w.cost
-    benchmark: "benchmarks/add_electricity/elec_{mask}"
+    benchmark: "benchmarks/add_electricity/elec_{mask}_{opts}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/add_electricity.py"
 
 rule add_sectors:
     input:
-        network="networks/elec_{cost}_{mask}",
+        network="networks/elec_{cost}_{mask}_{opts}",
         emobility="data/external/emobility"
-    output: "networks/sector_{cost}_{mask}_{sectors}"
-    benchmark: "benchmarks/add_sectors/sector_{mask}_{sectors}"
+    output: "networks/sector_{cost}_{mask}_{sectors}_{opts}"
+    benchmark: "benchmarks/add_sectors/sector_{mask}_{sectors}_{opts}"
     script: "scripts/add_sectors.py"
 
 rule solve_network:
@@ -85,11 +83,11 @@ rule solve_network:
 
 rule extract_summaries:
     input:
-        expand("results/networks/{cost}_{mask}_{sectors}",
+        expand("results/networks/{cost}_{mask}_{sectors}_{opts}",
                **config['scenario'])
     output: "results/summaries"
     params:
-        scenario_tmpl="[cost]_[mask]_[sectors]",
+        scenario_tmpl="[cost]_[mask]_[sectors]_[opts]",
         scenarios=config['scenario']
     script: "scripts/extract_summaries.py"
 
