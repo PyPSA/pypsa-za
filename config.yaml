@@ -1,6 +1,7 @@
 scenario:
   mask: ['corridors', 'redz']
-  sectors: [E, E+BEV] #, E+BEV, E+BEV+V2G]
+  sectors: [E, E+BEV, E+BEV+V2G]
+  cost: ['IRP2016-Apr2016', 'CSIR-Expected-Apr2016']
  
 year: "2050"
 historical_year: "2012"
@@ -92,21 +93,20 @@ solving:
 plotting:
   vre_techs: ["Wind", "PV"]
   conv_techs: ["OCGT", "Diesel", "Coal"]
-  storage_techs: ["PHS", "hydro", "H2", "battery"]
+  storage_techs: ["CAES", "Battery", "Pumped storage", "Hydro"]
   store_techs: ["Li ion", "water tanks"]
   load_carriers: ["AC load", "heat load", "Li ion load"]
+  AC_carriers: ["AC line", "AC transformer"]
+  link_carriers: ["DC line", "Converter AC-DC"] 
   heat_links: ["heat pump", "resistive heater", "CHP heat", "CHP electric",
                "gas boiler", "central heat pump", "central resistive heater", "central CHP heat",
                "central CHP electric", "central gas boiler"]
   heat_generators: ["gas boiler", "central gas boiler", "solar thermal collector", "central solar thermal collector"]
   tech_colors:
-    onwind: "b"
-    onshore wind: "b"
-    offwind: "c"
-    offshore wind: "c"
-    hydro: "g"
+    Wind: "b"
+    Hydro: "g"
     ror: "g"
-    solar: "y"
+    PV: "y"
     OCGT: "brown"
     OCGT marginal: "sandybrown"
     OCGT-heat: "orange"
@@ -119,7 +119,7 @@ plotting:
     transmission lines: "k"
     H2: "m"
     hydrogen storage: "m"
-    battery: "slategray"
+    Battery: "slategray"
     battery storage: "slategray"
     Nuclear: "r"
     Nuclear marginal: "r"
@@ -141,23 +141,20 @@ plotting:
     CHP electric: "r"
     central CHP heat: "r"
     central CHP electric: "r"
-    PHS: "g"
+    Pumped storage: "g"
     Ambient: "k"
-    Electric load: "b"
+    AC load: "b"
     Heat load: "r"
-    Transport load: "grey"
+    Li ion load: "grey"
     heat: "r"
     Li ion: "grey"
     district heating: "#CC4E5C"
   nice_names:
-    offwind: "offshore wind"
-    onwind: "onshore wind"
-    OCGT: "gas"
-    H2: "hydrogen storage"
-    battery: "battery storage"
-    OCGT marginal: "gas (marginal)"
-    lines: "transmission lines"
-    ror: "run of river"
+    OCGT: "Gas"
+    Battery: "Battery storage"
+    OCGT marginal: "Gas (marginal)"
+    lines: "Transmission lines"
+    ror: "Run of river"
   nice_names_n:
     offwind: "offshore\nwind"
     onwind: "onshore\nwind"

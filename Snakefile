@@ -59,8 +59,8 @@ rule add_electricity:
         existing_generators="data/external/Existing Power Stations SA.xlsx",
         hydro_inflow="data/internal/hydro_inflow.csv",
         tech_costs="data/external/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx"
-    output: "networks/elec_{mask}"
-    params: costs_sheetname=config['costs']['sheetname']
+    output: "networks/elec_{cost}_{mask}"
+    params: costs_sheetname=lambda w: w.cost
     benchmark: "benchmarks/add_electricity/elec_{mask}"
     threads: 1
     resources: mem_mb=1000
@@ -68,9 +68,9 @@ rule add_electricity:
 
 rule add_sectors:
     input:
-        network="networks/elec_{mask}",
+        network="networks/elec_{cost}_{mask}",
         emobility="data/external/emobility"
-    output: "networks/sector_{mask}_{sectors}"
+    output: "networks/sector_{cost}_{mask}_{sectors}"
     benchmark: "benchmarks/add_sectors/sector_{mask}_{sectors}"
     script: "scripts/add_sectors.py"
 
@@ -85,12 +85,11 @@ rule solve_network:
 
 rule extract_summaries:
     input:
-        expand("results/networks/{mask}_{sectors}",
-               mask=config['scenario']['mask'],
-               sectors=config['scenario']['sectors'])
+        expand("results/networks/{cost}_{mask}_{sectors}",
+               **config['scenario'])
     output: "results/summaries"
     params:
-        scenario_tmpl="[mask]_[sectors]",
+        scenario_tmpl="[cost]_[mask]_[sectors]",
         scenarios=config['scenario']
     script: "scripts/extract_summaries.py"
 
