@@ -17,6 +17,8 @@ rule landuse_remove_protected_and_conservation_areas:
         conservation_areas = "data/external/SACAD_OR_2017_Q2/"
     output: "data/internal/landuse_without_protected_conservation.tiff"
     benchmark: "benchmarks/landuse_remove_protected_and_conservation_areas"
+    threads: 1
+    resources: mem_mb=10000
     script: "scripts/landuse_remove_protected_and_conservation_areas.py"
 
 rule landuse_map_to_tech_and_supply_region:
@@ -36,6 +38,8 @@ rule inflow_per_country:
     input: EIA_hydro_gen="data/external/EIA_hydro_generation_2011_2014.csv"
     output: "data/internal/hydro_inflow.csv"
     benchmark: "benchmarks/inflow_per_country"
+    threads: 1
+    resources: mem_mb=1000
     script: "scripts/inflow_per_country.py"
 
 rule base_network:
@@ -43,15 +47,15 @@ rule base_network:
         supply_regions='data/external/supply_regions/supply_regions.shp',
         population='data/external/afripop/ZAF15adjv4.tif',
         centroids='data/external/supply_regions/centroids.shp'
-    output: "networks/base"
-    benchmark: "benchmarks/base_network"
+    output: "networks/base_{opts}"
+    benchmark: "benchmarks/base_network_{opts}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/base_network.py"
 
 rule add_electricity:
     input:
-        base_network='networks/base',
+        base_network='networks/base_{opts}',
         supply_regions='data/external/supply_regions/supply_regions.shp',
         load='data/external/SystemEnergy2009_13.csv',
         wind_pv_profiles='data/external/Wind_PV_Normalised_Profiles.xlsx',
@@ -73,6 +77,8 @@ rule add_sectors:
         emobility="data/external/emobility"
     output: "networks/sector_{cost}_{mask}_{sectors}_{opts}"
     benchmark: "benchmarks/add_sectors/sector_{mask}_{sectors}_{opts}"
+    threads: 1
+    resources: mem_mb=1000
     script: "scripts/add_sectors.py"
 
 rule solve_network:
