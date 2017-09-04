@@ -269,7 +269,7 @@ def attach_existing_generators(n, costs):
 
         # TODO add to network with time-series and everything
 
-    gens = (gens.loc[gens.carrier.isin({"Coal", "Nuclear", "Diesel"})]
+    gens = (gens.loc[gens.carrier.isin({"Coal", "Nuclear"})]
             .drop(list(ps_f.values()) + list(csp_f.values()), axis=1))
     _add_missing_carriers_from_costs(n, costs, gens.carrier.unique())
     n.import_components_from_dataframe(gens, "Generator")

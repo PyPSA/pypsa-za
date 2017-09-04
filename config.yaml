@@ -2,13 +2,13 @@ scenario:
   mask: [redz] #, 'corridors']
   sectors: [E,E+BEV] #, E+BEV, E+BEV+V2G]
   cost: ['CSIR-Expected-Apr2016'] #, 'IRP2016-Apr2016', ]
-  opts: ['-', 'T', 'Co2L', 'Co2L-T']
+  opts: ['N', 'T', 'Co2L', 'Co2L-T']
  
-year: "2050"
+year: "2040"
 historical_year: "2012"
 
 electricity:
-  demand: 522.e+6     # 344TWh 2030, 428TWh 2040, 522TWh 2050
+  demand: 428.e+6     # 344TWh 2030, 428TWh 2040, 522TWh 2050
                       # IRP_Update_Assumptions_1904.pdf
   co2limit: 10.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
 
@@ -62,11 +62,11 @@ costs:
 transport:
   # 2014 Energy 702EJ
   # Table 18 in 20170331CSIR_EC_DOE p. 48 (64)
-  energy_total: 26.7e+6 # 24 2030, 25.2 2040, 26.7 2050
+  energy_total: 25.2e+6 # 24 2030, 25.2 2040, 26.7 2050
   # efficiency_gain: 3.5 # Explanation
   availability_max: 0.95
   availability_mean: 0.8
-  total_cars: 8.9e+6 # 8.0 2030, 8.4 2040, 8.9 2050
+  total_cars: 8.4e+6 # 8.0 2030, 8.4 2040, 8.9 2050
   car_battery_p_nom: 0.011 # 11kW 3-phase charger
   car_battery_e_nom: 0.05  # 50kWh battery
   # http://www.zeit.de/mobilitaet/2014-10/auto-fahrzeug-bestand
