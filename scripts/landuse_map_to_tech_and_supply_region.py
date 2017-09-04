@@ -9,8 +9,9 @@ src_data = src.read(1)
 meta = src.meta.copy()
 
 # Write only percent value in allowed landuse gridcells
+landusetype_percent = snakemake.config['potentials']['landusetype_percent'][snakemake.wildcards.tech]
 data = np.zeros_like(src_data)
-for grid_codes, value in snakemake.config['potentials']['landusetype_percent']:
+for grid_codes, value in landusetype_percent:
     data.ravel()[np.in1d(src_data.ravel(), grid_codes)] = value
 
 del src_data
