@@ -1,6 +1,6 @@
 scenario:
   mask: [redz] #, 'corridors']
-  sectors: [E+BEV] #, E+BEV, E+BEV+V2G]
+  sectors: [E,E+BEV] #, E+BEV, E+BEV+V2G]
   cost: ['CSIR-Expected-Apr2016'] #, 'IRP2016-Apr2016', ]
   opts: ['-', 'T', 'Co2L', 'Co2L-T']
  
@@ -10,7 +10,7 @@ historical_year: "2012"
 electricity:
   demand: 522.e+6     # 344TWh 2030, 428TWh 2040, 522TWh 2050
                       # IRP_Update_Assumptions_1904.pdf
-  co2limit: 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
+  co2limit: 10.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
 
   csp: false
 

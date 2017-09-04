@@ -66,8 +66,11 @@ def load_costs():
     costs['marginal_cost'] = (costs.pop('Variable O&M').fillna(0.) +
                               3.6*costs.pop('Fuel cost').fillna(0.))
 
-    costs = costs.rename(columns=(costs.columns.to_series().loc[lambda s: s.str.endswith(' emissions')]
-                                  .str.lower().str.replace(' ', '_')))
+    emissions_cols = costs.columns.to_series().loc[lambda s: s.str.endswith(' emissions')]
+    costs.loc[:, emissions_cols.index] = (costs.loc[:, emissions_cols.index]
+                                          .multiply(costs['efficiency'], axis=0)/1e3).fillna(0.)
+
+    costs = costs.rename(columns=emissions_cols.str.lower().str.replace(' ', '_'))
     costs = costs.rename({'Coal (PF)': 'Coal', 'Nuclear (DoE)': 'Nuclear',
                          'Solar PV (fixed)': 'PV', 'Battery\n(Li-Ion, 3h)': 'Battery',
                          'CAES\n(8h)': 'CAES', 'Pumped Storage': 'Pumped storage'})
