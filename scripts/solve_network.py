@@ -36,8 +36,8 @@ def prepare_network(n):
 
     if solve_opts.get('noisy_costs'):
         for t in n.iterate_components():
-            if 'capital_cost' in t.df:
-                t.df['capital_cost'] += 1e1 + 2.*(np.random.random(len(t.df)) - 0.5)
+            #if 'capital_cost' in t.df:
+            #    t.df['capital_cost'] += 1e1 + 2.*(np.random.random(len(t.df)) - 0.5)
             if 'marginal_cost' in t.df:
                 t.df['marginal_cost'] += 1e-2 + 2e-3*(np.random.random(len(t.df)) - 0.5)
 
