@@ -81,7 +81,11 @@ def base_network():
                              lines['length'] / line_costs['s_nom_factor'])
 
     if 'T' in snakemake.wildcards.opts.split('-'):
-        n.import_components_from_dataframe(lines.assign(p_nom_extendable=True), "Link")
+        n.import_components_from_dataframe(
+            lines.assign(p_nom_extendable=True,
+                         p_min_pu=-1),
+            "Link"
+        )
     else:
         n.import_components_from_dataframe(
             lines.assign(s_nom_extendable=True,
