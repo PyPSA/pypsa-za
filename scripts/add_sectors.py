@@ -62,7 +62,8 @@ def add_transport(n, V2G=True):
 
     n.add("Carrier", "Li ion")
     buses_ev_battery = madd(n, "Bus", name="EV battery", index=buses, carrier="Li ion")
-    madd(n, "Load", bus=buses_ev_battery,
+    madd(n, "Load", index=buses,
+         bus=buses_ev_battery,
          p_set=pdbcast(transport_demand, normed(population)))
 
     cars = normed(population) * opts['total_cars']
