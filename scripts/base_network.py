@@ -70,30 +70,24 @@ def base_network():
     )
 
     # Lines from touching regions
-    if 'T' in snakemake.wildcards.opts.split('-'):
-        line_component = 'Link'
-        line_type=''
-    else:
-        line_component = 'Line'
-        line_type='Al/St 240/40 4-bundle 380.0'
-    line_costs = snakemake.config['costs']['line']
-    def asarray(x): return np.asarray(list(map(np.asarray, x)))
-    n.import_components_from_dataframe(
-        pd.DataFrame(edges_between_touching_regions(regions), columns=['bus0', 'bus1'])
-        .assign(
-            length=lambda df: haversine(asarray(df.bus0.map(centroids)),
-                                        asarray(df.bus1.map(centroids))) * line_costs['length_factor'],
-            s_nom_extendable=True,
-            type=line_type
-        ),
-        line_component
-    )
+    lines = pd.DataFrame(edges_between_touching_regions(regions), columns=['bus0', 'bus1'])
 
     discountrate = snakemake.config['costs']['discountrate']
-    n.lines['capital_cost'] = (
-        annuity(line_costs['lifetime'], discountrate) * line_costs['overnight'] *
-        n.lines['length'] / line_costs['s_nom_factor']
-    )
+    line_costs = snakemake.config['costs']['line']
+    def asarray(x): return np.asarray(list(map(np.asarray, x)))
+    lines['length'] = haversine(asarray(lines.bus0.map(centroids)),
+                                asarray(lines.bus1.map(centroids))) * line_costs['length_factor']
+    lines['capital_cost'] = (annuity(line_costs['lifetime'], discountrate) * line_costs['overnight'] *
+                             lines['length'] / line_costs['s_nom_factor'])
+
+    if 'T' in snakemake.wildcards.opts.split('-'):
+        n.import_components_from_dataframe(lines.assign(p_nom_extendable=True), "Link")
+    else:
+        n.import_components_from_dataframe(
+            lines.assign(s_nom_extendable=True,
+                         type='Al/St 240/40 4-bundle 380.0'),
+            "Line"
+        )
 
     return n
 
