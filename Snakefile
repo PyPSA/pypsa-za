@@ -1,6 +1,6 @@
 configfile: "config.yaml"
 
-# localrules: all, add_flexibilities
+localrules: all, base_network, add_electricity, add_sectors, extract_summaries
 
 # rule all:
 #     input: expand("results/no_grid_expansion/{flex}", flex = config['flexibilities'])
@@ -87,7 +87,7 @@ rule solve_network:
     log: gurobi="logs/{network}_gurobi.log", python="logs/{network}_python.log"
     benchmark: "benchmarks/solve_network/{network}"
     threads: 4
-    resources: mem_mb=15000 # for electricity only
+    resources: mem_mb=20000 # for electricity only
     script: "scripts/solve_network.py"
 
 rule extract_summaries:
