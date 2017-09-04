@@ -28,7 +28,7 @@ def prepare_network(n):
         madd(n, "Generator", "Load",
              bus=n.buses.index,
              carrier='load',
-             marginal_cost=1.0e4 * snakemake.config['costs']['EUR_to_ZAR'],
+             marginal_cost=1.0e5 * snakemake.config['costs']['EUR_to_ZAR'],
              # intersect between macroeconomic and surveybased
              # willingness to pay
              # http://journal.frontiersin.org/article/10.3389/fenrg.2015.00055/full
