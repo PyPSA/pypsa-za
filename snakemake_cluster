@@ -1,0 +1,3 @@
+#!/bin/bash
+
+snakemake --cluster-config cluster.yaml --cluster "sbatch -p {cluster.partition} -n 1 --cpus-per-task {cluster.cpus} -o {cluster.output} --mem {resources.mem_mb}" "$@" 
