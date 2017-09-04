@@ -16,10 +16,10 @@ if 'snakemake' not in globals():
     from vresutils import Dict
     import yaml
     snakemake = Dict()
-    snakemake.input = Dict(network='../networks/elec_corridors/',
+    snakemake.input = Dict(network='../networks/elec_CSIR-Expected-Apr2016_redz_Co2L',
                            emobility='../data/external/emobility/')
-    snakemake.wildcards = Dict(mask='corridors', sectors='WEH+BEV+V2G')
-    snakemake.output = ['../networks/sector_corridors_WEH+BEV+V2G']
+    snakemake.wildcards = Dict(sectors="E+BEV", mask="redz", opts="Co2L", cost="CSIR-Expected-Apr2016")
+    snakemake.output = ['../networks/sector_CSIR-Expected-Apr2016_redz_E+BEV_Co2L']
     with open('../config.yaml') as f:
         snakemake.config = yaml.load(f)
 
@@ -68,7 +68,7 @@ def add_transport(n, V2G=True):
     cars = normed(population) * opts['total_cars']
     charging_discharging_power = cars * opts['car_battery_p_nom']
 
-    madd(n, "Store", name="battery storage",
+    madd(n, "Store", name="battery storage", index=buses,
          bus=buses_ev_battery,
          e_cyclic=True,
          e_nom=cars * opts['car_battery_e_nom'],

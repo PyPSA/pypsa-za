@@ -309,7 +309,7 @@ def attach_storage(n, costs):
 def add_co2limit(n):
     n.add("GlobalConstraint", "CO2Limit",
           carrier_attribute="co2_emissions", sense="<=",
-          constant=snakemake.config['co2limit'])
+          constant=snakemake.config['electricity']['co2limit'])
 
 if __name__ == "__main__":
     n = pypsa.Network(snakemake.input.base_network)
