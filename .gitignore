@@ -1,0 +1,11 @@
+# Snakemake internals
+.snakemake*
+__pycache__
+
+# Directory structure
+networks/*
+resources/*
+results/*
+
+benchmarks/*
+logs/*
