@@ -7,6 +7,8 @@ from six.moves import map, zip
 from six import itervalues, iterkeys
 from collections import OrderedDict as odict
 
+from _helpers import load_network
+
 if 'snakemake' not in globals():
     from vresutils import Dict
     import yaml
@@ -35,24 +37,6 @@ def collect_networks():
 
     return networks
 
-def load_network(fn):
-    n = pypsa.Network(fn)
-
-    n.loads["carrier"] = n.loads.bus.map(n.buses.carrier) + " load"
-    n.stores["carrier"] = n.stores.bus.map(n.buses.carrier)
-
-    n.links["carrier"] = (n.links.bus0.map(n.buses.carrier) + "-" + n.links.bus1.map(n.buses.carrier))
-    n.lines["carrier"] = "AC line"
-    n.transformers["carrier"] = "AC transformer"
-
-    # #if the carrier was not set on the heat storage units
-    # bus_carrier = n.storage_units.bus.map(n.buses.carrier)
-    # n.storage_units.loc[bus_carrier == "heat","carrier"] = "water tanks"
-
-    for name in opts['heat_links'] + opts['heat_generators']:
-        n.links.loc[n.links.index.to_series().str.endswith(name), "carrier"] = name
-
-    return n
 
 
 group_sum_dir = snakemake.output[0]
