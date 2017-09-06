@@ -135,6 +135,7 @@ plotting:
     gas: "brown"
     lines: "k"
     AC line: "k"
+    AC-AC: "k"
     transmission lines: "k"
     H2: "m"
     hydrogen storage: "m"
@@ -176,6 +177,8 @@ plotting:
     OCGT marginal: "Gas (marginal)"
     #Battery: "Battery storage"
     lines: "Transmission lines"
+    AC line: "AC lines"
+    AC-AC: "DC lines"
     ror: "Run of river"
   nice_names_n:
     offwind: "offshore\nwind"

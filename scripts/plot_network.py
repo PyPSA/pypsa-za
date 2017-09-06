@@ -6,16 +6,16 @@ if 'snakemake' not in globals():
     snakemake.wildcards = Dict(#cost=#'IRP2016-Apr2016',
                                cost='CSIR-Expected-Apr2016',
                                mask='redz',
-                               sectors='E',
-                               opts='Co2L',
+                               sectors='E+BEV',
+                               opts='Co2L-T',
                                attr='p_nom')
     snakemake.input = Dict(network='../results/networks/{cost}_{mask}_{sectors}_{opts}'.format(**snakemake.wildcards),
                            supply_regions='../data/external/supply_regions/supply_regions.shp',
                            maskshape = "../data/external/masks/{mask}".format(**snakemake.wildcards))
     snakemake.output = (expand('../results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}.pdf',
-                              **snakemake.wildcards) + 
+                               **snakemake.wildcards) +
                         expand('../results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}_ext.pdf',
-                              **snakemake.wildcards))
+                               **snakemake.wildcards))
     with open('../config.yaml') as f:
         snakemake.config = yaml.load(f)
 else:
@@ -117,7 +117,7 @@ n.plot(line_widths=line_widths/linewidth_factor,
        bus_sizes=bus_sizes/bus_size_factor,
        bus_colors=tech_colors,
        boundaries=map_boundaries,
-       basemap=True,
+       basemap=False,
        ax=ax)
 ax.set_aspect('equal')
 ax.axis('off')
@@ -163,7 +163,9 @@ l3 = ax.legend(handles, labels, loc="lower left", bbox_to_anchor=(0.74, 0.0),
           fontsize=10, handletextpad=0., columnspacing=0.5, ncol=2, title='Technology')
 
 
-fig.savefig(snakemake.output[0], dpi=150, bbox_inches='tight', bbox_extra_artists=[l1,l2,l3])
+for ext in snakemake.params.ext:
+    fig.savefig(snakemake.output.only_map+'.'+ext, dpi=150,
+                bbox_inches='tight', bbox_extra_artists=[l1,l2,l3])
 
 n = load_network(snakemake.input.network, opts, combine_hydro_ps=False)
 
@@ -172,7 +174,7 @@ n = load_network(snakemake.input.network, opts, combine_hydro_ps=False)
 ax1 = ax = fig.add_axes([-0.15, 0.555, 0.2, 0.2])
 ax.set_title('Energy per technology', dict(fontsize=12))
 
-e_primary = aggregate_p(n).loc[lambda s: s>0].drop('load')
+e_primary = aggregate_p(n).drop('load').loc[lambda s: s>0]
 
 patches, texts, autotexts = ax.pie(e_primary,
        startangle=90,
@@ -197,8 +199,8 @@ costs = aggregate_costs(n).reset_index(level=0, drop=True)
 costs = costs['capital'].add(costs['marginal'], fill_value=0.)
 
 costs_graph = pd.DataFrame(dict(a=costs.drop('load')),
-                          index=['AC line', 'Wind', 'PV', 'Nuclear',
-                                 'Coal', 'OCGT', 'CAES', 'Battery'])
+                          index=['AC-AC', 'AC line', 'Wind', 'PV', 'Nuclear',
+                                 'Coal', 'OCGT', 'CAES', 'Battery']).dropna()
 bottom = np.array([0.])
 texts = []
 
@@ -220,7 +222,10 @@ ax.grid(True, axis="y", color='k', linestyle='dotted')
 
 #fig.tight_layout()
 
-fig.savefig(snakemake.output[1], transparent=True, bbox_inches='tight', bbox_extra_artists=[l1, l2, l3, ax1, ax2])
+
+for ext in snakemake.params.ext:
+    fig.savefig(snakemake.output.ext + '.' + ext, transparent=True,
+                bbox_inches='tight', bbox_extra_artists=[l1, l2, l3, ax1, ax2])
 
 
 # if False:

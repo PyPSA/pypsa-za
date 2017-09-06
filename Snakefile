@@ -1,6 +1,6 @@
 configfile: "config.yaml"
 
-localrules: all, base_network, add_electricity, add_sectors, extract_summaries
+localrules: all, base_network, add_electricity, add_sectors, extract_summaries, plot_network
 
 wildcard_constraints:
     mask="[a-zA-Z0-9]+",
@@ -90,6 +90,37 @@ rule solve_network:
     threads: 4
     resources: mem_mb=20000 # for electricity only
     script: "scripts/solve_network.py"
+
+rule plot_network:
+    input:
+        network='results/networks/{cost}_{mask}_{sectors}_{opts}',
+        supply_regions='data/supply_regions/supply_regions.shp',
+        maskshape="data/masks/{mask}"
+    output:
+        only_map=touch('results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}'),
+        ext=touch('results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}_ext')
+    params: ext=['png', 'pdf']
+    script: "scripts/plot_network.py"
+
+rule scenario_plots:
+    input:
+        expand('results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}',
+               attr=['p_nom'],
+               **config['scenario'])
+    output:
+        touch('results/plots/scenario_plots')
+
+rule scenario_comparison:
+    input:
+        expand('results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}_ext',
+               attr=['p_nom'],
+               **config['scenario'])
+    output:
+       html='results/plots/scenario_{param}.html'
+    params:
+       tmpl="network_[cost]_[mask]_[sectors]_[opts]_[attr]_ext",
+       plot_dir='results/plots'
+    script: "scripts/scenario_comparison.py"
 
 rule extract_summaries:
     input:
