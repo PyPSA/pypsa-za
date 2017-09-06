@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from six import iteritems
+from six import iteritems, iterkeys, itervalues
 
 import pypsa
 
@@ -60,3 +60,66 @@ def load_network(fn, opts, combine_hydro_ps=True):
         n.links.loc[n.links.index.to_series().str.endswith(name), "carrier"] = name
 
     return n
+
+def aggregate_p_nom(n):
+    return pd.concat([
+        n.generators.groupby("carrier").p_nom_opt.sum(),
+        n.storage_units.groupby("carrier").p_nom_opt.sum(),
+        n.links.groupby("carrier").p_nom_opt.sum(),
+        n.loads_t.p.groupby(n.loads.carrier,axis=1).sum().mean()
+    ])
+
+def aggregate_p(n):
+    return pd.concat([
+        n.generators_t.p.sum().groupby(n.generators.carrier).sum(),
+        n.storage_units_t.p.sum().groupby(n.storage_units.carrier).sum(),
+        n.stores_t.p.sum().groupby(n.stores.carrier).sum(),
+        -n.loads_t.p.sum().groupby(n.loads.carrier).sum()
+    ])
+
+def aggregate_e_nom(n):
+    return pd.concat([
+        (n.storage_units["p_nom_opt"]*n.storage_units["max_hours"]).groupby(n.storage_units["carrier"]).sum(),
+        n.stores["e_nom_opt"].groupby(n.stores.carrier).sum()
+    ])
+
+def aggregate_p_curtailed(n):
+    return pd.concat([
+        ((n.generators_t.p_max_pu.sum().multiply(n.generators.p_nom_opt) - n.generators_t.p.sum())
+         .groupby(n.generators.carrier).sum()),
+        ((n.storage_units_t.inflow.sum() - n.storage_units_t.p.sum())
+         .groupby(n.storage_units.carrier).sum())
+    ])
+
+def aggregate_costs(n, flatten=False, opts=None):
+    components = dict(Link=("p_nom_opt", "p0"),
+                      Generator=("p_nom_opt", "p"),
+                      StorageUnit=("p_nom_opt", "p"),
+                      Store=("e_nom_opt", "p"),
+                      Line=("s_nom_opt", None),
+                      Transformer=("s_nom_opt", None))
+
+    costs = {}
+    for c, (p_nom, p_attr) in zip(
+        n.iterate_components(iterkeys(components), skip_empty=False),
+        itervalues(components)
+    ):
+        costs[(c.list_name, 'capital')] = (c.df[p_nom] * c.df.capital_cost).groupby(c.df.carrier).sum()
+        if p_attr is not None:
+            p = c.pnl[p_attr].sum()
+            if c.name == 'StorageUnit':
+                p = p.loc[p > 0]
+            costs[(c.list_name, 'marginal')] = (p*c.df.marginal_cost).groupby(c.df.carrier).sum()
+    costs = pd.concat(costs)
+
+    if flatten:
+        assert opts is not None
+        conv_techs = opts['conv_techs']
+
+        costs = costs.reset_index(level=0, drop=True)
+        costs = costs['capital'].add(
+            costs['marginal'].rename({t: t + ' marginal' for t in conv_techs}),
+            fill_value=0.
+        )
+
+    return costs
