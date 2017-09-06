@@ -81,6 +81,10 @@ def load_costs():
             overwrites = pd.Series(overwrites)
             costs.loc[overwrites.index, attr] = overwrites
 
+    if 'Ep' in snakemake.wildcards.opts.split('-'):
+        ep = pd.Series(snakemake.config['costs']['emission_prices']).rename(lambda x: x+'_emissions')
+        costs['marginal_cost'] += (costs[ep.index] * ep).sum(axis=1)
+
     return costs
 
 # ## Attach components

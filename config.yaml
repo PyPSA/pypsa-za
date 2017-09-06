@@ -1,8 +1,8 @@
 scenario:
-  mask: [redz] #, 'corridors']
-  sectors: [E,E+BEV] #, E+BEV, E+BEV+V2G]
+  mask: [redz,corridors]
+  sectors: [E,E+BEV,E+BEV+V2G] #, E+BEV, E+BEV+V2G]
   cost: ['CSIR-Expected-Apr2016'] #, 'IRP2016-Apr2016', ]
-  opts: ['N', 'T', 'Co2L', 'Co2L-T']
+  opts: ['N', 'T', 'Ep', 'Ep-T', 'Co2L', 'Co2L-T']
  
 year: "2040"
 historical_year: "2012"
@@ -58,6 +58,14 @@ costs:
     PV: 0.01
     Wind: 0.015
   EUR_to_ZAR: 15.63
+
+  emission_prices: # only used with the option Ep (emission prices)
+    # Externality costs from Integrated Energy Plan by the ZA DOE
+    co2: 0.27e+3
+    sox: 7.6e+3
+    nox: 4.5e+3
+    #hg: 41484e+3
+    particulate: 11.3e+3
 
 transport:
   # 2014 Energy 702EJ
