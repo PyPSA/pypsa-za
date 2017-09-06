@@ -101,9 +101,16 @@ solving:
     FeasibilityTol: 1.e-6
 
 plotting:
+  map:
+    figsize: [7, 7]
+    boundaries: [16, -35, 33, -22]
+    p_nom:
+      bus_size_factor: 5.e+4
+      linewidth_factor: 1.e+3
+
   vre_techs: ["Wind", "PV"]
-  conv_techs: ["OCGT", "Diesel", "Coal"]
-  storage_techs: ["CAES", "Battery", "Pumped storage", "Hydro"]
+  conv_techs: ["OCGT", "Nuclear", "Coal"]
+  storage_techs: ["Hydro", "CAES", "Battery", "Pumped storage", "Hydro+PS"]
   store_techs: ["Li ion", "water tanks"]
   load_carriers: ["AC load", "heat load", "Li ion load"]
   AC_carriers: ["AC line", "AC transformer"]
@@ -113,9 +120,10 @@ plotting:
                "central CHP electric", "central gas boiler"]
   heat_generators: ["gas boiler", "central gas boiler", "solar thermal collector", "central solar thermal collector"]
   tech_colors:
-    Wind: "b"
+    Wind: "xkcd:azure"
     Hydro: "g"
     ror: "g"
+    Hydro+PS: "g"
     PV: "y"
     OCGT: "brown"
     OCGT marginal: "sandybrown"
@@ -126,6 +134,7 @@ plotting:
     gas boiler marginal: "orange"
     gas: "brown"
     lines: "k"
+    AC line: "k"
     transmission lines: "k"
     H2: "m"
     hydrogen storage: "m"
@@ -164,16 +173,16 @@ plotting:
     district heating: "#CC4E5C"
   nice_names:
     OCGT: "Gas"
-    Battery: "Battery storage"
     OCGT marginal: "Gas (marginal)"
+    #Battery: "Battery storage"
     lines: "Transmission lines"
     ror: "Run of river"
   nice_names_n:
     offwind: "offshore\nwind"
     onwind: "onshore\nwind"
-    OCGT: "gas"
+    OCGT: "Gas"
     H2: "Hydrogen\nstorage"
-    OCGT marginal: "gas (marginal)"
+    OCGT marginal: "Gas (marginal)"
     lines: "transmission\nlines"
     ror: "run of river"
 
