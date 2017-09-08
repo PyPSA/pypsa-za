@@ -133,8 +133,9 @@ ax.set_ylim(y1, y2)
 # LEGEND
 handles = []
 labels = []
+line_color = line_colors['Link' if 'T' in snakemake.wildcards.opts.split('-') else 'Line']
 for s in (10, 5, 1):
-    handles.append(plt.Line2D([0],[0],color=line_colors['Line'],
+    handles.append(plt.Line2D([0],[0],color=line_color,
                               linewidth=s*1e3/linewidth_factor))
     labels.append("{} GW".format(s))
 l1 = ax.legend(handles, labels,
