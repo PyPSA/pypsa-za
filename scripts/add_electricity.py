@@ -81,10 +81,6 @@ def load_costs():
             overwrites = pd.Series(overwrites)
             costs.loc[overwrites.index, attr] = overwrites
 
-    if 'Ep' in snakemake.wildcards.opts.split('-'):
-        ep = pd.Series(snakemake.config['costs']['emission_prices']).rename(lambda x: x+'_emissions')
-        costs['marginal_cost'] += (costs[ep.index] * ep).sum(axis=1)
-
     return costs
 
 # ## Attach components
@@ -318,7 +314,14 @@ def add_co2limit(n):
           carrier_attribute="co2_emissions", sense="<=",
           constant=snakemake.config['electricity']['co2limit'])
 
+def add_emission_prices(n, exclude_hg=False):
+    ep = pd.Series(snakemake.config['costs']['emission_prices']).rename(lambda x: x+'_emissions')
+    if exclude_hg in opts: ep.drop('hg_emissions', inplace=True)
+    n.generators['marginal_cost'] += n.generators.carrier.map((n.carriers * ep).sum(axis=1))
+
 if __name__ == "__main__":
+    opts = snakemake.wildcards.opts.split('-')
+
     n = pypsa.Network(snakemake.input.base_network)
     costs = load_costs()
     attach_load(n)
@@ -326,7 +329,14 @@ if __name__ == "__main__":
     attach_wind_and_solar(n, costs)
     attach_extendable_generators(n, costs)
     attach_storage(n, costs)
-    if 'Co2L' in snakemake.wildcards.opts.split('-'):
+
+    if 'Co2L' in opts:
         add_co2limit(n)
+
+    if 'Ep' in opts:
+        add_emission_prices(n, exclude_hg=True)
+
+    if 'EpHg' in opts:
+        add_emission_prices(n, exclude_hg=False)
 
     n.export_to_csv_folder(snakemake.output[0])
