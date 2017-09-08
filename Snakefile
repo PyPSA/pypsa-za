@@ -88,7 +88,7 @@ rule solve_network:
     log: gurobi="logs/{network}_gurobi.log", python="logs/{network}_python.log"
     benchmark: "benchmarks/solve_network/{network}"
     threads: 4
-    resources: mem_mb=20000 # for electricity only
+    resources: mem_mb=22000 # for electricity only
     script: "scripts/solve_network.py"
 
 rule plot_network:
@@ -102,13 +102,16 @@ rule plot_network:
     params: ext=['png', 'pdf']
     script: "scripts/plot_network.py"
 
-rule scenario_plots:
-    input:
-        expand('results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}',
-               attr=['p_nom'],
-               **config['scenario'])
-    output:
-        touch('results/plots/scenario_plots')
+# rule plot_costs:
+#     input: 'results/summaries/costs2-summary.csv'
+#     output:
+#         expand('results/plots/costs_{cost}_{mask}_{sectors}_{opt}',
+#                **dict(chain(config['scenario'].items(), (('{param}')))
+#         touch('results/plots/scenario_plots')
+#     params:
+#         tmpl="results/plots/costs_[cost]_[mask]_[sectors]_[opt]"
+#         exts=["pdf", "png"]
+#     scripts: "scripts/plot_costs.py"
 
 rule scenario_comparison:
     input:
