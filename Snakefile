@@ -126,7 +126,9 @@ rule extract_summaries:
     input:
         expand("results/networks/{cost}_{mask}_{sectors}_{opts}",
                **config['scenario'])
-    output: "results/summaries"
+    output:
+        **{n: "results/summaries/{}-summary.csv".format(n)
+           for n in ['costs', 'costs2', 'e_curtailed', 'e_nom_opt', 'e', 'p_nom_opt']}
     params:
         scenario_tmpl="[cost]_[mask]_[sectors]_[opts]",
         scenarios=config['scenario']

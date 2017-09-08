@@ -68,7 +68,7 @@ class p(object):
         s.loads[tuple(p.values())] = n.loads_t.p.groupby(n.loads.carrier,axis=1).sum().mean()
 
     def write(s):
-        return clean_and_save(pd.concat((s.storage, s.gen, s.links, s.loads)), "p_nom_opt-summary.csv")
+        return clean_and_save(pd.concat((s.storage, s.gen, s.links, s.loads)), snakemake.output.p_nom_opt)
 
 class e(object):
     def __init__(s):
@@ -92,8 +92,8 @@ class e(object):
         s.load[tuple(p.values())] = -n.loads_t.p.sum().groupby(n.loads.carrier).sum()
 
     def write(s):
-        clean_and_save(s.nom, "e_nom_opt-summary.csv")
-        return clean_and_save(pd.concat((s.gen, s.storage, s.store, s.load)), "e-summary.csv")
+        clean_and_save(s.nom, snakemake.output.e_nom_opt)
+        return clean_and_save(pd.concat((s.gen, s.storage, s.store, s.load)), snakemake.output.e)
 
 
 
@@ -112,7 +112,7 @@ class e_curtailed(object):
         ])
 
     def write(s):
-        return clean_and_save(s.curtailed, "e_curtailed-summary.csv")
+        return clean_and_save(s.curtailed, snakemake.output.e_curtailed)
 
 
 class costs(object):
@@ -158,8 +158,8 @@ class costs(object):
                                                            fill_value=0.)
 
     def write(s):
-        clean_and_save(s.costs, "costs-summary.csv")
-        return clean_and_save(s.costs2, "costs2-summary.csv")
+        clean_and_save(s.costs, snakemake.output.costs)
+        return clean_and_save(s.costs2, snakemake.output.costs2)
 
 
 if __name__ == '__main__':
