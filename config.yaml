@@ -64,7 +64,7 @@ costs:
     co2: 0.27e+3
     sox: 7.6e+3
     nox: 4.5e+3
-    #hg: 41484e+3
+    hg: 41484.e+3
     particulate: 11.3e+3
 
 transport:
