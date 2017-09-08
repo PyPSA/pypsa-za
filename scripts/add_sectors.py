@@ -34,7 +34,7 @@ def generate_periodic_profiles(dt_index, freq="H", weekly_profile=range(24*7)):
     return hour_of_the_week.map(weekly_profile)
 
 
-def add_transport(n, V2G=True):
+def add_transport(n, BEV=True, V2G=True):
     buses = n.buses.index[n.buses.population > 0.]
     population = n.buses.loc[buses, 'population']
 
@@ -69,12 +69,6 @@ def add_transport(n, V2G=True):
     cars = normed(population) * opts['total_cars']
     charging_discharging_power = cars * opts['car_battery_p_nom']
 
-    madd(n, "Store", name="battery storage", index=buses,
-         bus=buses_ev_battery,
-         e_cyclic=True,
-         e_nom=cars * opts['car_battery_e_nom'],
-         standing_loss=opts['standing_loss'])
-
     madd(n, "Link", name="BEV charger", index=buses,
          bus0=buses, bus1=buses_ev_battery,
          p_nom=charging_discharging_power,
@@ -85,6 +79,13 @@ def add_transport(n, V2G=True):
          #p_nom_min=p_nom,
          #capital_cost=1e6,  #i.e. so high it only gets built where necessary
     )
+
+    if BEV:
+        madd(n, "Store", name="battery storage", index=buses,
+            bus=buses_ev_battery,
+            e_cyclic=True,
+            e_nom=cars * opts['car_battery_e_nom'],
+            standing_loss=opts['standing_loss'])
 
     if V2G:
         madd(n, "Link", name="V2G", index=buses,
@@ -290,8 +291,8 @@ if __name__ == "__main__":
     n = pypsa.Network(snakemake.input.network)
     sectors = set(snakemake.wildcards.sectors.split('+'))
 
-    if 'BEV' in sectors:
-        add_transport(n, V2G='V2G' in sectors)
+    if 'EV' in sectors or 'BEV' in sectors:
+        add_transport(n, BEV='BEV' in sectors, V2G='V2G' in sectors)
 
     # if 'WEH' in sectors:
     #     add_water_heating(n)
