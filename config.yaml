@@ -1,6 +1,6 @@
 scenario:
   mask: [redz, corridors]
-  sectors: [E, E+BEV, E+BEV+V2G]
+  sectors: [E, E+EV, E+BEV, E+BEV+V2G]
   cost: [CSIR-Expected-Apr2016] #, IRP2016-Apr2016]
   opts: [N, T, EpHg, EpHg-T, Ep, Ep-T, Co2L, Co2L-T]
  
