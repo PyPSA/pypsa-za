@@ -85,6 +85,7 @@ rule add_sectors:
 rule solve_network:
     input: network="networks/sector_{network}"
     output: "results/networks/{network}"
+    shadow: "shallow"
     log: gurobi="logs/{network}_gurobi.log", python="logs/{network}_python.log"
     benchmark: "benchmarks/solve_network/{network}"
     threads: 4
