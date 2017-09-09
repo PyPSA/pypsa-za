@@ -28,15 +28,15 @@ if 'snakemake' not in globals():
     import yaml
     snakemake = Dict()
     snakemake.input = Dict(base_network='../networks/base/',
-                           supply_regions='../data/external/supply_regions/supply_regions.shp',
-                           load='../data/external/SystemEnergy2009_13.csv',
-                           wind_pv_profiles='../data/external/Wind_PV_Normalised_Profiles.xlsx',
-                           wind_area='../data/internal/area_wind_corridors.csv',
-                           solar_pv_profiles='../data/external/Wind_PV_Normalised_Profiles.xlsx',
-                           solar_area='../data/internal/area_solar_corridors.csv',
-                           existing_generators="../data/external/Existing Power Stations SA.xlsx",
-                           hydro_inflow="../data/internal/hydro_inflow.csv",
-                           tech_costs="../data/external/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx")
+                           supply_regions='../data/supply_regions/supply_regions.shp',
+                           load='../data/SystemEnergy2009_13.csv',
+                           wind_pv_profiles='../resources/Wind_PV_Normalised_Profiles.xlsx',
+                           wind_area='../resources/area_wind_corridors.csv',
+                           solar_pv_profiles='../data/Wind_PV_Normalised_Profiles.xlsx',
+                           solar_area='../resources/internal/area_solar_corridors.csv',
+                           existing_generators="../data/Existing Power Stations SA.xlsx",
+                           hydro_inflow="../resources/hydro_inflow.csv",
+                           tech_costs="../data/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx")
     with open('../config.yaml') as f:
         snakemake.config = yaml.load(f)
     snakemake.params = Dict(costs_sheetname="CSIR-Apr2016")
