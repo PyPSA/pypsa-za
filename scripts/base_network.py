@@ -51,6 +51,8 @@ def base_network():
 
 
     ## Build pypsa network
+    v_nom = 400.
+    line_type = 'Al/St 240/40 4-bundle 380.0'
 
     n = pypsa.Network()
     n.name = 'PyPSA-ZA'
@@ -63,7 +65,7 @@ def base_network():
         .assign(
             x=centroids.map(attrgetter('x')),
             y=centroids.map(attrgetter('y')),
-            v_nom=380
+            v_nom=v_nom
         )
         .drop('geometry', axis=1),
         'Bus'
@@ -80,16 +82,27 @@ def base_network():
     lines['capital_cost'] = (annuity(line_costs['lifetime'], discountrate) * line_costs['overnight'] *
                              lines['length'] / line_costs['s_nom_factor'])
 
+    num_parallel = (pd.read_csv(snakemake.input.num_lines, index_col=0)
+                    .set_index(['bus0', 'bus1'])
+                    .eval('num_parallel_275 * (275/v_nom)**2 + '
+                          'num_parallel_400 * (400/v_nom)**2 + '
+                          'num_parallel_765 * (765/v_nom)**2'))
+    lines = lines.join(num_parallel.rename('num_parallel'), on=['bus0', 'bus1'])
+    lines['capacity'] = np.sqrt(3)*v_nom*n.lines_types.loc[line_type, 'i_nom']*lines.num_parallel
+
     if 'T' in snakemake.wildcards.opts.split('-'):
         n.import_components_from_dataframe(
-            lines.assign(p_nom_extendable=True,
-                         p_min_pu=-1),
+            (lines
+             .drop('num_parallel', axis=1)
+             .rename(columns={'capacity': 'p_nom_min'})
+             .assign(p_nom_extendable=True, p_min_pu=-1)),
             "Link"
         )
     else:
         n.import_components_from_dataframe(
-            lines.assign(s_nom_extendable=True,
-                         type='Al/St 240/40 4-bundle 380.0'),
+            (lines
+             .rename(columns={'capacity': 's_nom_min'})
+             .assign(s_nom_extendable=True, type=line_type)),
             "Line"
         )
 
