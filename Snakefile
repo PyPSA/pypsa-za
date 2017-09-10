@@ -47,7 +47,8 @@ rule base_network:
     input:
         supply_regions='data/supply_regions/supply_regions.shp',
         population='data/afripop/ZAF15adjv4.tif',
-        centroids='data/supply_regions/centroids.shp'
+        centroids='data/supply_regions/centroids.shp',
+        num_lines='data/num_lines.csv'
     output: "networks/base_{opts}"
     benchmark: "benchmarks/base_network_{opts}"
     threads: 1

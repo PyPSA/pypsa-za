@@ -84,11 +84,11 @@ def base_network():
 
     num_parallel = (pd.read_csv(snakemake.input.num_lines, index_col=0)
                     .set_index(['bus0', 'bus1'])
-                    .eval('num_parallel_275 * (275/v_nom)**2 + '
-                          'num_parallel_400 * (400/v_nom)**2 + '
-                          'num_parallel_765 * (765/v_nom)**2'))
+                    .eval('num_parallel_275 * (275/400)**2 + '
+                          'num_parallel_400 * (400/400)**2 + '
+                          'num_parallel_765 * (765/400)**2'))
     lines = lines.join(num_parallel.rename('num_parallel'), on=['bus0', 'bus1'])
-    lines['capacity'] = np.sqrt(3)*v_nom*n.lines_types.loc[line_type, 'i_nom']*lines.num_parallel
+    lines['capacity'] = np.sqrt(3)*v_nom*n.line_types.loc[line_type, 'i_nom']*lines.num_parallel
 
     if 'T' in snakemake.wildcards.opts.split('-'):
         n.import_components_from_dataframe(
@@ -102,7 +102,8 @@ def base_network():
         n.import_components_from_dataframe(
             (lines
              .rename(columns={'capacity': 's_nom_min'})
-             .assign(s_nom_extendable=True, type=line_type)),
+             .assign(s_nom_extendable=True, type=line_type,
+                     num_parallel=lambda df: df.num_parallel.clip(lower=0.5))),
             "Line"
         )
 
