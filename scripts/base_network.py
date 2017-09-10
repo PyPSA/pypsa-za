@@ -87,7 +87,10 @@ def base_network():
                     .eval('num_parallel_275 * (275/400)**2 + '
                           'num_parallel_400 * (400/400)**2 + '
                           'num_parallel_765 * (765/400)**2'))
-    lines = lines.join(num_parallel.rename('num_parallel'), on=['bus0', 'bus1'])
+    lines = (lines
+            .join(num_parallel.rename('num_parallel'), on=['bus0', 'bus1'])
+            .join(num_parallel.rename("num_parallel_i"), on=['bus1', 'bus0']))
+    lines['num_parallel'] = lines['num_parallel'].fillna(lines.pop('num_parallel_i'))
     lines['capacity'] = np.sqrt(3)*v_nom*n.line_types.loc[line_type, 'i_nom']*lines.num_parallel
 
     if 'T' in snakemake.wildcards.opts.split('-'):
