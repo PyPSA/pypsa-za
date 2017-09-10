@@ -9,7 +9,7 @@ wildcard_constraints:
     opts="[-+a-zA-Z0-9]+"
 
 rule all:
-    input: "results/summaries"
+    input: "results/summaries/costs2-summary.csv"
 
 rule landuse_remove_protected_and_conservation_areas:
     input:

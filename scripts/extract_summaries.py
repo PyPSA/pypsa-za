@@ -166,7 +166,7 @@ if __name__ == '__main__':
     summers = [p(), e(), e_curtailed(), costs()]
     networks = collect_networks()
     for scenario, params, fn in networks:
-        n = load_network(fn)
+        n = load_network(fn, opts)
         for s in summers: s.add(scenario, params, n)
 
     for s in summers: s.write()
