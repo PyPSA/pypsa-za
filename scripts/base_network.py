@@ -51,7 +51,7 @@ def base_network():
 
 
     ## Build pypsa network
-    v_nom = 400.
+    v_nom = 380.
     line_type = 'Al/St 240/40 4-bundle 380.0'
 
     n = pypsa.Network()
@@ -79,14 +79,15 @@ def base_network():
     def asarray(x): return np.asarray(list(map(np.asarray, x)))
     lines['length'] = haversine(asarray(lines.bus0.map(centroids)),
                                 asarray(lines.bus1.map(centroids))) * line_costs['length_factor']
-    lines['capital_cost'] = (annuity(line_costs['lifetime'], discountrate) * line_costs['overnight'] *
+    lines['capital_cost'] = ((annuity(line_costs['lifetime'], discountrate) +
+                              line_costs.get('fom', 0)) * line_costs['overnight'] *
                              lines['length'] / line_costs['s_nom_factor'])
 
     num_parallel = (pd.read_csv(snakemake.input.num_lines, index_col=0)
                     .set_index(['bus0', 'bus1'])
-                    .eval('num_parallel_275 * (275/400)**2 + '
-                          'num_parallel_400 * (400/400)**2 + '
-                          'num_parallel_765 * (765/400)**2'))
+                    .eval('num_parallel_275 * (275/380)**2 + '
+                          'num_parallel_400 * (400/380)**2 + '
+                          'num_parallel_765 * (765/380)**2'))
     lines = (lines
             .join(num_parallel.rename('num_parallel'), on=['bus0', 'bus1'])
             .join(num_parallel.rename("num_parallel_i"), on=['bus1', 'bus0']))

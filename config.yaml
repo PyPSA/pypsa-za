@@ -51,6 +51,7 @@ costs:
     s_nom_factor: 0.7
     length_factor: 1.25
     lifetime: 40
+    fom: 0.02
   # Marginal and capital costs can be overwritten
   # capital_cost:
   #   Wind: Bla
