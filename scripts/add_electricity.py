@@ -64,7 +64,7 @@ def load_costs():
                              + costs.pop('Fixed O&M').fillna(0.))
     costs['efficiency'] = (3.6e3/costs.pop('Heat rate')).fillna(1.)
     costs['marginal_cost'] = (costs.pop('Variable O&M').fillna(0.) +
-                              3.6*costs.pop('Fuel cost').fillna(0.))
+                              (3.6*costs.pop('Fuel cost') / costs['efficiency']).fillna(0.))
 
     emissions_cols = costs.columns.to_series().loc[lambda s: s.str.endswith(' emissions')]
     costs.loc[:, emissions_cols.index] = (costs.loc[:, emissions_cols.index]
@@ -191,7 +191,7 @@ def attach_existing_generators(n, costs):
 
     # Calculate fields where pypsa uses different conventions
     gens['efficiency'] = 3.6/gens.pop(g_f['heat_rate'])
-    gens['marginal_cost'] = 3.6*gens.pop(g_f['fuel_price']) + gens.pop(g_f['vom'])
+    gens['marginal_cost'] = 3.6*gens.pop(g_f['fuel_price'])/gens['efficiency'] + gens.pop(g_f['vom'])
     gens['capital_cost'] = 1e3*gens.pop(g_f['fom'])
     gens['ramp_limit_up'] = 60*gens.pop(g_f['max_ramp_up'])/gens[g_f['p_nom']]
 
