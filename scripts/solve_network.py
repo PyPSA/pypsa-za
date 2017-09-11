@@ -125,7 +125,7 @@ def solve_network(n):
 
             status, termination_condition = run_lopf(n)
 
-        update_line_parameters(n)
+        update_line_parameters(n, drop_lines_below=500)
 
         logger.info("Running one more iteration with fixed line capacities")
         if lines_ext_b.any():
