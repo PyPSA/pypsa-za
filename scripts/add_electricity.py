@@ -314,10 +314,12 @@ def add_co2limit(n):
           carrier_attribute="co2_emissions", sense="<=",
           constant=snakemake.config['electricity']['co2limit'])
 
-def add_emission_prices(n, exclude_hg=False):
-    ep = pd.Series(snakemake.config['costs']['emission_prices']).rename(lambda x: x+'_emissions')
-    if exclude_hg in opts: ep.drop('hg_emissions', inplace=True)
-    n.generators['marginal_cost'] += n.generators.carrier.map((n.carriers * ep).sum(axis=1))
+def add_emission_prices(n, emission_prices=None):
+    if emission_prices is None:
+        emission_prices = snakemake.config['costs']['emission_prices']
+    ep = (pd.Series(emission_prices).rename(lambda x: x+'_emissions') * n.carriers).sum(axis=1)
+    n.generators['marginal_cost'] += n.generators.carrier.map(ep)
+    n.storage_units['marginal_cost'] += n.storage_units.carrier.map(ep)
 
 if __name__ == "__main__":
     opts = snakemake.wildcards.opts.split('-')
@@ -334,9 +336,6 @@ if __name__ == "__main__":
         add_co2limit(n)
 
     if 'Ep' in opts:
-        add_emission_prices(n, exclude_hg=True)
-
-    if 'EpHg' in opts:
-        add_emission_prices(n, exclude_hg=False)
+        add_emission_prices(n)
 
     n.export_to_csv_folder(snakemake.output[0])
