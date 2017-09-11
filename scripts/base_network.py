@@ -102,6 +102,14 @@ def base_network():
              .assign(p_nom_extendable=True, p_min_pu=-1)),
             "Link"
         )
+    elif 'FL' in snakemake.wildcards.opts.split('-'):
+        n.import_components_from_dataframe(
+            (lines
+             .loc[lines.num_parallel > 0.5]
+             .drop('capacity', axis=1)
+             .assign(s_nom_extendable=False, type=line_type)),
+            "Line"
+        )
     else:
         n.import_components_from_dataframe(
             (lines
