@@ -3,7 +3,7 @@ configfile: "config.yaml"
 localrules: all, base_network, add_electricity, add_sectors, extract_summaries, plot_network
 
 wildcard_constraints:
-    mask="[a-zA-Z0-9]+",
+    resarea="[a-zA-Z0-9]+",
     cost="[-a-zA-Z0-9]+",
     sectors="[+a-zA-Z0-9]+",
     opts="[-+a-zA-Z0-9]+"
@@ -26,11 +26,11 @@ rule landuse_map_to_tech_and_supply_region:
     input:
         landuse = "resources/landuse_without_protected_conservation.tiff",
         supply_regions = "data/supply_regions/supply_regions.shp",
-        maskshape = "data/masks/{mask}"
+        resarea = lambda w: config['datanames']['resarea'][w.resarea]
     output:
-        raster = "resources/raster_{tech}_percent_{mask}.tiff",
-        area = "resources/area_{tech}_{mask}.csv"
-    benchmark: "benchmarks/landuse_map_to_tech_and_supply_region/{tech}_{mask}"
+        raster = "resources/raster_{tech}_percent_{resarea}.tiff",
+        area = "resources/area_{tech}_{resarea}.csv"
+    benchmark: "benchmarks/landuse_map_to_tech_and_supply_region/{tech}_{resarea}"
     threads: 1
     resources: mem_mb=17000
     script: "scripts/landuse_map_to_tech_and_supply_region.py"
@@ -61,24 +61,24 @@ rule add_electricity:
         supply_regions='data/supply_regions/supply_regions.shp',
         load='data/SystemEnergy2009_13.csv',
         wind_pv_profiles='data/Wind_PV_Normalised_Profiles.xlsx',
-        wind_area='resources/area_wind_{mask}.csv',
-        solar_area='resources/area_solar_{mask}.csv',
+        wind_area='resources/area_wind_{resarea}.csv',
+        solar_area='resources/area_solar_{resarea}.csv',
         existing_generators="data/Existing Power Stations SA.xlsx",
         hydro_inflow="resources/hydro_inflow.csv",
         tech_costs="data/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx"
-    output: "networks/elec_{cost}_{mask}_{opts}"
-    params: costs_sheetname=lambda w: w.cost
-    benchmark: "benchmarks/add_electricity/elec_{mask}_{opts}"
+    output: "networks/elec_{cost}_{resarea}_{opts}"
+    params: costs_sheetname=lambda w: config['data']['cost'][w.cost]
+    benchmark: "benchmarks/add_electricity/elec_{resarea}_{opts}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/add_electricity.py"
 
 rule add_sectors:
     input:
-        network="networks/elec_{cost}_{mask}_{opts}",
+        network="networks/elec_{cost}_{resarea}_{opts}",
         emobility="data/emobility"
-    output: "networks/sector_{cost}_{mask}_{sectors}_{opts}"
-    benchmark: "benchmarks/add_sectors/sector_{mask}_{sectors}_{opts}"
+    output: "networks/sector_{cost}_{resarea}_{sectors}_{opts}"
+    benchmark: "benchmarks/add_sectors/sector_{resarea}_{sectors}_{opts}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/add_sectors.py"
@@ -95,47 +95,47 @@ rule solve_network:
 
 rule plot_network:
     input:
-        network='results/networks/{cost}_{mask}_{sectors}_{opts}',
+        network='results/networks/{cost}_{resarea}_{sectors}_{opts}',
         supply_regions='data/supply_regions/supply_regions.shp',
-        maskshape="data/masks/{mask}"
+        resarea=lambda w: config['data']['resarea'][w.resarea]
     output:
-        only_map=touch('results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}'),
-        ext=touch('results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}_ext')
+        only_map=touch('results/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}'),
+        ext=touch('results/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext')
     params: ext=['png', 'pdf']
     script: "scripts/plot_network.py"
 
 # rule plot_costs:
 #     input: 'results/summaries/costs2-summary.csv'
 #     output:
-#         expand('results/plots/costs_{cost}_{mask}_{sectors}_{opt}',
+#         expand('results/plots/costs_{cost}_{resarea}_{sectors}_{opt}',
 #                **dict(chain(config['scenario'].items(), (('{param}')))
 #         touch('results/plots/scenario_plots')
 #     params:
-#         tmpl="results/plots/costs_[cost]_[mask]_[sectors]_[opt]"
+#         tmpl="results/plots/costs_[cost]_[resarea]_[sectors]_[opt]"
 #         exts=["pdf", "png"]
 #     scripts: "scripts/plot_costs.py"
 
 rule scenario_comparison:
     input:
-        expand('results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}_ext',
+        expand('results/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext',
                attr=['p_nom'],
                **config['scenario'])
     output:
        html='results/plots/scenario_{param}.html'
     params:
-       tmpl="network_[cost]_[mask]_[sectors]_[opts]_[attr]_ext",
+       tmpl="network_[cost]_[resarea]_[sectors]_[opts]_[attr]_ext",
        plot_dir='results/plots'
     script: "scripts/scenario_comparison.py"
 
 rule extract_summaries:
     input:
-        expand("results/networks/{cost}_{mask}_{sectors}_{opts}",
+        expand("results/networks/{cost}_{resarea}_{sectors}_{opts}",
                **config['scenario'])
     output:
         **{n: "results/summaries/{}-summary.csv".format(n)
            for n in ['costs', 'costs2', 'e_curtailed', 'e_nom_opt', 'e', 'p_nom_opt']}
     params:
-        scenario_tmpl="[cost]_[mask]_[sectors]_[opts]",
+        scenario_tmpl="[cost]_[resarea]_[sectors]_[opts]",
         scenarios=config['scenario']
     script: "scripts/extract_summaries.py"
 

@@ -9,15 +9,15 @@ src_data = src.read(1)
 meta = src.meta.copy()
 
 # Write only percent value in allowed landuse gridcells
-landusetype_percent = snakemake.config['potentials']['landusetype_percent'][snakemake.wildcards.tech]
+landusetype_percent = snakemake.config['respotentials']['landusetype_percent'][snakemake.wildcards.tech]
 data = np.zeros_like(src_data)
 for grid_codes, value in landusetype_percent:
     data.ravel()[np.in1d(src_data.ravel(), grid_codes)] = value
 
 del src_data
 
-maskshapes = gpd.read_file(snakemake.input.maskshape).to_crs(meta['crs'])
-mask = rasterio.mask.geometry_mask(maskshapes['geometry'], data.shape, meta['affine'])
+resareas = gpd.read_file(snakemake.input.resareas).to_crs(meta['crs'])
+mask = rasterio.mask.geometry_mask(resareas['geometry'], data.shape, meta['affine'])
 data = np.ma.array(data, mask=mask, fill_value=0).filled()
 
 meta.update(compress='lzw', transform=meta['affine'])

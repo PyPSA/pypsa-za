@@ -3,6 +3,14 @@ scenario:
   sectors: [E] # [ E+EV, E+BEV, E+BEV+V2G ]
   cost: [CSIR-Expected-Apr2016] #, IRP2016-Apr2016]
   opts: [N, Ep, Co2L] # [N-T, Ep-T, Co2L-T]
+
+data:
+  resarea:
+    redz: data/REDZ_DEA_Unpublished_Draft_2015
+    corridors: data/Power_corridors
+  cost:
+    csir: CSIR-Expected-Apr2016
+    irp: IRP2016-Apr2016
  
 year: "2040"
 historical_year: "2012"
@@ -21,7 +29,7 @@ electricity:
     Battery: 3
     CAES: 10
 
-potentials:
+respotentials:
   # Gives us ball-park the available areas the IWES study reports
   landusetype_percent:
     wind:
@@ -52,6 +60,7 @@ costs:
     length_factor: 1.25
     lifetime: 40
     fom: 0.02
+
   # Marginal and capital costs can be overwritten
   # capital_cost:
   #   Wind: Bla
