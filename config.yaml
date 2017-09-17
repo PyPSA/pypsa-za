@@ -43,7 +43,7 @@ respotentials:
 
   capacity_per_sqm:
     wind: 5   # half of 10 (IWES)
-    solar: 15 # "half" of 33 (IWES)
+    solar: 16.5 # "half" of 33 (IWES)
 
 hydro_inflow:
   countries: [ZA, MZ]
