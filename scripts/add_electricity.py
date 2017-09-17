@@ -87,7 +87,7 @@ def attach_load(n):
 
 def attach_wind_and_solar(n, costs):
     historical_year = snakemake.config['historical_year']
-    capacity_per_sqm = snakemake.config['potentials']['capacity_per_sqm']
+    capacity_per_sqm = snakemake.config['respotentials']['capacity_per_sqm']
 
     ## Wind
 
