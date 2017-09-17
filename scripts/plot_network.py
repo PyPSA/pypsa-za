@@ -4,7 +4,7 @@ if 'snakemake' not in globals():
     import yaml
     snakemake = Dict()
     snakemake.wildcards = Dict(#cost=#'IRP2016-Apr2016',
-                               cost='CSIR-Expected-Apr2016',
+                               cost='csir',
                                mask='redz',
                                sectors='E+BEV',
                                opts='Co2L-T',
@@ -41,6 +41,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.patches import Circle, Ellipse
 from matplotlib.legend_handler import HandlerPatch
+import seaborn as sns
 to_rgba = mpl.colors.colorConverter.to_rgba
 
 def make_handler_map_to_scale_circles_as_in(ax, dont_resize_actively=False):
@@ -68,12 +69,13 @@ def make_handler_map_to_scale_circles_as_in(ax, dont_resize_actively=False):
 def make_legend_circles_for(sizes, scale=1.0, **kw):
     return [Circle((0,0), radius=(s/scale)**0.5, **kw) for s in sizes]
 
-import seaborn as sns
 plt.style.use(['classic', 'seaborn-white',
                {'axes.grid': False, 'grid.linestyle': '--', 'grid.color': u'0.6',
                 'patch.linewidth': 0.5,
-                #'font.size': 10,
-                'lines.linewidth': 1.5
+                'font.size': 12,
+                'lines.linewidth': 1.5,
+                'pdf.fonttype': 42,
+                # 'font.family': 'Times New Roman'
                }])
 
 opts = snakemake.config['plotting']
@@ -88,25 +90,25 @@ supply_regions = gpd.read_file(snakemake.input.supply_regions).buffer(-0.005) #.
 renewable_regions = gpd.read_file(snakemake.input.maskshape).to_crs(supply_regions.crs)
 
 ## DATA
-line_colors = {'Line': to_rgba("r", 0.7),
-               'Link': to_rgba("purple", 0.7)}
+line_colors = {'cur': "purple",
+               'exp': to_rgba("red", 0.7)}
 tech_colors = opts['tech_colors']
 
 if snakemake.wildcards.attr == 'p_nom':
     # bus_sizes = n.generators_t.p.sum().loc[n.generators.carrier == "load"].groupby(n.generators.bus).sum()
     bus_sizes = pd.concat((n.generators.query('carrier != "load"').groupby(['bus', 'carrier']).p_nom_opt.sum(),
                            n.storage_units.groupby(['bus', 'carrier']).p_nom_opt.sum()))
-    line_widths = pd.concat(dict(Line=n.lines.s_nom_opt - n.lines.s_nom,
-                                 Link=n.links.p_nom_opt - n.links.p_nom))
+    line_widths_exp = pd.concat(dict(Line=n.lines.s_nom_opt, Link=n.links.p_nom_opt))
+    line_widths_cur = pd.concat(dict(Line=n.lines.s_nom_min, Link=n.links.p_nom_min))
 else:
     raise 'plotting of {} has not been implemented yet'.format(plot)
 
 
 line_colors_with_alpha = \
-pd.concat(dict(Line=((n.lines.s_nom_opt - n.lines.s_nom) / n.lines.s_nom > 1e-3)
-                    .map({True: line_colors['Line'], False: to_rgba(line_colors['Line'], 0.)}),
-               Link=((n.links.p_nom_opt - n.links.p_nom) / n.links.p_nom > 1e-3)
-                    .map({True: line_colors['Link'], False: to_rgba(line_colors['Link'], 0.)})))
+pd.concat(dict(Line=(line_widths_cur['Line'] / n.lines.s_nom > 1e-3)
+                    .map({True: line_colors['cur'], False: to_rgba(line_colors['cur'], 0.)}),
+               Link=(line_widths_cur['Link'] / n.links.p_nom > 1e-3)
+                    .map({True: line_colors['cur'], False: to_rgba(line_colors['cur'], 0.)})))
 
 ## FORMAT
 linewidth_factor = opts['map'][snakemake.wildcards.attr]['linewidth_factor']
@@ -116,9 +118,16 @@ bus_size_factor  = opts['map'][snakemake.wildcards.attr]['bus_size_factor']
 fig, ax = plt.subplots(figsize=map_figsize)
 vplot.shapes(supply_regions.geometry, colour='k', outline='k', ax=ax, rasterized=True)
 vplot.shapes(renewable_regions.geometry, colour='gray', alpha=0.2, ax=ax, rasterized=True)
-n.plot(line_widths=line_widths/linewidth_factor,
-       line_colors=line_colors_with_alpha,
+n.plot(line_widths=line_widths_exp/linewidth_factor,
+       line_colors=dict(Line=line_colors['exp'], Link=line_colors['exp']),
        bus_sizes=bus_sizes/bus_size_factor,
+       bus_colors=tech_colors,
+       boundaries=map_boundaries,
+       basemap=False,
+       ax=ax)
+n.plot(line_widths=line_widths_cur/linewidth_factor,
+       line_colors=line_colors_with_alpha,
+       bus_sizes=0,
        bus_colors=tech_colors,
        boundaries=map_boundaries,
        basemap=False,
@@ -137,24 +146,37 @@ ax.set_ylim(y1, y2)
 # LEGEND
 handles = []
 labels = []
-line_color = line_colors['Link' if 'T' in snakemake.wildcards.opts.split('-') else 'Line']
-for s in (10, 5, 1):
-    handles.append(plt.Line2D([0],[0],color=line_color,
+
+for s in (10, 5):
+    handles.append(plt.Line2D([0],[0],color=line_colors['exp'],
                               linewidth=s*1e3/linewidth_factor))
     labels.append("{} GW".format(s))
-l1 = ax.legend(handles, labels,
-               loc="upper left", bbox_to_anchor=(0.25, 1.),
+l1 = l1_1 = ax.legend(handles, labels,
+               loc="upper left", bbox_to_anchor=(0.23, 1.01),
                frameon=False,
-               labelspacing=0.8, handletextpad=1.5, fontsize=10,
-               title='Transmission')
-ax.add_artist(l1)
+               labelspacing=0.8, handletextpad=1.5,
+               title='Transmission Exist./Exp.             ')
+ax.add_artist(l1_1)
+
+handles = []
+labels = []
+for s in (10, 5):
+    handles.append(plt.Line2D([0],[0],color=line_colors['cur'],
+                              linewidth=s*1e3/linewidth_factor))
+    labels.append("/")
+l1_2 = ax.legend(handles, labels,
+               loc="upper left", bbox_to_anchor=(0.26, 1.01),
+               frameon=False,
+               labelspacing=0.8, handletextpad=0.5,
+               title=' ')
+ax.add_artist(l1_2)
 
 handles = make_legend_circles_for([10e3, 5e3, 1e3], scale=bus_size_factor, facecolor="w")
 labels = ["{} GW".format(s) for s in (10, 5, 3)]
 l2 = ax.legend(handles, labels,
-               loc="upper left",
-               frameon=False, fontsize=10, labelspacing=1.0,
-               title='Generation',#fontsize='small',
+               loc="upper left", bbox_to_anchor=(0.01, 1.01),
+               frameon=False, labelspacing=1.0,
+               title='Generation',
                handler_map=make_handler_map_to_scale_circles_as_in(ax))
 ax.add_artist(l2)
 
@@ -164,20 +186,20 @@ labels = []
 for t in techs:
     handles.append(plt.Line2D([0], [0], color=tech_colors[t], marker='o', markersize=8, linewidth=0))
     labels.append(opts['nice_names'].get(t, t))
-l3 = ax.legend(handles, labels, loc="lower left", bbox_to_anchor=(0.74, 0.0),
-          fontsize=10, handletextpad=0., columnspacing=0.5, ncol=2, title='Technology')
+l3 = ax.legend(handles, labels, loc="lower left",  bbox_to_anchor=(0.6, -0.15), # bbox_to_anchor=(0.72, -0.05),
+               handletextpad=0., columnspacing=0.5, ncol=2, title='Technology')
 
 
 for ext in snakemake.params.ext:
     fig.savefig(snakemake.output.only_map+'.'+ext, dpi=150,
                 bbox_inches='tight', bbox_extra_artists=[l1,l2,l3])
 
-n = load_network(snakemake.input.network, opts, combine_hydro_ps=False)
+#n = load_network(snakemake.input.network, opts, combine_hydro_ps=False)
 
 ## Add total energy p
 
 ax1 = ax = fig.add_axes([-0.15, 0.555, 0.2, 0.2])
-ax.set_title('Energy per technology', dict(fontsize=12))
+ax.set_title('Energy per technology', fontdict=dict(fontsize="medium"))
 
 e_primary = aggregate_p(n).drop('load').loc[lambda s: s>0]
 
@@ -188,17 +210,15 @@ patches, texts, autotexts = ax.pie(e_primary,
       shadow=False,
           colors = [tech_colors[tech] for tech in e_primary.index])
 for t1, t2, i in zip(texts, autotexts, e_primary.index):
-    if e_primary.at[i] < 0.02 * e_primary.sum():
+    if e_primary.at[i] < 0.04 * e_primary.sum():
         t1.remove()
         t2.remove()
-    else:
-        t1.set_fontsize(12)
-        t2.set_fontsize(12)
-        t2.set_color('k')
-        t2.set_weight('bold')
+    elif i == 'Coal':
+        t2.set_color('gray')
 
 ## Add average system cost bar plot
-ax2 = ax = fig.add_axes([-0.1, 0.2, 0.1, 0.33])
+# ax2 = ax = fig.add_axes([-0.1, 0.2, 0.1, 0.33])
+ax2 = ax = fig.add_axes([-0.1, 0.15, 0.1, 0.37])
 total_load = n.loads_t.p.sum().sum()
 costs = aggregate_costs(n).reset_index(level=0, drop=True)
 costs = costs['capital'].add(costs['marginal'], fill_value=0.)
@@ -216,10 +236,11 @@ for i,ind in enumerate(costs_graph.index):
 
     if abs(data[-1]) < 10:
         continue
-    text = ax.text(1.1,(bottom-0.5*data)[-1]-15,opts['nice_names'].get(ind,ind),size=12)
+    text = ax.text(1.1,(bottom-0.5*data)[-1]-15,opts['nice_names'].get(ind,ind))
     texts.append(text)
 
-ax.set_ylabel("Average system cost [EUR/MWh]")
+ax.set_ylabel("Average system cost [R/MWh]")
+ax.set_ylim([0,800])
 ax.set_xlim([0,1])
 ax.set_xticks([])
 ax.set_xticklabels([])

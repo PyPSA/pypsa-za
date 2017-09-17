@@ -120,7 +120,7 @@ plotting:
     boundaries: [16, -35, 33, -22]
     p_nom:
       bus_size_factor: 5.e+4
-      linewidth_factor: 1.e+3
+      linewidth_factor: 1.e+3  #3.e+3
 
   vre_techs: ["Wind", "PV"]
   conv_techs: ["OCGT", "Nuclear", "Coal"]
