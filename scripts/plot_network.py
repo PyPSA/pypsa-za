@@ -22,6 +22,7 @@ else:
     import matplotlib as mpl
     mpl.use('Agg')
 
+from add_electricity import add_emission_prices
 from _helpers import load_network, aggregate_p, aggregate_costs
 from vresutils import plot as vplot
 
@@ -80,6 +81,9 @@ map_figsize = opts['map']['figsize']
 map_boundaries = opts['map']['boundaries']
 
 n = load_network(snakemake.input.network, opts)
+if 'Ep' not in snakemake.wildcards.opts.split('-'):
+    add_emission_prices(n, snakemake.config['costs']['emission_prices'])
+
 supply_regions = gpd.read_file(snakemake.input.supply_regions).buffer(-0.005) #.to_crs(n.crs)
 renewable_regions = gpd.read_file(snakemake.input.maskshape).to_crs(supply_regions.crs)
 

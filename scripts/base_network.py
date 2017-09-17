@@ -13,18 +13,6 @@ from vresutils.shapes import haversine
 
 import pypsa
 
-if 'snakemake' not in globals():
-    from vresutils import Dict
-    import yaml
-    snakemake = Dict()
-    snakemake.input = Dict(supply_regions='../data/external/supply_regions/supply_regions.shp',
-                           centroids='../data/external/supply_regions/centroids.shp',
-                           population='../data/external/afripop/ZAF15adjv4.tif')
-    with open('../config.yaml') as f:
-        snakemake.config = yaml.load(f)
-    snakemake.output = ['../networks/base/']
-
-
 def base_network():
     ## Read in regions and calculate population per region
 
@@ -121,6 +109,18 @@ def base_network():
     return n
 
 if __name__ == "__main__":
+    # Detect running outside of snakemake and mock snakemake for testing
+    if 'snakemake' not in globals():
+        from vresutils import Dict
+        import yaml
+        snakemake = Dict()
+        snakemake.input = Dict(supply_regions='../data/external/supply_regions/supply_regions.shp',
+                            centroids='../data/external/supply_regions/centroids.shp',
+                            population='../data/external/afripop/ZAF15adjv4.tif')
+        with open('../config.yaml') as f:
+            snakemake.config = yaml.load(f)
+        snakemake.output = ['../networks/base/']
+
     n = base_network()
     n.export_to_csv_folder(snakemake.output[0])
 
