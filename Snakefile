@@ -9,7 +9,7 @@ wildcard_constraints:
     opts="[-+a-zA-Z0-9]+"
 
 rule all:
-    input: "results/summaries/costs2-summary.csv"
+    input: "results/version-{version}/summaries/costs2-summary.csv".format(version=config['version'])
 
 rule landuse_remove_protected_and_conservation_areas:
     input:
@@ -26,7 +26,7 @@ rule landuse_map_to_tech_and_supply_region:
     input:
         landuse = "resources/landuse_without_protected_conservation.tiff",
         supply_regions = "data/supply_regions/supply_regions.shp",
-        resarea = lambda w: config['datanames']['resarea'][w.resarea]
+        resarea = lambda w: config['data']['resarea'][w.resarea]
     output:
         raster = "resources/raster_{tech}_percent_{resarea}.tiff",
         area = "resources/area_{tech}_{resarea}.csv"
@@ -49,7 +49,7 @@ rule base_network:
         population='data/afripop/ZAF15adjv4.tif',
         centroids='data/supply_regions/centroids.shp',
         num_lines='data/num_lines.csv'
-    output: "networks/base_{opts}"
+    output: "networks/base_{opts}.h5"
     benchmark: "benchmarks/base_network_{opts}"
     threads: 1
     resources: mem_mb=1000
@@ -57,7 +57,7 @@ rule base_network:
 
 rule add_electricity:
     input:
-        base_network='networks/base_{opts}',
+        base_network='networks/base_{opts}.h5',
         supply_regions='data/supply_regions/supply_regions.shp',
         load='data/SystemEnergy2009_13.csv',
         wind_pv_profiles='data/Wind_PV_Normalised_Profiles.xlsx',
@@ -66,7 +66,7 @@ rule add_electricity:
         existing_generators="data/Existing Power Stations SA.xlsx",
         hydro_inflow="resources/hydro_inflow.csv",
         tech_costs="data/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx"
-    output: "networks/elec_{cost}_{resarea}_{opts}"
+    output: "networks/elec_{cost}_{resarea}_{opts}.h5"
     params: costs_sheetname=lambda w: config['data']['cost'][w.cost]
     benchmark: "benchmarks/add_electricity/elec_{resarea}_{opts}"
     threads: 1
@@ -75,17 +75,17 @@ rule add_electricity:
 
 rule add_sectors:
     input:
-        network="networks/elec_{cost}_{resarea}_{opts}",
+        network="networks/elec_{cost}_{resarea}_{opts}.h5",
         emobility="data/emobility"
-    output: "networks/sector_{cost}_{resarea}_{sectors}_{opts}"
+    output: "networks/sector_{cost}_{resarea}_{sectors}_{opts}.h5"
     benchmark: "benchmarks/add_sectors/sector_{resarea}_{sectors}_{opts}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/add_sectors.py"
 
 rule solve_network:
-    input: network="networks/sector_{network}"
-    output: "results/networks/{network}"
+    input: network="networks/sector_{network}.h5"
+    output: "results/version-{version}/networks/{{network}}.h5".format(version=config['version'])
     shadow: "shallow"
     log: gurobi="logs/{network}_gurobi.log", python="logs/{network}_python.log"
     benchmark: "benchmarks/solve_network/{network}"
@@ -95,12 +95,12 @@ rule solve_network:
 
 rule plot_network:
     input:
-        network='results/networks/{cost}_{resarea}_{sectors}_{opts}',
+        network='results/version-{version}/networks/{{cost}}_{{resarea}}_{{sectors}}_{{opts}}.h5'.format(version=config['version']),
         supply_regions='data/supply_regions/supply_regions.shp',
         resarea=lambda w: config['data']['resarea'][w.resarea]
     output:
-        only_map=touch('results/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}'),
-        ext=touch('results/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext')
+        only_map=touch('results/version-{version}/plots/network_{{cost}}_{{resarea}}_{{sectors}}_{{opts}}_{{attr}}'.format(version=config['version'])),
+        ext=touch('results/version-{version}/plots/network_{{cost}}_{{resarea}}_{{sectors}}_{{opts}}_{{attr}}_ext'.format(version=config['version']))
     params: ext=['png', 'pdf']
     script: "scripts/plot_network.py"
 
@@ -117,22 +117,24 @@ rule plot_network:
 
 rule scenario_comparison:
     input:
-        expand('results/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext',
+        expand('results/version-{version}/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext',
+               version=config['version'],
                attr=['p_nom'],
                **config['scenario'])
     output:
-       html='results/plots/scenario_{param}.html'
+       html='results/version-{version}/plots/scenario_{{param}}.html'.format(version=config['version'])
     params:
        tmpl="network_[cost]_[resarea]_[sectors]_[opts]_[attr]_ext",
-       plot_dir='results/plots'
+       plot_dir='results/version-{}/plots'.format(config['version'])
     script: "scripts/scenario_comparison.py"
 
 rule extract_summaries:
     input:
-        expand("results/networks/{cost}_{resarea}_{sectors}_{opts}",
+        expand("results/version-{version}/networks/{cost}_{resarea}_{sectors}_{opts}.h5",
+               version=config['version'],
                **config['scenario'])
     output:
-        **{n: "results/summaries/{}-summary.csv".format(n)
+        **{n: "results/version-{version}/summaries/{}-summary.csv".format(n, version=config['version'])
            for n in ['costs', 'costs2', 'e_curtailed', 'e_nom_opt', 'e', 'p_nom_opt']}
     params:
         scenario_tmpl="[cost]_[resarea]_[sectors]_[opts]",

@@ -121,7 +121,7 @@ def solve_network(n):
             iteration += 1
 
             # TODO take that out again
-            n.export_to_csv_folder(snakemake.output[0])
+            n.export_to_hdf5(snakemake.output[0])
 
             status, termination_condition = run_lopf(n)
 
@@ -141,9 +141,10 @@ def solve_network(n):
     return n
 
 if __name__ == "__main__":
-    n = pypsa.Network(csv_folder_name=snakemake.input[0])
+    n = pypsa.Network()
+    n.import_from_hdf5(snakemake.input[0])
 
     n = prepare_network(n)
     n = solve_network(n)
 
-    n.export_to_csv_folder(snakemake.output[0])
+    n.export_to_hdf5(snakemake.output[0])

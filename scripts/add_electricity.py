@@ -326,7 +326,8 @@ if __name__ == "__main__":
 
     opts = snakemake.wildcards.opts.split('-')
 
-    n = pypsa.Network(snakemake.input.base_network)
+    n = pypsa.Network()
+    n.import_from_hdf5(snakemake.input.base_network)
     costs = load_costs()
     attach_load(n)
     attach_existing_generators(n, costs)
@@ -340,4 +341,4 @@ if __name__ == "__main__":
     if 'Ep' in opts:
         add_emission_prices(n)
 
-    n.export_to_csv_folder(snakemake.output[0])
+    n.export_to_hdf5(snakemake.output[0])
