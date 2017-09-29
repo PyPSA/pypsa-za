@@ -50,16 +50,17 @@ def solve_network(n):
     solver_options['logfile'] = snakemake.log.gurobi
     solver_name = solver_options.pop('name')
 
-    def run_lopf(n):
+    def run_lopf(n, allow_warning_status=False):
         status, termination_condition = \
         n.lopf(snapshots=n.snapshots, # extra_functionality=extra_functionality,
                solver_name=solver_name,
                solver_options=solver_options,
                formulation=solve_opts['formulation'])
 
-        assert status == "ok", ("network_lopf did abort with status={} "
-                                "and termination_condition={}"
-                                .format(status, termination_condition))
+        assert status == "ok" or allow_warning_status and status == 'warning', \
+            ("network_lopf did abort with status={} "
+             "and termination_condition={}"
+             .format(status, termination_condition))
 
         return status, termination_condition
 
@@ -103,7 +104,7 @@ def solve_network(n):
         iteration = 1
 
         lines['s_nom_opt'] = lines['s_nom']
-        status, termination_condition = run_lopf(n)
+        status, termination_condition = run_lopf(n, allow_warning_status=True)
 
         def msq_diff(n):
             lines_err = np.sqrt(((n.lines.loc[lines_ext_b, 's_nom_opt']/lines['s_nom_opt'] - 1)**2).mean())
@@ -123,7 +124,7 @@ def solve_network(n):
             # TODO take that out again
             n.export_to_hdf5(snakemake.output[0])
 
-            status, termination_condition = run_lopf(n)
+            status, termination_condition = run_lopf(n, allow_warning_status=True)
 
         update_line_parameters(n, drop_lines_below=500)
 

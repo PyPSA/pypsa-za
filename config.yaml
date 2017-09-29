@@ -1,10 +1,10 @@
 version: 0.1
 
 scenario:
-  mask: [redz, corridors]
-  sectors: [E] # [ E+EV, E+BEV, E+BEV+V2G ]
-  cost: [CSIR-Expected-Apr2016] #, IRP2016-Apr2016]
-  opts: [N, Ep, Co2L] # [N-T, Ep-T, Co2L-T]
+  resarea: [redz, corridors]
+  sectors: [E,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
+  cost: [csir] #, IRP2016-Apr2016]
+  opts: [Ep, Co2L, Ep-FL, Co2L-FL] #, N-T, Ep-T, Co2L-T]
 
 data:
   resarea:
@@ -106,7 +106,7 @@ solving:
     load_shedding: true
     noisy_costs: true
     min_iterations: 4
-    max_iterations: 4
+    max_iterations: 6
     formulation: kirchhoff
   solver:
     name: gurobi

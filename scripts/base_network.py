@@ -92,7 +92,7 @@ def base_network():
     elif 'FL' in snakemake.wildcards.opts.split('-'):
         n.import_components_from_dataframe(
             (lines
-             .loc[lines.num_parallel > 0.5]
+             .loc[lines.num_parallel > 0.1]
              .drop('capacity', axis=1)
              .assign(s_nom_extendable=False, type=line_type)),
             "Line"

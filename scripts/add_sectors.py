@@ -282,9 +282,9 @@ if __name__ == "__main__":
         from vresutils import Dict
         import yaml
         snakemake = Dict()
-        snakemake.input = Dict(network='../networks/elec_CSIR-Expected-Apr2016_redz_Co2L',
-                            emobility='../data/external/emobility/')
-        snakemake.wildcards = Dict(sectors="E+BEV", mask="redz", opts="Co2L", cost="CSIR-Expected-Apr2016")
+        snakemake.input = Dict(network='../networks/elec_CSIR-Expected-Apr2016_redz_Co2L.h5',
+                               emobility='../data/external/emobility/')
+        snakemake.wildcards = Dict(sectors="E+BEV", mask="redz", opts="Co2L", cost="csir")
         snakemake.output = ['../networks/sector_CSIR-Expected-Apr2016_redz_E+BEV_Co2L']
         with open('../config.yaml') as f:
             snakemake.config = yaml.load(f)
