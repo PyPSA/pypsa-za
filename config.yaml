@@ -4,7 +4,7 @@ scenario:
   resarea: [redz, corridors]
   sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
   cost: [csir2040] #, IRP2016-Apr2016]
-  opts: [LC, LC-FL, Ep, Co2L, BAU] #, N-T, Ep-T, Co2L-T]
+  opts: [LC, LC-FL, Ep, Co2L, BAU] #, LC-T, Ep-T, Co2L-T]
 
 data:
   resarea:

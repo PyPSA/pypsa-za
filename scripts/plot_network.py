@@ -83,8 +83,12 @@ map_figsize = opts['map']['figsize']
 map_boundaries = opts['map']['boundaries']
 
 n = load_network(snakemake.input.network, opts)
-if 'Ep' not in snakemake.wildcards.opts.split('-'):
-    add_emission_prices(n, snakemake.config['costs']['emission_prices'])
+
+scenario_opts = snakemake.wildcards.opts.split('-')
+if 'Ep' in scenario_opts or 'Co2L' in scenario_opts:
+    # Substract emission prices
+    add_emission_prices(n, - pd.Series(snakemake.config['costs']['emission_prices']),
+                        exclude_co2='Co2L' in scenario_opts)
 
 supply_regions = gpd.read_file(snakemake.input.supply_regions).buffer(-0.005) #.to_crs(n.crs)
 renewable_regions = gpd.read_file(snakemake.input.maskshape).to_crs(supply_regions.crs)
