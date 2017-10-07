@@ -6,7 +6,7 @@ import numpy as np
 import scipy as sp
 from operator import attrgetter
 import xarray as xr
-from six import string_types
+from six import string_types, iteritems
 
 import rasterio
 import fiona
@@ -259,12 +259,13 @@ def attach_existing_generators(n, costs):
 def attach_extendable_generators(n, costs):
     elec_opts = snakemake.config['electricity']
     carriers = elec_opts['extendable_carriers']['Generator']
+    buses = elec_opts['buses']
 
     _add_missing_carriers_from_costs(n, costs, carriers)
 
-    for carrier in carriers:
+    for carrier in iteritems(carriers):
         madd(n, "Generator", carrier,
-             bus=n.buses.index,
+             bus=buses.get(carrier, n.buses.index),
              p_nom_extendable=True,
              carrier=carrier,
              capital_cost=costs.at[carrier, 'capital_cost'],
@@ -276,12 +277,13 @@ def attach_storage(n, costs):
     elec_opts = snakemake.config['electricity']
     carriers = elec_opts['extendable_carriers']['StorageUnit']
     max_hours = elec_opts['max_hours']
+    buses = elec_opts['buses']
 
     _add_missing_carriers_from_costs(n, costs, carriers)
 
     for carrier in carriers:
         madd(n, "StorageUnit", carrier,
-             bus=n.buses.index,
+             bus=buses.get(carrier, n.buses.index),
              p_nom_extendable=True,
              carrier=carrier,
              capital_cost=costs.at[carrier, 'capital_cost'],
@@ -296,9 +298,10 @@ def add_co2limit(n):
           carrier_attribute="co2_emissions", sense="<=",
           constant=snakemake.config['electricity']['co2limit'])
 
-def add_emission_prices(n, emission_prices=None):
+def add_emission_prices(n, emission_prices=None, exclude_co2=False):
     if emission_prices is None:
         emission_prices = snakemake.config['costs']['emission_prices']
+    if exclude_co2: emission_prices.pop('co2')
     ep = (pd.Series(emission_prices).rename(lambda x: x+'_emissions') * n.carriers).sum(axis=1)
     n.generators['marginal_cost'] += n.generators.carrier.map(ep)
     n.storage_units['marginal_cost'] += n.storage_units.carrier.map(ep)
@@ -337,6 +340,7 @@ if __name__ == "__main__":
 
     if 'Co2L' in opts:
         add_co2limit(n)
+        add_emission_prices(n, exclude_co2=True)
 
     if 'Ep' in opts:
         add_emission_prices(n)

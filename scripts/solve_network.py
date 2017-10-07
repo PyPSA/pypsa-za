@@ -44,6 +44,14 @@ def prepare_network(n):
     return n
 
 def solve_network(n):
+    def extra_functionality(n, snapshots):
+        if 'BAU' in snakemake.wildcards.opts.split('-'):
+            mincaps = snakemake.config['electricity']['bau_mincapacities']
+            def bau_mincapacities_rule(model, carrier):
+                gens = n.generators.index[n.generators.carrier == carrier]
+                return sum(model.generator_p_nom[gen] for gen in gens) > mincaps[carrier]
+            n.model.bau_mincapacities = pypsa.opt.Constraint(list(mincaps), rule=bau_mincapacities_rule)
+
     solve_opts = snakemake.config['solving']['options']
 
     solver_options = snakemake.config['solving']['solver'].copy()
@@ -52,7 +60,7 @@ def solve_network(n):
 
     def run_lopf(n, allow_warning_status=False):
         status, termination_condition = \
-        n.lopf(snapshots=n.snapshots, # extra_functionality=extra_functionality,
+        n.lopf(snapshots=n.snapshots, extra_functionality=extra_functionality,
                solver_name=solver_name,
                solver_options=solver_options,
                formulation=solve_opts['formulation'])

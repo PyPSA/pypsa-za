@@ -84,11 +84,13 @@ rule add_sectors:
     script: "scripts/add_sectors.py"
 
 rule solve_network:
-    input: network="networks/sector_{network}.h5"
-    output: "results/version-{version}/networks/{{network}}.h5".format(version=config['version'])
+    input: network="networks/sector_{cost}_{resarea}_{sectors}_{opts}.h5"
+    output: "results/version-{version}/networks/{{cost}}_{{resarea}}_{{sectors}}_{{opts}}.h5".format(version=config['version'])
     shadow: "shallow"
-    log: gurobi="logs/{network}_gurobi.log", python="logs/{network}_python.log"
-    benchmark: "benchmarks/solve_network/{network}"
+    log:
+        gurobi="logs/{cost}_{resarea}_{sectors}_{opts}_gurobi.log",
+        python="logs/{cost}_{resarea}_{sectors}_{opts}_python.log"
+    benchmark: "benchmarks/solve_network/{cost}_{resarea}_{sectors}_{opts}"
     threads: 4
     resources: mem_mb=22000 # for electricity only
     script: "scripts/solve_network.py"

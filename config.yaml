@@ -1,10 +1,10 @@
-version: 0.1
+version: 0.2
 
 scenario:
   resarea: [redz, corridors]
-  sectors: [E,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
-  cost: [csir] #, IRP2016-Apr2016]
-  opts: [Ep, Co2L, Ep-FL, Co2L-FL] #, N-T, Ep-T, Co2L-T]
+  sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
+  cost: [csir2040] #, IRP2016-Apr2016]
+  opts: [LC, LC-FL, Ep, Co2L, BAU] #, N-T, Ep-T, Co2L-T]
 
 data:
   resarea:
@@ -12,6 +12,7 @@ data:
     corridors: data/Power_corridors
   cost:
     csir: CSIR-Expected-Apr2016
+    csir2040: CSIR-Expected-Update2040
     irp: IRP2016-Apr2016
  
 year: "2040"
@@ -25,8 +26,19 @@ electricity:
   csp: false
 
   extendable_carriers:
-    Generator: [OCGT]
-    StorageUnit: [Battery, CAES]
+    Generator: [OCGT, CCGT, Coal, Nuclear]
+    StorageUnit: [Battery] # [CAES]
+
+  buses:
+    OCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
+    CCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH]
+    Coal: [WATERBERG]
+    Nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
+
+  BAU_mincapacities:
+    Nuclear: 10000
+    Coal: 10000
+
   max_hours:
     Battery: 3
     CAES: 10
@@ -45,7 +57,7 @@ respotentials:
 
   capacity_per_sqm:
     wind: 5   # half of 10 (IWES)
-    solar: 16.5 # "half" of 33 (IWES)
+    solar: 16.5 # half of 33 (IWES)
 
 hydro_inflow:
   countries: [ZA, MZ]
