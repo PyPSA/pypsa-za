@@ -6,7 +6,7 @@ import numpy as np
 import scipy as sp
 from operator import attrgetter
 import xarray as xr
-from six import string_types, iteritems
+from six import string_types
 
 import rasterio
 import fiona
@@ -263,7 +263,7 @@ def attach_extendable_generators(n, costs):
 
     _add_missing_carriers_from_costs(n, costs, carriers)
 
-    for carrier in iteritems(carriers):
+    for carrier in carriers:
         madd(n, "Generator", carrier,
              bus=buses.get(carrier, n.buses.index),
              p_nom_extendable=True,

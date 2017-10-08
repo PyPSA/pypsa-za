@@ -46,10 +46,10 @@ def prepare_network(n):
 def solve_network(n):
     def extra_functionality(n, snapshots):
         if 'BAU' in snakemake.wildcards.opts.split('-'):
-            mincaps = snakemake.config['electricity']['bau_mincapacities']
+            mincaps = snakemake.config['electricity']['BAU_mincapacities']
             def bau_mincapacities_rule(model, carrier):
-                gens = n.generators.index[n.generators.carrier == carrier]
-                return sum(model.generator_p_nom[gen] for gen in gens) > mincaps[carrier]
+                gens = n.generators.index[n.generators.p_nom_extendable & (n.generators.carrier == carrier)]
+                return sum(model.generator_p_nom[gen] for gen in gens) >= mincaps[carrier]
             n.model.bau_mincapacities = pypsa.opt.Constraint(list(mincaps), rule=bau_mincapacities_rule)
 
     solve_opts = snakemake.config['solving']['options']
