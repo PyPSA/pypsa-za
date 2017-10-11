@@ -139,7 +139,7 @@ plotting:
       linewidth_factor: 1.e+3  #3.e+3
 
   vre_techs: ["Wind", "PV"]
-  conv_techs: ["OCGT", "Nuclear", "Coal"]
+  conv_techs: ["OCGT", "CCGT", "Nuclear", "Coal"]
   storage_techs: ["Hydro", "CAES", "Battery", "Pumped storage", "Hydro+PS"]
   store_techs: ["Li ion", "water tanks"]
   load_carriers: ["AC load", "heat load", "Li ion load"]
@@ -203,8 +203,8 @@ plotting:
     Li ion: "grey"
     district heating: "#CC4E5C"
   nice_names:
-    OCGT: "Gas"
-    OCGT marginal: "Gas (marginal)"
+    # OCGT: "Gas"
+    # OCGT marginal: "Gas (marginal)"
     #Battery: "Battery storage"
     lines: "Transmission lines"
     AC line: "AC lines"
@@ -213,8 +213,8 @@ plotting:
   nice_names_n:
     offwind: "offshore\nwind"
     onwind: "onshore\nwind"
-    OCGT: "Gas"
+    # OCGT: "Gas"
     H2: "Hydrogen\nstorage"
-    OCGT marginal: "Gas (marginal)"
+    # OCGT marginal: "Gas (marginal)"
     lines: "transmission\nlines"
     ror: "run of river"

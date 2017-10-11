@@ -11,7 +11,7 @@ if 'snakemake' not in globals():
                                attr='p_nom')
     snakemake.input = Dict(network='../results/networks/{cost}_{mask}_{sectors}_{opts}'.format(**snakemake.wildcards),
                            supply_regions='../data/external/supply_regions/supply_regions.shp',
-                           maskshape = "../data/external/masks/{mask}".format(**snakemake.wildcards))
+                           resarea = "../data/external/masks/{mask}".format(**snakemake.wildcards))
     snakemake.output = (expand('../results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}.pdf',
                                **snakemake.wildcards) +
                         expand('../results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}_ext.pdf',
@@ -71,8 +71,10 @@ def make_legend_circles_for(sizes, scale=1.0, **kw):
 
 plt.style.use(['classic', 'seaborn-white',
                {'axes.grid': False, 'grid.linestyle': '--', 'grid.color': u'0.6',
+                'hatch.color': 'white',
                 'patch.linewidth': 0.5,
                 'font.size': 12,
+                'legend.fontsize': 'medium',
                 'lines.linewidth': 1.5,
                 'pdf.fonttype': 42,
                 # 'font.family': 'Times New Roman'
@@ -91,7 +93,7 @@ if 'Ep' in scenario_opts or 'Co2L' in scenario_opts:
                         exclude_co2='Co2L' in scenario_opts)
 
 supply_regions = gpd.read_file(snakemake.input.supply_regions).buffer(-0.005) #.to_crs(n.crs)
-renewable_regions = gpd.read_file(snakemake.input.maskshape).to_crs(supply_regions.crs)
+renewable_regions = gpd.read_file(snakemake.input.resarea).to_crs(supply_regions.crs)
 
 ## DATA
 line_colors = {'cur': "purple",
@@ -156,7 +158,7 @@ for s in (10, 5):
                               linewidth=s*1e3/linewidth_factor))
     labels.append("{} GW".format(s))
 l1 = l1_1 = ax.legend(handles, labels,
-               loc="upper left", bbox_to_anchor=(0.23, 1.01),
+               loc="upper left", bbox_to_anchor=(0.24, 1.01),
                frameon=False,
                labelspacing=0.8, handletextpad=1.5,
                title='Transmission Exist./Exp.             ')
@@ -202,7 +204,7 @@ for ext in snakemake.params.ext:
 
 ## Add total energy p
 
-ax1 = ax = fig.add_axes([-0.15, 0.555, 0.2, 0.2])
+ax1 = ax = fig.add_axes([-0.13, 0.555, 0.2, 0.2])
 ax.set_title('Energy per technology', fontdict=dict(fontsize="medium"))
 
 e_primary = aggregate_p(n).drop('load').loc[lambda s: s>0]
@@ -222,32 +224,53 @@ for t1, t2, i in zip(texts, autotexts, e_primary.index):
 
 ## Add average system cost bar plot
 # ax2 = ax = fig.add_axes([-0.1, 0.2, 0.1, 0.33])
-ax2 = ax = fig.add_axes([-0.1, 0.15, 0.1, 0.37])
+# ax2 = ax = fig.add_axes([-0.1, 0.15, 0.1, 0.37])
+ax2 = ax = fig.add_axes([-0.1, 0.19, 0.15, 0.33])
 total_load = n.loads_t.p.sum().sum()
-costs = aggregate_costs(n).reset_index(level=0, drop=True)
-costs = costs['capital'].add(costs['marginal'], fill_value=0.)
 
-costs_graph = pd.DataFrame(dict(a=costs.drop('load')),
+def split_costs(n):
+    costs = aggregate_costs(n).reset_index(level=0, drop=True)
+    costs_ex = aggregate_costs(n, existing_only=True).reset_index(level=0, drop=True)
+    return (costs['capital'].add(costs['marginal'], fill_value=0.),
+            costs_ex['capital'], costs['capital'] - costs_ex['capital'], costs['marginal'])
+
+costs, costs_cap_ex, costs_cap_new, costs_marg = split_costs(n)
+add_emission_prices(n, snakemake.config['costs']['emission_prices'])
+costs_ep, costs_cap_ex_ep, costs_cap_new_ep, costs_marg_ep = split_costs(n)
+
+costs_graph = pd.DataFrame(dict(a=costs.drop('load'), b=costs_ep.drop('load')),
                           index=['AC-AC', 'AC line', 'Wind', 'PV', 'Nuclear',
-                                 'Coal', 'OCGT', 'CAES', 'Battery']).dropna()
-bottom = np.array([0.])
+                                 'Coal', 'OCGT', 'CCGT', 'CAES', 'Battery']).dropna()
+bottom = np.array([0., 0.])
 texts = []
 
 for i,ind in enumerate(costs_graph.index):
     data = np.asarray(costs_graph.loc[ind])/total_load
-    ax.bar([0.1], data, bottom=bottom, color=tech_colors[ind], width=0.8, zorder=-1)
+    ax.bar([0.1, 0.55], data, bottom=bottom, color=tech_colors[ind], width=0.35, zorder=-1)
+    bottom_sub = bottom
     bottom = bottom+data
+
+    if ind in opts['conv_techs'] + ['AC line']:
+        for c, c_ep, h in [(costs_cap_ex, costs_cap_ex_ep, None),
+                           (costs_cap_new, costs_cap_new_ep, 'xxxx'),
+                           (costs_marg, costs_marg_ep, None)]:
+            if ind in c and ind in c_ep:
+                data_sub = np.asarray([c.loc[ind], c_ep.loc[ind]])/total_load
+                ax.bar([0.1, 0.55], data_sub, linewidth=0,
+                       bottom=bottom_sub, color=tech_colors[ind], width=0.35, zorder=-1, hatch=h, alpha=0.5)
+                bottom_sub += data_sub
 
     if abs(data[-1]) < 10:
         continue
+
     text = ax.text(1.1,(bottom-0.5*data)[-1]-15,opts['nice_names'].get(ind,ind))
     texts.append(text)
 
 ax.set_ylabel("Average system cost [R/MWh]")
-ax.set_ylim([0,800])
+ax.set_ylim([0,600])
 ax.set_xlim([0,1])
-ax.set_xticks([])
-ax.set_xticklabels([])
+ax.set_xticks([0.3, 0.7])
+ax.set_xticklabels(["w/o\nEp", "w/\nEp"])
 ax.grid(True, axis="y", color='k', linestyle='dotted')
 
 #fig.tight_layout()

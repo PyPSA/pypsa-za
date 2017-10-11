@@ -50,6 +50,8 @@ def load_network(fn, opts, combine_hydro_ps=True):
     n.lines["carrier"] = "AC line"
     n.transformers["carrier"] = "AC transformer"
 
+    n.lines['s_nom'] = n.lines['s_nom_min']
+
     if combine_hydro_ps:
         n.storage_units.loc[n.storage_units.carrier.isin({'Pumped storage', 'Hydro'}), 'carrier'] = 'Hydro+PS'
 
@@ -92,19 +94,20 @@ def aggregate_p_curtailed(n):
          .groupby(n.storage_units.carrier).sum())
     ])
 
-def aggregate_costs(n, flatten=False, opts=None):
-    components = dict(Link=("p_nom_opt", "p0"),
-                      Generator=("p_nom_opt", "p"),
-                      StorageUnit=("p_nom_opt", "p"),
-                      Store=("e_nom_opt", "p"),
-                      Line=("s_nom_opt", None),
-                      Transformer=("s_nom_opt", None))
+def aggregate_costs(n, flatten=False, opts=None, existing_only=False):
+    components = dict(Link=("p_nom", "p0"),
+                      Generator=("p_nom", "p"),
+                      StorageUnit=("p_nom", "p"),
+                      Store=("e_nom", "p"),
+                      Line=("s_nom", None),
+                      Transformer=("s_nom", None))
 
     costs = {}
     for c, (p_nom, p_attr) in zip(
         n.iterate_components(iterkeys(components), skip_empty=False),
         itervalues(components)
     ):
+        if not existing_only: p_nom += "_opt"
         costs[(c.list_name, 'capital')] = (c.df[p_nom] * c.df.capital_cost).groupby(c.df.carrier).sum()
         if p_attr is not None:
             p = c.pnl[p_attr].sum()
