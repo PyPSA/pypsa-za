@@ -60,7 +60,7 @@ def solve_network(n):
             n.model.bau_mincapacities = pypsa.opt.Constraint(list(mincaps), rule=bau_mincapacities_rule)
 
         if 'SAFE' in opts:
-            peakdemand = n.loads_t.p_set.sum(axis=1).max()
+            peakdemand = (1. + snakemake.config['electricity']['SAFE_reservemargin']) * n.loads_t.p_set.sum(axis=1).max()
             conv_techs = snakemake.config['plotting']['conv_techs']
             exist_conv_caps = n.generators.loc[n.generators.carrier.isin(conv_techs) & ~n.generators.p_nom_extendable, 'p_nom'].sum()
             ext_gens_i = n.generators.index[n.generators.carrier.isin(conv_techs) & n.generators.p_nom_extendable]

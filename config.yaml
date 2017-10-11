@@ -42,6 +42,8 @@ electricity:
     Nuclear: 10000
     Coal: 10000
 
+  SAFE_reservemargin: 0.1
+
   max_hours:
     Battery: 3
     CAES: 10
