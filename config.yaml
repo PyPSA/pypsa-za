@@ -121,12 +121,14 @@ solving:
     max_iterations: 6
     formulation: kirchhoff
   solver:
-    name: gurobi
+    name: gurobi_persistent
     threads: 4
     method: 2
     crossover: 0 # -1 (Choose freely)
     BarConvTol: 1.e-5
     FeasibilityTol: 1.e-6
+    LogToConsole: 0
+    OutputFlag: 1
 
 plotting:
   map:
