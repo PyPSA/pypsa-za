@@ -1,10 +1,10 @@
-version: 0.2
+version: 0.3
 
 scenario:
   resarea: [redz, corridors]
   sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
-  cost: [csir2040] #, IRP2016-Apr2016]
-  opts: [LC, LC-FL, Ep, Co2L, BAU] #, LC-T, Ep-T, Co2L-T]
+  cost: [csir-now, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
+  opts: [LC, Ep, Co2L, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
 
 data:
   resarea:
@@ -14,6 +14,9 @@ data:
     csir: CSIR-Expected-Apr2016
     csir2040: CSIR-Expected-Update2040
     irp: IRP2016-Apr2016
+    csir-now: CSIR-Expected-Update-Today
+    csir-moderate: CSIR-Expected-Update-Moderate
+    csir-aggressive: CSIR-Expected-Update-Aggressive
  
 year: "2040"
 historical_year: "2012"
@@ -118,8 +121,10 @@ solving:
     load_shedding: true
     noisy_costs: true
     min_iterations: 4
-    max_iterations: 6
+    max_iterations: 10
     formulation: kirchhoff
+    # max_iterations: 1
+    # nhours: 10
   solver:
     name: gurobi_persistent
     threads: 4
