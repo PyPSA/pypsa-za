@@ -122,8 +122,8 @@ bus_size_factor  = opts['map'][snakemake.wildcards.attr]['bus_size_factor']
 
 ## PLOT
 fig, ax = plt.subplots(figsize=map_figsize)
-vplot.shapes(supply_regions.geometry, colour='k', outline='k', ax=ax, rasterized=True)
-vplot.shapes(renewable_regions.geometry, colour='gray', alpha=0.2, ax=ax, rasterized=True)
+vplot.shapes(supply_regions.geometry, facecolors='k', outline='k', ax=ax, rasterized=True)
+vplot.shapes(renewable_regions.geometry, facecolors='gray', alpha=0.2, ax=ax, rasterized=True)
 n.plot(line_widths=line_widths_exp/linewidth_factor,
        line_colors=dict(Line=line_colors['exp'], Link=line_colors['exp']),
        bus_sizes=bus_sizes/bus_size_factor,
@@ -186,7 +186,7 @@ l2 = ax.legend(handles, labels,
                handler_map=make_handler_map_to_scale_circles_as_in(ax))
 ax.add_artist(l2)
 
-techs = pd.Index(opts['vre_techs'] + opts['conv_techs'] + opts['storage_techs']) & (bus_sizes.index.levels[1])
+techs =  (bus_sizes.index.levels[1]) & pd.Index(opts['vre_techs'] + opts['conv_techs'] + opts['storage_techs'])
 handles = []
 labels = []
 for t in techs:
@@ -257,17 +257,18 @@ for i,ind in enumerate(costs_graph.index):
             if ind in c and ind in c_ep:
                 data_sub = np.asarray([c.loc[ind], c_ep.loc[ind]])/total_load
                 ax.bar([0.1, 0.55], data_sub, linewidth=0,
-                       bottom=bottom_sub, color=tech_colors[ind], width=0.35, zorder=-1, hatch=h, alpha=0.5)
+                       bottom=bottom_sub, color=tech_colors[ind],
+                       width=0.35, zorder=-1, hatch=h, alpha=0.8)
                 bottom_sub += data_sub
 
-    if abs(data[-1]) < 10:
+    if abs(data[-1]) < 30:
         continue
 
     text = ax.text(1.1,(bottom-0.5*data)[-1]-15,opts['nice_names'].get(ind,ind))
     texts.append(text)
 
 ax.set_ylabel("Average system cost [R/MWh]")
-ax.set_ylim([0,600])
+ax.set_ylim([0,opts['costs_max']])
 ax.set_xlim([0,1])
 ax.set_xticks([0.3, 0.7])
 ax.set_xticklabels(["w/o\nEp", "w/\nEp"])
