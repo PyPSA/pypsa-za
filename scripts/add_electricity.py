@@ -308,6 +308,23 @@ def add_emission_prices(n, emission_prices=None, exclude_co2=False):
     n.generators['marginal_cost'] += n.generators.carrier.map(ep)
     n.storage_units['marginal_cost'] += n.storage_units.carrier.map(ep)
 
+def add_peak_demand_hour_without_variable_feedin(n):
+    new_hour = n.snapshots[-1] + pd.Timedelta(hours=1)
+    n.set_snapshots(n.snapshots.append(pd.Index([new_hour])))
+
+    # Don't value new hour for energy totals
+    n.snapshot_weightings[new_hour] = 0.
+
+    # Don't allow variable feed-in in this hour
+    n.generators_t.p_max_pu.loc[new_hour] = 0.
+
+    n.loads_t.p_set.loc[new_hour] = (
+        n.loads_t.p_set.loc[n.loads_t.p_set.sum(axis=1).idxmax()]
+        * snakemake.config['electricity']['SAFE_reservemargin']
+    )
+
+
+
 if __name__ == "__main__":
     # Detect running outside of snakemake and mock snakemake for testing
     if 'snakemake' not in globals():
@@ -349,5 +366,8 @@ if __name__ == "__main__":
 
     if 'Ep' in opts:
         add_emission_prices(n)
+
+    if 'SAFE' in opts:
+        add_peak_demand_hour_without_variable_feedin(n)
 
     n.export_to_hdf5(snakemake.output[0])

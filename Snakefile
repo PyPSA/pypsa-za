@@ -1,6 +1,6 @@
 configfile: "config.yaml"
 
-localrules: all, base_network, add_electricity, add_sectors, extract_summaries, plot_network
+localrules: all, base_network, add_electricity, add_sectors, extract_summaries, plot_network, scenario_comparions
 
 wildcard_constraints:
     resarea="[a-zA-Z0-9]+",
