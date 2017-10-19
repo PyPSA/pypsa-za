@@ -10,13 +10,6 @@ data:
   resarea:
     redz: data/REDZ_DEA_Unpublished_Draft_2015
     corridors: data/Power_corridors
-  cost:
-    csir: CSIR-Expected-Apr2016
-    csir2040: CSIR-Expected-Update2040
-    irp: IRP2016-Apr2016
-    csir-now: CSIR-Expected-Update-Today
-    csir-moderate: CSIR-Expected-Update-Moderate
-    csir-aggressive: CSIR-Expected-Update-Aggressive
  
 year: "2040"
 historical_year: "2012"
@@ -73,11 +66,8 @@ lines:
   type: 'Al/St 240/40 4-bundle 380.0'
 
   # costs
-  overnight_cost: 6000 # R/MWkm 400 * 15.63
   s_nom_factor: 0.7
   length_factor: 1.25
-  lifetime: 40
-  fom: 0.02
 
 costs:
   # costs come from data/internal/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx
@@ -143,7 +133,9 @@ plotting:
     boundaries: [16, -35, 33, -22]
     p_nom:
       bus_size_factor: 5.e+4
-      linewidth_factor: 1.e+3  #3.e+3
+      linewidth_factor: 3.e+3 # 1.e+3  #3.e+3
+
+  costs_max: 800
 
   vre_techs: ["Wind", "PV"]
   conv_techs: ["OCGT", "CCGT", "Nuclear", "Coal"]

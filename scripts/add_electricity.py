@@ -28,34 +28,25 @@ def normed(s): return s/s.sum()
 def _add_missing_carriers_from_costs(n, costs, carriers):
     missing_carriers = pd.Index(carriers).difference(n.carriers.index)
     emissions_cols = costs.columns.to_series().loc[lambda s: s.str.endswith('_emissions')].values
-    n.import_components_from_dataframe(costs.loc[missing_carriers, emissions_cols], 'Carrier')
+    n.import_components_from_dataframe(costs.loc[missing_carriers, emissions_cols].fillna(0.), 'Carrier')
 
 def load_costs():
-    costs = (pd.read_excel(snakemake.input.tech_costs,
-                           sheetname=snakemake.params.costs_sheetname,
-                           skiprows=2, parse_cols="B:AH", index_col=0)
-             .loc["Rated capacity (net)":"Particulate emissions"]
-             .drop(['Rated capacity (net)', 'Construction time', 'Fuel energy content',
-                    'Load factor (typical)', 'Water usage'], axis=0)
-             .drop('Unit', axis=1)
-             .T)
+    costs = pd.read_excel(snakemake.input.tech_costs,
+                          sheetname=snakemake.wildcards.cost,
+                          index_col=0).T
 
     discountrate = snakemake.config['costs']['discountrate']
-    costs['capital_cost'] = (costs.pop('Overnight cost per capacity')*1e3
-                             * annuity(costs.pop('Economic lifetime'), discountrate)
-                             + costs.pop('Fixed O&M').fillna(0.))
-    costs['efficiency'] = (3.6e3/costs.pop('Heat rate')).fillna(1.)
-    costs['marginal_cost'] = (costs.pop('Variable O&M').fillna(0.) +
-                              (3.6*costs.pop('Fuel cost') / costs['efficiency']).fillna(0.))
+    costs['capital_cost'] = ((annuity(costs.pop('Lifetime [a]'), discountrate) +
+                              costs.pop('FOM [%/a]').fillna(0.) / 100.)
+                             * costs.pop('Overnight cost [R/kW_el]')*1e3)
 
-    emissions_cols = costs.columns.to_series().loc[lambda s: s.str.endswith(' emissions')]
-    costs.loc[:, emissions_cols.index] = (costs.loc[:, emissions_cols.index]
-                                          .multiply(costs['efficiency'], axis=0)/1e3).fillna(0.)
+    costs['efficiency'] = costs.pop('Efficiency').fillna(1.)
+    costs['marginal_cost'] = (costs.pop('VOM [R/MWh_el]').fillna(0.) +
+                              (costs.pop('Fuel cost [R/MWh_th]') / costs['efficiency']).fillna(0.))
 
-    costs = costs.rename(columns=emissions_cols.str.lower().str.replace(' ', '_'))
-    costs = costs.rename({'Coal (PF)': 'Coal', 'Nuclear (DoE)': 'Nuclear',
-                         'Solar PV (fixed)': 'PV', 'Battery\n(Li-Ion, 3h)': 'Battery',
-                         'CAES\n(8h)': 'CAES', 'Pumped Storage': 'Pumped storage'})
+    emissions_cols = costs.columns.to_series().loc[lambda s: s.str.endswith(' emissions [kg/MWh_th]')]
+    costs.loc[:, emissions_cols.index] = (costs.loc[:, emissions_cols.index]/1e3).fillna(0.)
+    costs = costs.rename(columns=emissions_cols.str[:-len(" [kg/MWh_th]")].str.lower().str.replace(' ', '_'))
 
     for attr in ('marginal_cost', 'capital_cost'):
         overwrites = snakemake.config['costs'].get(attr)
@@ -82,6 +73,17 @@ def attach_load(n):
     madd(n, "Load",
          bus=n.buses.index,
          p_set=pdbcast(demand, normed(n.buses.population)))
+
+### Set line costs
+
+def update_transmission_costs(n, costs):
+    opts = snakemake.config['lines']
+    for df in (n.lines, n.links):
+        if df.empty: continue
+
+        df['capital_cost'] = (df['length'] / opts['s_nom_factor'] *
+                              costs.at['Transmission lines', 'capital_cost'])
+
 
 # ### Generators
 
@@ -312,20 +314,22 @@ if __name__ == "__main__":
         from vresutils import Dict
         import yaml
         snakemake = Dict()
-        snakemake.input = Dict(base_network='../networks/base/',
+        snakemake.input = Dict(base_network='../networks/base_Co2L-SAFE.h5',
                                supply_regions='../data/supply_regions/supply_regions.shp',
                                load='../data/SystemEnergy2009_13.csv',
-                               wind_pv_profiles='../resources/Wind_PV_Normalised_Profiles.xlsx',
+                               wind_pv_profiles='../data/Wind_PV_Normalised_Profiles.xlsx',
                                wind_area='../resources/area_wind_corridors.csv',
                                solar_pv_profiles='../data/Wind_PV_Normalised_Profiles.xlsx',
-                               solar_area='../resources/internal/area_solar_corridors.csv',
+                               solar_area='../resources/area_solar_corridors.csv',
                                existing_generators="../data/Existing Power Stations SA.xlsx",
                                hydro_inflow="../resources/hydro_inflow.csv",
-                               tech_costs="../data/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx")
+                               tech_costs="../data/technology_costs.xlsx")
         with open('../config.yaml') as f:
             snakemake.config = yaml.load(f)
-        snakemake.params = Dict(costs_sheetname="CSIR-Expected-Update2040")
-        snakemake.output = ['../networks/test/']
+        snakemake.wildcards = Dict(cost="csir-today",
+                                   resarea="corridors",
+                                   opts="Co2L-SAFE")
+        snakemake.output = ['../networks/elec_csir-today_corridors_Co2L-SAFE.h5']
 
     opts = snakemake.wildcards.opts.split('-')
 
@@ -333,6 +337,7 @@ if __name__ == "__main__":
     n.import_from_hdf5(snakemake.input.base_network)
     costs = load_costs()
     attach_load(n)
+    update_transmission_costs(n, costs)
     attach_existing_generators(n, costs)
     attach_wind_and_solar(n, costs)
     attach_extendable_generators(n, costs)

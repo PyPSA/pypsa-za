@@ -67,9 +67,6 @@ def base_network():
     def asarray(x): return np.asarray(list(map(np.asarray, x)))
     lines['length'] = haversine(asarray(lines.bus0.map(centroids)),
                                 asarray(lines.bus1.map(centroids))) * line_config['length_factor']
-    lines['capital_cost'] = ((annuity(line_config['lifetime'], discountrate) +
-                              line_config.get('fom', 0)) * line_config['overnight_cost'] *
-                             lines['length'] / line_config['s_nom_factor'])
 
     num_lines = pd.read_csv(snakemake.input.num_lines, index_col=0).set_index(['bus0', 'bus1'])
     num_parallel = sum(num_lines['num_parallel_{}'.format(int(v))] * (v/v_nom)**2

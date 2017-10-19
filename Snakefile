@@ -65,9 +65,8 @@ rule add_electricity:
         solar_area='resources/area_solar_{resarea}.csv',
         existing_generators="data/Existing Power Stations SA.xlsx",
         hydro_inflow="resources/hydro_inflow.csv",
-        tech_costs="data/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx"
+        tech_costs="data/technology_costs.xlsx"
     output: "networks/elec_{cost}_{resarea}_{opts}.h5"
-    params: costs_sheetname=lambda w: config['data']['cost'][w.cost]
     benchmark: "benchmarks/add_electricity/elec_{resarea}_{opts}"
     threads: 1
     resources: mem_mb=1000
@@ -92,7 +91,7 @@ rule solve_network:
         python="logs/{cost}_{resarea}_{sectors}_{opts}_python.log"
     benchmark: "benchmarks/solve_network/{cost}_{resarea}_{sectors}_{opts}"
     threads: 4
-    resources: mem_mb=22000 # for electricity only
+    resources: mem_mb=19000 # for electricity only
     script: "scripts/solve_network.py"
 
 rule plot_network:
