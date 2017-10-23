@@ -320,7 +320,7 @@ def add_peak_demand_hour_without_variable_feedin(n):
 
     n.loads_t.p_set.loc[new_hour] = (
         n.loads_t.p_set.loc[n.loads_t.p_set.sum(axis=1).idxmax()]
-        * snakemake.config['electricity']['SAFE_reservemargin']
+        * (1.+snakemake.config['electricity']['SAFE_reservemargin'])
     )
 
 
