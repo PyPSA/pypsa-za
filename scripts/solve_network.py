@@ -196,10 +196,10 @@ def solve_network(n):
     # Drop zero lines from network
     zero_lines_i = n.lines.index[(n.lines.s_nom_opt == 0.) & n.lines.s_nom_extendable]
     if len(zero_lines_i):
-        n.lines.drop(zero_lines_i, inplace=True)
+        n.mremove("Line", zero_lines_i)
     zero_links_i = n.links.index[(n.links.p_nom_opt == 0.) & n.links.p_nom_extendable]
     if len(zero_links_i):
-        n.links.drop(zero_links_i, inplace=True)
+        n.mremove("Link", zero_links_i)
 
     return n
 
