@@ -191,7 +191,7 @@ def solve_network(n):
 
         update_line_parameters(n, zero_lines_below=500)
 
-    status, termination_condition = run_lopf(n, fix_zero_lines=True)
+    status, termination_condition = run_lopf(n, fix_zero_lines=True, allow_warning_status=True)
 
     # Drop zero lines from network
     zero_lines_i = n.lines.index[(n.lines.s_nom_opt == 0.) & n.lines.s_nom_extendable]
@@ -200,6 +200,14 @@ def solve_network(n):
     zero_links_i = n.links.index[(n.links.p_nom_opt == 0.) & n.links.p_nom_extendable]
     if len(zero_links_i):
         n.mremove("Link", zero_links_i)
+
+    if status != 'ok':
+        # save a backup
+        backup_fn = snakemake.output[0][:-3] + "_suboptimal.h5"
+        n.export_to_hdf5(backup_fn)
+        logger.error("Last solving step returned with status '{}': Aborting. A backup is at {}."
+                     .format(status, backup_fn))
+        raise AssertionError()
 
     return n
 
