@@ -200,6 +200,11 @@ for ext in snakemake.params.ext:
     fig.savefig(snakemake.output.only_map+'.'+ext, dpi=150,
                 bbox_inches='tight', bbox_extra_artists=[l1,l2,l3])
 
+
+co2_emi = ((n.generators_t.p.multiply(n.snapshot_weightings,axis=0)).sum()/n.generators.efficiency * n.generators.carrier.map(n.carriers.co2_emissions)).sum()
+
+fig.text(0.2, 0.16, "CO$_2$ emissions: {} MtCO$_2$/a".format(int(np.round(co2_emi/1e6))))
+
 #n = load_network(snakemake.input.network, opts, combine_hydro_ps=False)
 
 ## Add total energy p
