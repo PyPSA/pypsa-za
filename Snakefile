@@ -1,6 +1,6 @@
 configfile: "config.yaml"
 
-localrules: all, base_network, add_electricity, add_sectors, extract_summaries, plot_network, scenario_comparions
+localrules: all, base_network, add_electricity, add_sectors, plot_network, scenario_comparions # , extract_summaries
 
 wildcard_constraints:
     resarea="[a-zA-Z0-9]+",
@@ -9,7 +9,8 @@ wildcard_constraints:
     opts="[-+a-zA-Z0-9]+"
 
 rule all:
-    input: "results/version-{version}/summaries/costs2-summary.csv".format(version=config['version'])
+    input: expand("results/version-" + config['version'] + "/plots/scenario_{param}.html",
+                  param=list(config['scenario']))
 
 rule landuse_remove_protected_and_conservation_areas:
     input:
@@ -84,7 +85,7 @@ rule add_sectors:
 
 rule solve_network:
     input: network="networks/sector_{cost}_{resarea}_{sectors}_{opts}.h5"
-    output: "results/version-{version}/networks/{{cost}}_{{resarea}}_{{sectors}}_{{opts}}.h5".format(version=config['version'])
+    output: "results/version-" + config['version'] + "/networks/{cost}_{resarea}_{sectors}_{opts}.h5"
     shadow: "shallow"
     log:
         gurobi="logs/{cost}_{resarea}_{sectors}_{opts}_gurobi.log",
@@ -96,14 +97,42 @@ rule solve_network:
 
 rule plot_network:
     input:
-        network='results/version-{version}/networks/{{cost}}_{{resarea}}_{{sectors}}_{{opts}}.h5'.format(version=config['version']),
+        network='results/version-' + config['version']+ '/networks/{cost}_{resarea}_{sectors}_{opts}.h5',
         supply_regions='data/supply_regions/supply_regions.shp',
         resarea=lambda w: config['data']['resarea'][w.resarea]
     output:
-        only_map=touch('results/version-{version}/plots/network_{{cost}}_{{resarea}}_{{sectors}}_{{opts}}_{{attr}}'.format(version=config['version'])),
-        ext=touch('results/version-{version}/plots/network_{{cost}}_{{resarea}}_{{sectors}}_{{opts}}_{{attr}}_ext'.format(version=config['version']))
+        only_map=touch('results/version-' + config['version'] + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}'),
+        ext=touch('results/version-' + config['version'] + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext')
     params: ext=['png', 'pdf']
     script: "scripts/plot_network.py"
+
+rule scenario_comparison:
+    input:
+        expand('results/version-{version}/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext',
+               version=config['version'],
+               attr=['p_nom'],
+               **config['scenario'])
+    output:
+       html='results/version-' + config['version'] + '/plots/scenario_{param}.html'
+    params:
+       tmpl="network_[cost]_[resarea]_[sectors]_[opts]_[attr]_ext",
+       plot_dir='results/version-' + config['version'] + '/plots'
+    script: "scripts/scenario_comparison.py"
+
+# extract_summaries and plot_costs needs to be updated before it can be used again
+#
+# rule extract_summaries:
+#     input:
+#         expand("results/version-{version}/networks/{cost}_{resarea}_{sectors}_{opts}.h5",
+#                version=config['version'],
+#                **config['scenario'])
+#     output:
+#         **{n: "results/version-{version}/summaries/{}-summary.csv".format(n, version=config['version'])
+#            for n in ['costs', 'costs2', 'e_curtailed', 'e_nom_opt', 'e', 'p_nom_opt']}
+#     params:
+#         scenario_tmpl="[cost]_[resarea]_[sectors]_[opts]",
+#         scenarios=config['scenario']
+#     script: "scripts/extract_summaries.py"
 
 # rule plot_costs:
 #     input: 'results/summaries/costs2-summary.csv'
@@ -115,32 +144,6 @@ rule plot_network:
 #         tmpl="results/plots/costs_[cost]_[resarea]_[sectors]_[opt]"
 #         exts=["pdf", "png"]
 #     scripts: "scripts/plot_costs.py"
-
-rule scenario_comparison:
-    input:
-        expand('results/version-{version}/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext',
-               version=config['version'],
-               attr=['p_nom'],
-               **config['scenario'])
-    output:
-       html='results/version-{version}/plots/scenario_{{param}}.html'.format(version=config['version'])
-    params:
-       tmpl="network_[cost]_[resarea]_[sectors]_[opts]_[attr]_ext",
-       plot_dir='results/version-{}/plots'.format(config['version'])
-    script: "scripts/scenario_comparison.py"
-
-rule extract_summaries:
-    input:
-        expand("results/version-{version}/networks/{cost}_{resarea}_{sectors}_{opts}.h5",
-               version=config['version'],
-               **config['scenario'])
-    output:
-        **{n: "results/version-{version}/summaries/{}-summary.csv".format(n, version=config['version'])
-           for n in ['costs', 'costs2', 'e_curtailed', 'e_nom_opt', 'e', 'p_nom_opt']}
-    params:
-        scenario_tmpl="[cost]_[resarea]_[sectors]_[opts]",
-        scenarios=config['scenario']
-    script: "scripts/extract_summaries.py"
 
 
 # Local Variables:
