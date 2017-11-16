@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 import scipy as sp
 from operator import attrgetter
-import xarray as xr
 from six import string_types
 
 import rasterio
