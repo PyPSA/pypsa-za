@@ -70,8 +70,7 @@ lines:
   length_factor: 1.25
 
 costs:
-  # costs come from data/internal/IRP2016_Inputs_Technology-Costs (PUBLISHED).xlsx
-  #sheetname: "IRP2016-Apr2016" # "CSIR-Apr2016"
+  # costs come from data/technology_costs.xlsx
   discountrate: 0.08
 
   # Marginal and capital costs can be overwritten

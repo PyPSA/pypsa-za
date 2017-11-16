@@ -9,8 +9,9 @@ wildcard_constraints:
     opts="[-+a-zA-Z0-9]+"
 
 rule all:
-    input: expand("results/version-" + config['version'] + "/plots/scenario_{param}.html",
-                  param=list(config['scenario']))
+    input:
+        expand("results/version-" + str(config['version']) + "/plots/scenario_{param}.html",
+               param=list(config['scenario']))
 
 rule landuse_remove_protected_and_conservation_areas:
     input:
@@ -85,7 +86,7 @@ rule add_sectors:
 
 rule solve_network:
     input: network="networks/sector_{cost}_{resarea}_{sectors}_{opts}.h5"
-    output: "results/version-" + config['version'] + "/networks/{cost}_{resarea}_{sectors}_{opts}.h5"
+    output: "results/version-" + str(config['version']) + "/networks/{cost}_{resarea}_{sectors}_{opts}.h5"
     shadow: "shallow"
     log:
         gurobi="logs/{cost}_{resarea}_{sectors}_{opts}_gurobi.log",
@@ -97,12 +98,12 @@ rule solve_network:
 
 rule plot_network:
     input:
-        network='results/version-' + config['version']+ '/networks/{cost}_{resarea}_{sectors}_{opts}.h5',
+        network='results/version-' + str(config['version']) + '/networks/{cost}_{resarea}_{sectors}_{opts}.h5',
         supply_regions='data/supply_regions/supply_regions.shp',
         resarea=lambda w: config['data']['resarea'][w.resarea]
     output:
-        only_map=touch('results/version-' + config['version'] + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}'),
-        ext=touch('results/version-' + config['version'] + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext')
+        only_map=touch('results/version-' + str(config['version']) + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}'),
+        ext=touch('results/version-' + str(config['version']) + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext')
     params: ext=['png', 'pdf']
     script: "scripts/plot_network.py"
 
@@ -113,10 +114,10 @@ rule scenario_comparison:
                attr=['p_nom'],
                **config['scenario'])
     output:
-       html='results/version-' + config['version'] + '/plots/scenario_{param}.html'
+       html='results/version-' + str(config['version']) + '/plots/scenario_{param}.html'
     params:
        tmpl="network_[cost]_[resarea]_[sectors]_[opts]_[attr]_ext",
-       plot_dir='results/version-' + config['version'] + '/plots'
+       plot_dir='results/version-' + str(config['version']) + '/plots'
     script: "scripts/scenario_comparison.py"
 
 # extract_summaries and plot_costs needs to be updated before it can be used again
