@@ -1,0 +1,27 @@
+name: pypsa-za
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - six
+  - numpy
+  - pyomo
+  - scipy
+  - pandas>=0.19.0
+  - matplotlib
+  - seaborn
+  - networkx>=1.10
+  - fiona
+  - pyproj
+  - pyshp
+  - geopandas
+  - rasterstats
+  - rasterio
+  - shapely
+  - pip:
+    - git+https://github.com/Pyomo/pyomo.git@persistent_interfaces
+    - git+https://github.com/PyPSA/PyPSA.git
+    - vresutils>=0.2.3
+    - countrycode
+    - snakemake
+  
