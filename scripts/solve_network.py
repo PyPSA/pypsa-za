@@ -25,14 +25,21 @@ def prepare_network(n):
 
     if solve_opts.get('load_shedding'):
         n.add("Carrier", "Load")
-        madd(n, "Generator", "Load",
-             bus=n.buses.index,
-             carrier='load',
-             marginal_cost=1.0e5 * snakemake.config['costs']['EUR_to_ZAR'],
-             # intersect between macroeconomic and surveybased
-             # willingness to pay
-             # http://journal.frontiersin.org/article/10.3389/fenrg.2015.00055/full
-             p_nom=1e6)
+        load_i = madd(n, "Generator", "Load",
+                      bus=n.buses.index,
+                      carrier='load',
+                      marginal_cost=1.0e5 * snakemake.config['costs']['EUR_to_ZAR'],
+                      # intersect between macroeconomic and surveybased
+                      # willingness to pay
+                      # http://journal.frontiersin.org/article/10.3389/fenrg.2015.00055/full
+                      p_nom=1e6)
+
+        if 'SAFE' in snakemake.wildcards.opts.split('-'):
+            # there must be no load shedding in the extra hour introduced in the SAFE scenario
+            load_p_max_pu = pd.DataFrame(1., index=n.snapshots, columns=load_i)
+            load_p_max_pu.iloc[-1, :] = 0.
+
+            n.generators_t.p_max_pu = pd.concat([n.generators_t.p_max_pu, load_p_max_pu], axis=1)
 
     if solve_opts.get('noisy_costs'):
         for t in n.iterate_components():
@@ -77,9 +84,6 @@ def solve_network(n):
                 # n.model.link_p_nom[l].fixed = fix
             if isinstance(n.opt, pypsa.opf.PersistentSolver):
                 n.opt.update_var(n.model.link_p_nom)
-
-        # Not sure if this is needed
-        # n.model.preprocess()
 
     solve_opts = snakemake.config['solving']['options']
 
