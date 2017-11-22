@@ -1,9 +1,11 @@
 name: pypsa-za
 channels:
   - conda-forge
+  - bioconda
 dependencies:
   - python
   - six
+  - snakemake
   - numpy
   - pyomo
   - scipy
@@ -23,5 +25,3 @@ dependencies:
     - git+https://github.com/PyPSA/PyPSA.git
     - vresutils>=0.2.3
     - countrycode
-    - snakemake
-  
