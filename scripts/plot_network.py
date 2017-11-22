@@ -212,7 +212,7 @@ fig.text(0.2, 0.16, "CO$_2$ emissions: {} MtCO$_2$/a".format(int(np.round(co2_em
 ax1 = ax = fig.add_axes([-0.13, 0.555, 0.2, 0.2])
 ax.set_title('Energy per technology', fontdict=dict(fontsize="medium"))
 
-e_primary = aggregate_p(n).drop('load').loc[lambda s: s>0]
+e_primary = aggregate_p(n).drop('load', errors='ignore').loc[lambda s: s>0]
 
 patches, texts, autotexts = ax.pie(e_primary,
        startangle=90,
@@ -243,7 +243,7 @@ costs, costs_cap_ex, costs_cap_new, costs_marg = split_costs(n)
 add_emission_prices(n, snakemake.config['costs']['emission_prices'])
 costs_ep, costs_cap_ex_ep, costs_cap_new_ep, costs_marg_ep = split_costs(n)
 
-costs_graph = pd.DataFrame(dict(a=costs.drop('load'), b=costs_ep.drop('load')),
+costs_graph = pd.DataFrame(dict(a=costs.drop('load', errors='ignore'), b=costs_ep.drop('load', errors='ignore')),
                           index=['AC-AC', 'AC line', 'Wind', 'PV', 'Nuclear',
                                  'Coal', 'OCGT', 'CCGT', 'CAES', 'Battery']).dropna()
 bottom = np.array([0., 0.])
