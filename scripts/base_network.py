@@ -14,69 +14,23 @@ from vresutils.shapes import haversine
 import pypsa
 
 def base_network():
-    ## Read in regions and calculate population per region
+    n = pypsa.Network()
+    n.name = 'PyPSA-ZA'
 
-    regions = gpd.read_file(snakemake.input.supply_regions)[['name', 'geometry']]
+    buses = pd.read_csv(snakemake.input.buses, index_col=0)
+    lines = pd.read_csv(snakemake.input.lines, index_col=0)
 
-    # Slighly Moved centroids of NAMAQUALAND and PRETORIA manually so that they are within the shapes
-    centroids = gpd.read_file(snakemake.input.centroids).set_index('name')['geometry']
+    buses['population'] = pd.read_csv(snakemake.input.population, index_col=0)['population']
 
-    regions['population'] = pd.DataFrame(rasterstats.zonal_stats(regions['geometry'], snakemake.input.population, stats='sum'))['sum']
-
-
-    # touching regions are connected by lines, we use nx to take care of all the double countings efficiently
-
-    def edges_between_touching_regions(regions):
-        G = nx.Graph()
-        G.add_nodes_from(regions.index)
-        for r in regions.itertuples():
-            neighs = regions.index[regions.touches(r.geometry)]
-            G.add_edges_from((r.Index, r2_name) for r2_name in neighs.values)
-        return G.edges()
-
-
-    regions = regions.set_index('name')
-
-
-    ## Build pypsa network
     line_config = snakemake.config['lines']
     v_nom = line_config['v_nom']
     line_type = line_config['type']
 
-    n = pypsa.Network()
-    n.name = 'PyPSA-ZA'
-    n.crs = regions.crs
+    lines['capacity'] = np.sqrt(3)*v_nom*n.line_types.loc[line_type, 'i_nom']*lines.num_parallel
 
     # Buses from regions
     n.set_snapshots(pd.date_range(snakemake.config['historical_year'], periods=8760, freq='h'))
-    n.import_components_from_dataframe(
-        regions
-        .assign(
-            x=centroids.map(attrgetter('x')),
-            y=centroids.map(attrgetter('y')),
-            v_nom=v_nom
-        )
-        .drop('geometry', axis=1),
-        'Bus'
-    )
-
-    # Lines from touching regions
-    lines = pd.DataFrame(edges_between_touching_regions(regions), columns=['bus0', 'bus1'])
-
-    discountrate = snakemake.config['costs']['discountrate']
-    def asarray(x): return np.asarray(list(map(np.asarray, x)))
-    lines['length'] = haversine(asarray(lines.bus0.map(centroids)),
-                                asarray(lines.bus1.map(centroids))) * line_config['length_factor']
-
-    num_lines = pd.read_csv(snakemake.input.num_lines, index_col=0).set_index(['bus0', 'bus1'])
-    num_parallel = sum(num_lines['num_parallel_{}'.format(int(v))] * (v/v_nom)**2
-                       for v in (275, 400, 765))
-
-    lines = (lines
-             .join(num_parallel.rename('num_parallel'), on=['bus0', 'bus1'])
-             .join(num_parallel.rename("num_parallel_i"), on=['bus1', 'bus0']))
-    lines['num_parallel'] = line_config['s_nom_factor'] * lines['num_parallel'].fillna(lines.pop('num_parallel_i'))
-    lines['capacity'] = np.sqrt(3)*v_nom*n.line_types.loc[line_type, 'i_nom']*lines.num_parallel
+    n.import_components_from_dataframe(buses, 'Bus')
 
     if 'T' in snakemake.wildcards.opts.split('-'):
         n.import_components_from_dataframe(
@@ -106,18 +60,6 @@ def base_network():
     return n
 
 if __name__ == "__main__":
-    # Detect running outside of snakemake and mock snakemake for testing
-    if 'snakemake' not in globals():
-        from vresutils import Dict
-        import yaml
-        snakemake = Dict()
-        snakemake.input = Dict(supply_regions='../data/external/supply_regions/supply_regions.shp',
-                            centroids='../data/external/supply_regions/centroids.shp',
-                            population='../data/external/afripop/ZAF15adjv4.tif')
-        with open('../config.yaml') as f:
-            snakemake.config = yaml.load(f)
-        snakemake.output = ['../networks/base/']
-
     n = base_network()
     n.export_to_hdf5(snakemake.output[0])
 

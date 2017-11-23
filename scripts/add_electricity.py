@@ -60,7 +60,7 @@ def load_costs():
 # ### Load
 
 def attach_load(n):
-    load = pd.read_csv(snakemake.input.load)
+    load = pd.read_csv(snakemake.input.load[0])
     load = load.set_index(
         pd.to_datetime(load['SETTLEMENT_DATE'] + ' ' +
                        load['PERIOD'].astype(str) + ':00')
@@ -94,9 +94,8 @@ def attach_wind_and_solar(n, costs):
 
     n.add("Carrier", name="Wind")
     windarea = pd.read_csv(snakemake.input.wind_area, index_col=0).loc[lambda s: s.available_area > 0.]
-    windres = (pd.read_excel(snakemake.input.wind_pv_profiles,
-                            skiprows=range(1, 8+1), parse_cols=range(4,4+27+1),
-                            sheetname='wind power profiles')
+    windres = (pd.read_excel(snakemake.input.wind_profiles[0],
+                             skiprows=[1], sheetname='Wind power profiles')
                .rename(columns={'supply area\'s name': 't'}).set_index('t')
                .resample('1h').mean().loc[historical_year]
                .reindex(columns=windarea.index)
@@ -115,9 +114,9 @@ def attach_wind_and_solar(n, costs):
 
     n.add("Carrier", name="PV")
     pvarea = pd.read_csv(snakemake.input.solar_area, index_col=0).loc[lambda s: s.available_area > 0.]
-    pvres = (pd.read_excel(snakemake.input.wind_pv_profiles,
-                           skiprows=range(1, 4+1), parse_cols=range(4,4+27+1),
-                           sheetname='PV profiles').rename(columns={'supply area\'s name': 't'})
+    pvres = (pd.read_excel(snakemake.input.pv_profiles[0],
+                           skiprows=[1], sheetname='PV profiles')
+             .rename(columns={'supply area\'s name': 't'})
              .set_index('t')
              .resample('1h').mean().loc[historical_year].reindex(n.snapshots, fill_value=0.)
              .reindex(columns=pvarea.index)
@@ -325,28 +324,6 @@ def add_peak_demand_hour_without_variable_feedin(n):
 
 
 if __name__ == "__main__":
-    # Detect running outside of snakemake and mock snakemake for testing
-    if 'snakemake' not in globals():
-        from vresutils import Dict
-        import yaml
-        snakemake = Dict()
-        snakemake.input = Dict(base_network='../networks/base_Co2L-SAFE.h5',
-                               supply_regions='../data/supply_regions/supply_regions.shp',
-                               load='../data/SystemEnergy2009_13.csv',
-                               wind_pv_profiles='../data/Wind_PV_Normalised_Profiles.xlsx',
-                               wind_area='../resources/area_wind_corridors.csv',
-                               solar_pv_profiles='../data/Wind_PV_Normalised_Profiles.xlsx',
-                               solar_area='../resources/area_solar_corridors.csv',
-                               existing_generators="../data/Existing Power Stations SA.xlsx",
-                               hydro_inflow="../resources/hydro_inflow.csv",
-                               tech_costs="../data/technology_costs.xlsx")
-        with open('../config.yaml') as f:
-            snakemake.config = yaml.load(f)
-        snakemake.wildcards = Dict(cost="csir-today",
-                                   resarea="corridors",
-                                   opts="Co2L-SAFE")
-        snakemake.output = ['../networks/elec_csir-today_corridors_Co2L-SAFE.h5']
-
     opts = snakemake.wildcards.opts.split('-')
 
     n = pypsa.Network()

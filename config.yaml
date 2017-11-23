@@ -1,4 +1,4 @@
-version: 0.3
+version: 0.4
 
 scenario:
   resarea: [redz, corridors]
@@ -8,8 +8,8 @@ scenario:
 
 data:
   resarea:
-    redz: data/REDZ_DEA_Unpublished_Draft_2015
-    corridors: data/Power_corridors
+    redz: REDZ_DEA_Unpublished_Draft_2015.zip
+    corridors: Power_corridors.zip
  
 year: "2040"
 historical_year: "2012"

@@ -4,6 +4,10 @@ import geopandas as gpd
 import rasterio, rasterio.features, rasterio.mask
 import rasterstats
 
+from zipfile import ZipFile
+import tempfile
+import os
+
 src = rasterio.open(snakemake.input.landuse)
 src_data = src.read(1)
 meta = src.meta.copy()
@@ -16,9 +20,14 @@ for grid_codes, value in landusetype_percent:
 
 del src_data
 
-resareas = gpd.read_file(snakemake.input.resareas).to_crs(meta['crs'])
-mask = rasterio.mask.geometry_mask(resareas['geometry'], data.shape, meta['affine'])
-data = np.ma.array(data, mask=mask, fill_value=0).filled()
+with tempfile.TemporaryDirectory() as tempdir:
+    resarea_dir = os.path.join(tempdir, 'resarea')
+    with ZipFile(snakemake.input.resarea[0]) as zipf:
+        zipf.extractall(resarea_dir)
+
+    resareas = gpd.read_file(resarea_dir).to_crs(meta['crs'])
+    mask = rasterio.mask.geometry_mask(resareas['geometry'], data.shape, meta['affine'])
+    data = np.ma.array(data, mask=mask, fill_value=0).filled()
 
 meta.update(compress='lzw', transform=meta['affine'])
 with rasterio.open(snakemake.output.raster, 'w', **meta) as dst:

@@ -1,3 +1,7 @@
+from snakemake.remote.HTTP import RemoteProvider as HTTPRemoteProvider
+HTTP = HTTPRemoteProvider()
+dataurl = "fias.uni-frankfurt.de/~hoersch/pypsa_models/pypsa-za/data"
+
 configfile: "config.yaml"
 
 localrules: all, base_network, add_electricity, add_sectors, plot_network, scenario_comparions # , extract_summaries
@@ -13,44 +17,63 @@ rule all:
         expand("results/version-" + str(config['version']) + "/plots/scenario_{param}.html",
                param=list(config['scenario']))
 
-rule landuse_remove_protected_and_conservation_areas:
+rule build_landuse_remove_protected_and_conservation_areas:
     input:
-        landuse = "data/Original_UTM35north/sa_lcov_2013-14_gti_utm35n_vs22b.tif",
-        protected_areas = "data/SAPAD_OR_2017_Q2/",
-        conservation_areas = "data/SACAD_OR_2017_Q2/"
+        landuse = HTTP.remote(dataurl + "/SALandCover_OriginalUTM35North_2013_GTI_72Classes.zip", keep_local=True),
+        protected_areas = HTTP.remote(dataurl + "/SAPAD_OR_2017_Q3.zip", keep_local=True),
+        conservation_areas = HTTP.remote(dataurl + "/SACAD_OR_2017_Q3.zip", keep_local=True)
     output: "resources/landuse_without_protected_conservation.tiff"
     benchmark: "benchmarks/landuse_remove_protected_and_conservation_areas"
     threads: 1
     resources: mem_mb=10000
-    script: "scripts/landuse_remove_protected_and_conservation_areas.py"
+    script: "scripts/build_landuse_remove_protected_and_conservation_areas.py"
 
-rule landuse_map_to_tech_and_supply_region:
+rule build_landuse_map_to_tech_and_supply_region:
     input:
         landuse = "resources/landuse_without_protected_conservation.tiff",
         supply_regions = "data/supply_regions/supply_regions.shp",
-        resarea = lambda w: config['data']['resarea'][w.resarea]
+        resarea = lambda w: HTTP.remote(dataurl + '/' + config['data']['resarea'][w.resarea], keep_local=True)
     output:
         raster = "resources/raster_{tech}_percent_{resarea}.tiff",
         area = "resources/area_{tech}_{resarea}.csv"
-    benchmark: "benchmarks/landuse_map_to_tech_and_supply_region/{tech}_{resarea}"
+    benchmark: "benchmarks/build_landuse_map_to_tech_and_supply_region/{tech}_{resarea}"
     threads: 1
     resources: mem_mb=17000
-    script: "scripts/landuse_map_to_tech_and_supply_region.py"
+    script: "scripts/build_landuse_map_to_tech_and_supply_region.py"
 
-rule inflow_per_country:
+rule build_population:
+    input:
+        supply_regions='data/supply_regions/supply_regions.shp',
+        afripop=HTTP.remote(dataurl + '/South Africa 100m Population.zip', keep_local=True)
+    output: 'resources/population.csv'
+    threads: 1
+    resources: mem_mb=1000
+    script: "scripts/build_population.py"
+
+rule build_inflow_per_country:
     input: EIA_hydro_gen="data/EIA_hydro_generation_2011_2014.csv"
     output: "resources/hydro_inflow.csv"
     benchmark: "benchmarks/inflow_per_country"
     threads: 1
     resources: mem_mb=1000
-    script: "scripts/inflow_per_country.py"
+    script: "scripts/build_inflow_per_country.py"
+
+rule build_topology:
+    input:
+        supply_regions='data/supply_regions/supply_regions.shp',
+        centroids='data/supply_regions/centroids.shp',
+        num_lines='data/num_lines.csv'
+    output:
+        buses='resources/buses.csv',
+        lines='resources/lines.csv'
+    threads: 1
+    script: "scripts/build_topology.py"
 
 rule base_network:
     input:
-        supply_regions='data/supply_regions/supply_regions.shp',
-        population='data/afripop/ZAF15adjv4.tif',
-        centroids='data/supply_regions/centroids.shp',
-        num_lines='data/num_lines.csv'
+        buses='resources/buses.csv',
+        lines='resources/lines.csv',
+        population='resources/population.csv'
     output: "networks/base_{opts}.h5"
     benchmark: "benchmarks/base_network_{opts}"
     threads: 1
@@ -61,8 +84,9 @@ rule add_electricity:
     input:
         base_network='networks/base_{opts}.h5',
         supply_regions='data/supply_regions/supply_regions.shp',
-        load='data/SystemEnergy2009_13.csv',
-        wind_pv_profiles='data/Wind_PV_Normalised_Profiles.xlsx',
+        load=HTTP.remote(dataurl + '/SystemEnergy2009_13.csv', keep_local=True),
+        wind_profiles=HTTP.remote('www.csir.co.za/sites/default/files/Documents/Supply%20area%20nomalised%20power%20feed-in%20for%20wind.xlsx', keep_local=True),
+        pv_profiles=HTTP.remote('www.csir.co.za/sites/default/files/Documents/Supply%20area%20nomalised%20power%20feed-in%20for%20PV.xlsx', keep_local=True),
         wind_area='resources/area_wind_{resarea}.csv',
         solar_area='resources/area_solar_{resarea}.csv',
         existing_generators="data/Existing Power Stations SA.xlsx",
@@ -100,7 +124,7 @@ rule plot_network:
     input:
         network='results/version-' + str(config['version']) + '/networks/{cost}_{resarea}_{sectors}_{opts}.h5',
         supply_regions='data/supply_regions/supply_regions.shp',
-        resarea=lambda w: config['data']['resarea'][w.resarea]
+        resarea=lambda w: HTTP.remote(dataurl + '/' + config['data']['resarea'][w.resarea])
     output:
         only_map=touch('results/version-' + str(config['version']) + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}'),
         ext=touch('results/version-' + str(config['version']) + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext')
