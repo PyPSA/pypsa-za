@@ -1,6 +1,6 @@
 from snakemake.remote.HTTP import RemoteProvider as HTTPRemoteProvider
 HTTP = HTTPRemoteProvider()
-dataurl = "fias.uni-frankfurt.de/~hoersch/pypsa_models/pypsa-za/data"
+dataurl = "https://vfs.fias.science/d/f204668ef2/files/?p="
 
 configfile: "config.yaml"
 
@@ -93,17 +93,16 @@ rule add_electricity:
         hydro_inflow="resources/hydro_inflow.csv",
         tech_costs="data/technology_costs.xlsx"
     output: "networks/elec_{cost}_{resarea}_{opts}.h5"
-    benchmark: "benchmarks/add_electricity/elec_{resarea}_{opts}"
+    benchmark: "benchmarks/add_electricity/elec_{cost}_{resarea}_{opts}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/add_electricity.py"
 
 rule add_sectors:
     input:
-        network="networks/elec_{cost}_{resarea}_{opts}.h5",
-        emobility="data/emobility"
+        network="networks/elec_{cost}_{resarea}_{opts}.h5"
+        # emobility="data/emobility"
     output: "networks/sector_{cost}_{resarea}_{sectors}_{opts}.h5"
-    benchmark: "benchmarks/add_sectors/sector_{resarea}_{sectors}_{opts}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/add_sectors.py"

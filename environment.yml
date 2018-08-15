@@ -20,8 +20,8 @@ dependencies:
   - rasterstats
   - rasterio
   - shapely
+  - pyomo
   - pip:
-    - git+https://github.com/Pyomo/pyomo.git@persistent_interfaces
     - git+https://github.com/PyPSA/PyPSA.git
     - vresutils>=0.2.3
     - countrycode

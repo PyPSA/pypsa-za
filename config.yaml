@@ -3,8 +3,8 @@ version: 0.4
 scenario:
   resarea: [redz, corridors]
   sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
-  cost: [csir-today, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
-  opts: [LC, Ep, Co2L, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
+  cost: [csir-aggressive] # [csir-today, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
+  opts: [LC, Ep] # , Co2L, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
 
 data:
   resarea:
