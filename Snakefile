@@ -40,7 +40,7 @@ rule build_landuse_map_to_tech_and_supply_region:
 rule build_population:
     input:
         supply_regions='data/supply_regions/supply_regions.shp',
-        afripop='data/bundle/South_Africa_100m_Population'
+        population='data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif'
     output: 'resources/population.csv'
     threads: 1
     resources: mem_mb=1000
