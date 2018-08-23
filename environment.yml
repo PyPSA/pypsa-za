@@ -9,19 +9,30 @@ dependencies:
   - numpy
   - pyomo
   - scipy
-  - pandas>=0.19.0
+  - pandas>=0.22.0
+  - xlrd
   - matplotlib
   - seaborn
   - networkx>=1.10
-  - fiona
-  - pyproj
-  - pyshp
-  - geopandas
-  - rasterstats
-  - rasterio
-  - shapely
   - pyomo
+  - netcdf4
+  - xarray
+
+  # Include ipython so that one does not inadvertently drop out of the conda
+  # environment by calling ipython
+  - ipython
+
+  # GIS dependencies have to come all from conda-forge
+  - conda-forge::libgdal
+  - conda-forge::fiona
+  - conda-forge::pyproj
+  - conda-forge::pyshp
+  - conda-forge::geopandas
+  - conda-forge::rasterstats
+  - conda-forge::rasterio
+  - conda-forge::shapely
+
   - pip:
-    - git+https://github.com/PyPSA/PyPSA.git
-    - vresutils>=0.2.3
+    - pypsa>=0.13
+    - vresutils>=0.2.4
     - countrycode
