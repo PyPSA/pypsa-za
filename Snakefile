@@ -46,13 +46,14 @@ rule build_population:
     resources: mem_mb=1000
     script: "scripts/build_population.py"
 
-rule build_inflow_per_country:
-    input: EIA_hydro_gen="data/EIA_hydro_generation_2011_2014.csv"
-    output: "resources/hydro_inflow.csv"
-    benchmark: "benchmarks/inflow_per_country"
-    threads: 1
-    resources: mem_mb=1000
-    script: "scripts/build_inflow_per_country.py"
+if not config['hydro_inflow']['disable']:
+    rule build_inflow_per_country:
+        input: EIA_hydro_gen="data/EIA_hydro_generation_2011_2014.csv"
+        output: "resources/hydro_inflow.csv"
+        benchmark: "benchmarks/inflow_per_country"
+        threads: 1
+        resources: mem_mb=1000
+        script: "scripts/build_inflow_per_country.py"
 
 rule build_topology:
     input:

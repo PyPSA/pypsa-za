@@ -58,6 +58,7 @@ respotentials:
     solar: 16.5 # half of 33 (IWES)
 
 hydro_inflow:
+  disable: true
   countries: [ZA, MZ]
   cutout: za-mz-2012
 
@@ -117,7 +118,7 @@ solving:
     # max_iterations: 1
     # nhours: 10
   solver:
-    name: gurobi_persistent
+    name: gurobi
     threads: 4
     method: 2
     crossover: 0 # -1 (Choose freely)
