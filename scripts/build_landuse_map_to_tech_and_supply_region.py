@@ -3,45 +3,53 @@ import pandas as pd
 import geopandas as gpd
 import rasterio, rasterio.features, rasterio.mask
 import rasterstats
+import shapely.geometry
 
-from zipfile import ZipFile
-import tempfile
-import os
-
-src = rasterio.open(snakemake.input.landuse)
-src_data = src.read(1)
-meta = src.meta.copy()
-
-# Write only percent value in allowed landuse gridcells
+# Translate the landuse file into a raster of percentages of available area
 landusetype_percent = snakemake.config['respotentials']['landusetype_percent'][snakemake.wildcards.tech]
-data = np.zeros_like(src_data)
-for grid_codes, value in landusetype_percent:
-    data.ravel()[np.in1d(src_data.ravel(), grid_codes)] = value
 
-del src_data
+with rasterio.open(snakemake.input.landuse) as src, rasterio.open(snakemake.output.raster, 'w', **src.meta) as dst:
 
-with tempfile.TemporaryDirectory() as tempdir:
-    resarea_dir = os.path.join(tempdir, 'resarea')
-    with ZipFile(snakemake.input.resarea[0]) as zipf:
-        zipf.extractall(resarea_dir)
+    resareas = gpd.read_file(snakemake.input.resarea).to_crs(src.crs)
+    regions = gpd.read_file(snakemake.input.supply_regions).to_crs(src.crs)
 
-    resareas = gpd.read_file(resarea_dir).to_crs(meta['crs'])
-    mask = rasterio.mask.geometry_mask(resareas['geometry'], data.shape, meta['affine'])
-    data = np.ma.array(data, mask=mask, fill_value=0).filled()
+    stats = []
 
-meta.update(compress='lzw', transform=meta['affine'])
-with rasterio.open(snakemake.output.raster, 'w', **meta) as dst:
-    dst.write_band(1, data)
+    for region in regions.itertuples():
+        resareas_b = resareas.intersects(region.geometry)
+        if not resareas_b.any():
+            dst.write_band(1, dst_data, window=window)
+            stats.append({'mean': 0.})
+            continue
 
-regions = gpd.read_file(snakemake.input.supply_regions).to_crs(meta['crs'])
-stats = (
-    pd.DataFrame(
-        rasterstats.zonal_stats(regions.geometry, data, affine=meta['affine'],
-                                nodata=-999, stats='mean'))
-    .rename(columns={'mean': 'area_ratio'})
-    / 100.
-)
-stats['area'] = regions.to_crs(dict(proj='aea')).area/1e6 # albert equal area has area in m^2
-stats['available_area'] = stats['area_ratio'] * stats['area']
+        minx, miny, maxx, maxy = region.geometry.bounds
+        minx -= (maxx - minx)*0.05
+        maxx += (maxx - minx)*0.05
+        miny -= (maxy - miny)*0.05
+        maxy += (maxy - miny)*0.05
 
-stats.set_index(regions.name).to_csv(snakemake.output.area)
+        window = rasterio.windows.from_bounds(minx, miny, maxx, maxy, src.transform)
+        box = shapely.geometry.box(minx, miny, maxx, maxy)
+        transform = rasterio.windows.transform(window, src.transform)
+
+        src_data = src.read(1, window=window)
+        dst_data = np.zeros_like(src_data)
+
+        for grid_codes, value in landusetype_percent:
+            dst_data.ravel()[np.in1d(src_data.ravel(), grid_codes)] = value
+
+        mask = rasterio.mask.geometry_mask(resareas.loc[resareas_b, 'geometry'], dst_data.shape, transform)
+        dst_data = np.ma.array(dst_data, mask=mask, fill_value=0).filled()
+
+        dst.write_band(1, dst_data, window=window)
+
+        stats.extend(rasterstats.zonal_stats(region.geometry, dst_data, affine=transform,
+                                             nodata=-999, stats='mean'))
+
+    stats = pd.DataFrame(stats)
+
+    stats['area_ratio'] = stats.pop('mean') / 100
+    stats['area'] = regions.to_crs(dict(proj='aea')).area/1e6 # albert equal area has area in m^2
+    stats['available_area'] = stats['area_ratio'] * stats['area']
+
+    stats.set_index(regions.name).to_csv(snakemake.output.area)

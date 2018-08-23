@@ -8,8 +8,8 @@ scenario:
 
 data:
   resarea:
-    redz: REDZ_DEA_Unpublished_Draft_2015.zip
-    corridors: Power_corridors.zip
+    redz: REDZ_DEA_Unpublished_Draft_2015
+    corridors: Power_corridors
  
 year: "2040"
 historical_year: "2012"
