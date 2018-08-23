@@ -18,7 +18,7 @@ from vresutils.costdata import annuity
 
 import pypsa
 
-from _helpers import madd, pdbcast
+from _helpers import pdbcast
 
 def normed(s): return s/s.sum()
 
@@ -69,9 +69,9 @@ def attach_load(n):
 
     demand = (snakemake.config['electricity']['demand'] *
               normed(load.loc[snakemake.config['historical_year']]))
-    madd(n, "Load",
-         bus=n.buses.index,
-         p_set=pdbcast(demand, normed(n.buses.population)))
+    n.madd("Load", n.buses.index,
+           bus=n.buses.index,
+           p_set=pdbcast(demand, normed(n.buses.population)))
 
 ### Set line costs
 
@@ -100,15 +100,15 @@ def attach_wind_and_solar(n, costs):
                .resample('1h').mean().loc[historical_year]
                .reindex(columns=windarea.index)
                .clip(lower=0., upper=1.))
-    madd(n, "Generator", "Wind",
-         bus=windarea.index,
-         carrier="Wind",
-         p_nom_extendable=True,
-         p_nom_max=windarea.available_area * capacity_per_sqm['wind'],
-         marginal_cost=costs.at['Wind', 'marginal_cost'],
-         capital_cost=costs.at['Wind', 'capital_cost'],
-         efficiency=costs.at['Wind', 'efficiency'],
-         p_max_pu=windres)
+    n.madd("Generator", windarea.index, suffix=" Wind",
+           bus=windarea.index,
+           carrier="Wind",
+           p_nom_extendable=True,
+           p_nom_max=windarea.available_area * capacity_per_sqm['wind'],
+           marginal_cost=costs.at['Wind', 'marginal_cost'],
+           capital_cost=costs.at['Wind', 'capital_cost'],
+           efficiency=costs.at['Wind', 'efficiency'],
+           p_max_pu=windres)
 
     ## PV
 
@@ -121,15 +121,15 @@ def attach_wind_and_solar(n, costs):
              .resample('1h').mean().loc[historical_year].reindex(n.snapshots, fill_value=0.)
              .reindex(columns=pvarea.index)
              .clip(lower=0., upper=1.))
-    madd(n, "Generator", "PV",
-         bus=pvarea.index,
-         carrier="PV",
-         p_nom_extendable=True,
-         p_nom_max=pvarea.available_area * capacity_per_sqm['solar'],
-         marginal_cost=costs.at['PV', 'marginal_cost'],
-         capital_cost=costs.at['PV', 'capital_cost'],
-         efficiency=costs.at['PV', 'efficiency'],
-         p_max_pu=pvres)
+    n.madd("Generator", pvarea.index, suffix=" PV",
+           bus=pvarea.index,
+           carrier="PV",
+           p_nom_extendable=True,
+           p_nom_max=pvarea.available_area * capacity_per_sqm['solar'],
+           marginal_cost=costs.at['PV', 'marginal_cost'],
+           capital_cost=costs.at['PV', 'capital_cost'],
+           efficiency=costs.at['PV', 'efficiency'],
+           p_max_pu=pvres)
 
 
 # # Generators
@@ -264,13 +264,14 @@ def attach_extendable_generators(n, costs):
     _add_missing_carriers_from_costs(n, costs, carriers)
 
     for carrier in carriers:
-        madd(n, "Generator", carrier,
-             bus=buses.get(carrier, n.buses.index),
-             p_nom_extendable=True,
-             carrier=carrier,
-             capital_cost=costs.at[carrier, 'capital_cost'],
-             marginal_cost=costs.at[carrier, 'marginal_cost'],
-             efficiency=costs.at[carrier, 'efficiency'])
+        buses_i = buses.get(carrier, n.buses.index)
+        n.madd("Generator", buses_i, suffix=" " + carrier,
+               bus=buses_i,
+               p_nom_extendable=True,
+               carrier=carrier,
+               capital_cost=costs.at[carrier, 'capital_cost'],
+               marginal_cost=costs.at[carrier, 'marginal_cost'],
+               efficiency=costs.at[carrier, 'efficiency'])
 
 
 def attach_storage(n, costs):
@@ -282,16 +283,17 @@ def attach_storage(n, costs):
     _add_missing_carriers_from_costs(n, costs, carriers)
 
     for carrier in carriers:
-        madd(n, "StorageUnit", carrier,
-             bus=buses.get(carrier, n.buses.index),
-             p_nom_extendable=True,
-             carrier=carrier,
-             capital_cost=costs.at[carrier, 'capital_cost'],
-             marginal_cost=costs.at[carrier, 'marginal_cost'],
-             efficiency_store=costs.at[carrier, 'efficiency'],
-             efficiency_dispatch=costs.at[carrier, 'efficiency'],
-             max_hours=max_hours[carrier],
-             cyclic_state_of_charge=True)
+        buses_i = buses.get(carrier, n.buses.index)
+        n.madd("StorageUnit", buses_i, " " + carrier,
+               bus=buses_i,
+               p_nom_extendable=True,
+               carrier=carrier,
+               capital_cost=costs.at[carrier, 'capital_cost'],
+               marginal_cost=costs.at[carrier, 'marginal_cost'],
+               efficiency_store=costs.at[carrier, 'efficiency'],
+               efficiency_dispatch=costs.at[carrier, 'efficiency'],
+               max_hours=max_hours[carrier],
+               cyclic_state_of_charge=True)
 
 def add_co2limit(n):
     n.add("GlobalConstraint", "CO2Limit",

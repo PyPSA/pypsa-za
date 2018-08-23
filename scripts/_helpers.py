@@ -4,36 +4,6 @@ from six import iteritems, iterkeys, itervalues
 
 import pypsa
 
-def madd(n, component, name=None, index=None, **kwargs):
-    if index is None:
-        index = pd.Index(kwargs.get('bus'))
-    new_index = index
-    if name is not None:
-        new_index = new_index + (' ' + name)
-
-    static = {}; series = {}
-    for k, v in iteritems(kwargs):
-        if isinstance(v, pd.Series):
-            if len(v.index.intersection(index)) > 0:
-                static[k] = v.reindex(index).values
-            else:
-                v = pd.DataFrame(np.repeat(v.values[:,np.newaxis], len(new_index), axis=1),
-                                index=v.index, columns=new_index)
-                series[k] = v
-        elif isinstance(v, pd.DataFrame):
-            v = pd.DataFrame(v).reindex(columns=index)
-            v.columns = new_index
-            series[k] = v
-        elif isinstance(v, np.ndarray) and v.shape == (len(n.snapshots), len(new_index)):
-            series[k] = pd.DataFrame(v, index=n.snapshots, columns=new_index)
-        else:
-            static[k] = v
-
-    n.import_components_from_dataframe(pd.DataFrame(static, index=new_index), component)
-    for k, v in iteritems(series):
-        n.import_series_from_dataframe(v, component, k)
-    return new_index
-
 def pdbcast(v, h):
     return pd.DataFrame(v.values.reshape((-1, 1)) * h.values,
                         index=v.index, columns=h.index)
@@ -113,7 +83,7 @@ def aggregate_costs(n, flatten=False, opts=None, existing_only=False):
             if c.name == 'StorageUnit':
                 p = p.loc[p > 0]
             costs[(c.list_name, 'marginal')] = (p*c.df.marginal_cost).groupby(c.df.carrier).sum()
-    costs = pd.concat(costs)
+    costs = pd.concat(costs, sort=False)
 
     if flatten:
         assert opts is not None

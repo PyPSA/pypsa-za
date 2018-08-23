@@ -8,7 +8,7 @@ from six import iteritems
 
 from vresutils.costdata import annuity, USD2013_to_EUR2013
 
-from _helpers import madd, pdbcast
+from _helpers import pdbcast
 
 def normed(s): return s/s.sum()
 
@@ -50,38 +50,38 @@ def add_transport(n, BEV=True, V2G=True):
 
 
     n.add("Carrier", "Li ion")
-    buses_ev_battery = madd(n, "Bus", name="EV battery", index=buses, carrier="Li ion")
-    madd(n, "Load", name="EV battery", index=buses,
-         bus=buses_ev_battery,
-         p_set=pdbcast(transport_demand, normed(population)))
+    buses_ev_battery = n.madd("Bus", buses, suffix=" EV battery", bus=buses, carrier="Li ion")
+    n.madd("Load", buses, suffix=" EV battery",
+           bus=buses_ev_battery,
+           p_set=pdbcast(transport_demand, normed(population)))
 
     cars = normed(population) * opts['total_cars']
     charging_discharging_power = cars * opts['car_battery_p_nom']
 
-    madd(n, "Link", name="BEV charger", index=buses,
-         bus0=buses, bus1=buses_ev_battery,
-         p_nom=charging_discharging_power,
-         efficiency=opts['efficiency'],
-         p_max_pu=battery_availability,
-         #These were set non-zero to find LU infeasibility when availability = 0.25
-         #p_nom_extendable=True,
-         #p_nom_min=p_nom,
-         #capital_cost=1e6,  #i.e. so high it only gets built where necessary
+    n.madd("Link", buses, suffix=" BEV charger",
+           bus0=buses, bus1=buses_ev_battery,
+           p_nom=charging_discharging_power,
+           efficiency=opts['efficiency'],
+           p_max_pu=battery_availability,
+           #These were set non-zero to find LU infeasibility when availability = 0.25
+           #p_nom_extendable=True,
+           #p_nom_min=p_nom,
+           #capital_cost=1e6,  #i.e. so high it only gets built where necessary
     )
 
     if BEV:
-        madd(n, "Store", name="battery storage", index=buses,
-            bus=buses_ev_battery,
-            e_cyclic=True,
-            e_nom=cars * opts['car_battery_e_nom'],
-            standing_loss=opts['standing_loss'])
+        n.madd("Store", buses, suffix=" battery storage",
+               bus=buses_ev_battery,
+               e_cyclic=True,
+               e_nom=cars * opts['car_battery_e_nom'],
+               standing_loss=opts['standing_loss'])
 
     if V2G:
-        madd(n, "Link", name="V2G", index=buses,
-             bus0=buses_ev_battery, bus1=buses,
-             p_nom=charging_discharging_power,
-             p_max_pu=battery_availability,
-             efficiency=opts['efficiency'])
+        n.madd("Link", buses, suffix=" V2G",
+               bus0=buses_ev_battery, bus1=buses,
+               p_nom=charging_discharging_power,
+               p_max_pu=battery_availability,
+               efficiency=opts['efficiency'])
 
     #TO DO
     # network.add("Load",node + " transport fuel cell",
@@ -95,26 +95,27 @@ def add_gas_infrastructure(n, costs):
     discountrate = snakemake.config['costs']['discountrate']
 
     n.add("Carrier", "H2")
-    buses_h2 = madd(n, "Bus", name="H2", index=buses, carrier="H2")
-    madd(n, "Link", name="H2 Electrolysis", index=buses,
-         bus0=buses, bus1=buses_h2,
-         p_nom_extendable=True,
-         efficiency=0.75,
-         #Cost from http://www.nrel.gov/docs/fy09osti/45873.pdf "Future Timeframe"
-         #(same source as Budishak)
-         capital_cost=(annuity(20.,discountrate)+0.017)*300.*1000.*USD2013_to_EUR2013)
-    madd(n, "Link", name="H2 Fuel Cell", index=buses,
-         bus0=buses_h2, bus1=buses,
-         p_nom_extendable=True,
-         efficiency=0.58,
-         #Cost from http://www.nrel.gov/docs/fy09osti/45873.pdf "Future Timeframe"
-         #(same source as Budishak)
-         #NB: Costs refer to electrical side, so must multiply by efficiency
-         capital_cost=(annuity(20.,discountrate)+0.017)*437.*0.58*1000.*USD2013_to_EUR2013)
-    madd(n, "Store", name="Store", bus=buses_h2,
-         e_nom_extendable=True,
-         e_cyclic=True,
-         capital_cost=annuity(20.,discountrate)*11.2*1000.*USD2013_to_EUR2013)
+    buses_h2 = n.madd("Bus", buses, suffix=" H2", carrier="H2")
+    n.madd("Link", buses, suffix=" H2 Electrolysis",
+           bus0=buses, bus1=buses_h2,
+           p_nom_extendable=True,
+           efficiency=0.75,
+           #Cost from http://www.nrel.gov/docs/fy09osti/45873.pdf "Future Timeframe"
+           #(same source as Budishak)
+           capital_cost=(annuity(20.,discountrate)+0.017)*300.*1000.*USD2013_to_EUR2013)
+    n.madd( "Link", buses, suffix=" H2 Fuel Cell",
+            bus0=buses_h2, bus1=buses,
+            p_nom_extendable=True,
+            efficiency=0.58,
+            #Cost from http://www.nrel.gov/docs/fy09osti/45873.pdf "Future Timeframe"
+            #(same source as Budishak)
+            #NB: Costs refer to electrical side, so must multiply by efficiency
+            capital_cost=(annuity(20.,discountrate)+0.017)*437.*0.58*1000.*USD2013_to_EUR2013)
+    n.madd("Store", buses_h2, suffix=" Store",
+           bus=buses_h2,
+           e_nom_extendable=True,
+           e_cyclic=True,
+           capital_cost=annuity(20.,discountrate)*11.2*1000.*USD2013_to_EUR2013)
 
 
     # TODO
