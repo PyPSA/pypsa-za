@@ -61,5 +61,5 @@ def base_network():
 
 if __name__ == "__main__":
     n = base_network()
-    n.export_to_hdf5(snakemake.output[0])
+    n.export_to_netcdf(snakemake.output[0])
 

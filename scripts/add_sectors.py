@@ -289,8 +289,7 @@ if __name__ == "__main__":
         with open('../config.yaml') as f:
             snakemake.config = yaml.load(f)
 
-    n = pypsa.Network()
-    n.import_from_hdf5(snakemake.input.network)
+    n = pypsa.Network(snakemake.input.network)
     sectors = set(snakemake.wildcards.sectors.split('+'))
 
     if 'EV' in sectors or 'BEV' in sectors:
@@ -299,5 +298,5 @@ if __name__ == "__main__":
     # if 'WEH' in sectors:
     #     add_water_heating(n)
 
-    n.export_to_hdf5(snakemake.output[0])
+    n.export_to_netcdf(snakemake.output[0])
 

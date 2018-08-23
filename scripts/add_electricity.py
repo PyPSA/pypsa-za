@@ -326,8 +326,7 @@ def add_peak_demand_hour_without_variable_feedin(n):
 if __name__ == "__main__":
     opts = snakemake.wildcards.opts.split('-')
 
-    n = pypsa.Network()
-    n.import_from_hdf5(snakemake.input.base_network)
+    n = pypsa.Network(snakemake.input.base_network)
     costs = load_costs()
     attach_load(n)
     update_transmission_costs(n, costs)
@@ -346,4 +345,4 @@ if __name__ == "__main__":
     if 'SAFE' in opts:
         add_peak_demand_hour_without_variable_feedin(n)
 
-    n.export_to_hdf5(snakemake.output[0])
+    n.export_to_netcdf(snakemake.output[0])

@@ -189,7 +189,7 @@ def solve_network(n):
             iteration += 1
 
             # Not really needed, could also be taken out
-            n.export_to_hdf5(snakemake.output[0])
+            n.export_to_netcdf(snakemake.output[0])
 
             status, termination_condition = run_lopf(n, allow_warning_status=True)
 
@@ -208,7 +208,7 @@ def solve_network(n):
     if status != 'ok':
         # save a backup
         backup_fn = snakemake.output[0][:-3] + "_suboptimal.h5"
-        n.export_to_hdf5(backup_fn)
+        n.export_to_netcdf(backup_fn)
         logger.error("Last solving step returned with status '{}': Aborting. A backup is at {}."
                      .format(status, backup_fn))
         raise AssertionError()
@@ -216,10 +216,9 @@ def solve_network(n):
     return n
 
 if __name__ == "__main__":
-    n = pypsa.Network()
-    n.import_from_hdf5(snakemake.input[0])
+    n = pypsa.Network(snakemake.input[0])
 
     n = prepare_network(n)
     n = solve_network(n)
 
-    n.export_to_hdf5(snakemake.output[0])
+    n.export_to_netcdf(snakemake.output[0])

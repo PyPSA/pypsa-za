@@ -40,8 +40,7 @@ def pdbcast(v, h):
 
 
 def load_network(fn, opts, combine_hydro_ps=True):
-    n = pypsa.Network()
-    n.import_from_hdf5(fn)
+    n = pypsa.Network(fn)
 
     n.loads["carrier"] = n.loads.bus.map(n.buses.carrier) + " load"
     n.stores["carrier"] = n.stores.bus.map(n.buses.carrier)

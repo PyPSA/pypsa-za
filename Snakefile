@@ -70,7 +70,7 @@ rule base_network:
         buses='resources/buses.csv',
         lines='resources/lines.csv',
         population='resources/population.csv'
-    output: "networks/base_{opts}.h5"
+    output: "networks/base_{opts}.nc"
     benchmark: "benchmarks/base_network_{opts}"
     threads: 1
     resources: mem_mb=1000
@@ -78,7 +78,7 @@ rule base_network:
 
 rule add_electricity:
     input:
-        base_network='networks/base_{opts}.h5',
+        base_network='networks/base_{opts}.nc',
         supply_regions='data/supply_regions/supply_regions.shp',
         load='data/bundle/SystemEnergy2009_13.csv',
         wind_profiles='data/bundle/Supply area nomalised power feed-in for wind.xlsx',
@@ -88,7 +88,7 @@ rule add_electricity:
         existing_generators="data/Existing Power Stations SA.xlsx",
         hydro_inflow="resources/hydro_inflow.csv",
         tech_costs="data/technology_costs.xlsx"
-    output: "networks/elec_{cost}_{resarea}_{opts}.h5"
+    output: "networks/elec_{cost}_{resarea}_{opts}.nc"
     benchmark: "benchmarks/add_electricity/elec_{cost}_{resarea}_{opts}"
     threads: 1
     resources: mem_mb=1000
@@ -96,16 +96,16 @@ rule add_electricity:
 
 rule add_sectors:
     input:
-        network="networks/elec_{cost}_{resarea}_{opts}.h5"
+        network="networks/elec_{cost}_{resarea}_{opts}.nc"
         # emobility="data/emobility"
-    output: "networks/sector_{cost}_{resarea}_{sectors}_{opts}.h5"
+    output: "networks/sector_{cost}_{resarea}_{sectors}_{opts}.nc"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/add_sectors.py"
 
 rule solve_network:
-    input: network="networks/sector_{cost}_{resarea}_{sectors}_{opts}.h5"
-    output: "results/version-" + str(config['version']) + "/networks/{cost}_{resarea}_{sectors}_{opts}.h5"
+    input: network="networks/sector_{cost}_{resarea}_{sectors}_{opts}.nc"
+    output: "results/version-" + str(config['version']) + "/networks/{cost}_{resarea}_{sectors}_{opts}.nc"
     shadow: "shallow"
     log:
         gurobi="logs/{cost}_{resarea}_{sectors}_{opts}_gurobi.log",
@@ -117,7 +117,7 @@ rule solve_network:
 
 rule plot_network:
     input:
-        network='results/version-' + str(config['version']) + '/networks/{cost}_{resarea}_{sectors}_{opts}.h5',
+        network='results/version-' + str(config['version']) + '/networks/{cost}_{resarea}_{sectors}_{opts}.nc',
         supply_regions='data/supply_regions/supply_regions.shp',
         resarea=lambda w: 'data/bundle/' + config['data']['resarea'][w.resarea]
     output:
@@ -143,7 +143,7 @@ rule scenario_comparison:
 #
 # rule extract_summaries:
 #     input:
-#         expand("results/version-{version}/networks/{cost}_{resarea}_{sectors}_{opts}.h5",
+#         expand("results/version-{version}/networks/{cost}_{resarea}_{sectors}_{opts}.nc",
 #                version=config['version'],
 #                **config['scenario'])
 #     output:
