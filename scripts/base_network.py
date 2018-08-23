@@ -5,11 +5,7 @@ import pandas as pd
 import numpy as np
 from operator import attrgetter
 
-import rasterstats
-import geopandas as gpd
-
 from vresutils.costdata import annuity
-from vresutils.shapes import haversine
 
 import pypsa
 

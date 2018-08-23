@@ -42,7 +42,7 @@ def build_topology():
 
     # Lines from touching regions
     def asarray(x): return np.asarray(list(map(np.asarray, x)))
-    lines = pd.DataFrame(edges_between_touching_regions(regions), columns=['bus0', 'bus1'])
+    lines = pd.DataFrame(list(edges_between_touching_regions(regions)), columns=['bus0', 'bus1'])
     lines['length'] = haversine(asarray(lines.bus0.map(centroids)),
                                 asarray(lines.bus1.map(centroids))) * line_config['length_factor']
 

@@ -31,7 +31,7 @@ def _add_missing_carriers_from_costs(n, costs, carriers):
 
 def load_costs():
     costs = pd.read_excel(snakemake.input.tech_costs,
-                          sheetname=snakemake.wildcards.cost,
+                          sheet_name=snakemake.wildcards.cost,
                           index_col=0).T
 
     discountrate = snakemake.config['costs']['discountrate']
@@ -60,7 +60,7 @@ def load_costs():
 # ### Load
 
 def attach_load(n):
-    load = pd.read_csv(snakemake.input.load[0])
+    load = pd.read_csv(snakemake.input.load)
     load = load.set_index(
         pd.to_datetime(load['SETTLEMENT_DATE'] + ' ' +
                        load['PERIOD'].astype(str) + ':00')
@@ -94,8 +94,8 @@ def attach_wind_and_solar(n, costs):
 
     n.add("Carrier", name="Wind")
     windarea = pd.read_csv(snakemake.input.wind_area, index_col=0).loc[lambda s: s.available_area > 0.]
-    windres = (pd.read_excel(snakemake.input.wind_profiles[0],
-                             skiprows=[1], sheetname='Wind power profiles')
+    windres = (pd.read_excel(snakemake.input.wind_profiles,
+                             skiprows=[1], sheet_name='Wind power profiles')
                .rename(columns={'supply area\'s name': 't'}).set_index('t')
                .resample('1h').mean().loc[historical_year]
                .reindex(columns=windarea.index)
@@ -114,8 +114,8 @@ def attach_wind_and_solar(n, costs):
 
     n.add("Carrier", name="PV")
     pvarea = pd.read_csv(snakemake.input.solar_area, index_col=0).loc[lambda s: s.available_area > 0.]
-    pvres = (pd.read_excel(snakemake.input.pv_profiles[0],
-                           skiprows=[1], sheetname='PV profiles')
+    pvres = (pd.read_excel(snakemake.input.pv_profiles,
+                           skiprows=[1], sheet_name='PV profiles')
              .rename(columns={'supply area\'s name': 't'})
              .set_index('t')
              .resample('1h').mean().loc[historical_year].reindex(n.snapshots, fill_value=0.)
@@ -206,7 +206,7 @@ def attach_existing_generators(n, costs):
         if pos_at_bus_b.any():
             gens.loc[pos_at_bus_b, "bus"] = bus
 
-    gens.loc[gens.bus.isnull(), "bus"] = pos[gens.bus.isnull()].map(lambda p: regions.distance(p).argmin())
+    gens.loc[gens.bus.isnull(), "bus"] = pos[gens.bus.isnull()].map(lambda p: regions.distance(p).idxmin())
 
     CahoraBassa['bus'] = "POLOKWANE"
     gens = gens.append(CahoraBassa)
