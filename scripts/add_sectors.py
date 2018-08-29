@@ -270,26 +270,7 @@ def add_water_heating(n):
 ####################################################################
 
 
-
-
-
-
-#################################################################################################################
-
-
 if __name__ == "__main__":
-    # Detect running outside of snakemake and mock snakemake for testing
-    if 'snakemake' not in globals():
-        from vresutils import Dict
-        import yaml
-        snakemake = Dict()
-        snakemake.input = Dict(network='../networks/elec_CSIR-Expected-Apr2016_redz_Co2L.h5',
-                               emobility='../data/external/emobility/')
-        snakemake.wildcards = Dict(sectors="E+BEV", mask="redz", opts="Co2L", cost="csir")
-        snakemake.output = ['../networks/sector_CSIR-Expected-Apr2016_redz_E+BEV_Co2L']
-        with open('../config.yaml') as f:
-            snakemake.config = yaml.load(f)
-
     n = pypsa.Network(snakemake.input.network)
     sectors = set(snakemake.wildcards.sectors.split('+'))
 
