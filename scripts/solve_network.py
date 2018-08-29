@@ -6,8 +6,6 @@ logging.basicConfig(filename=snakemake.log.python, level=logging.INFO)
 
 import pypsa
 
-from _helpers import madd
-
 if 'tmpdir' in snakemake.config['solving']:
     # PYOMO should write its lp files into tmp here
     tmpdir = snakemake.config['solving']['tmpdir']
@@ -25,14 +23,14 @@ def prepare_network(n):
 
     if solve_opts.get('load_shedding'):
         n.add("Carrier", "Load")
-        load_i = madd(n, "Generator", "Load",
-                      bus=n.buses.index,
-                      carrier='load',
-                      marginal_cost=1.0e5 * snakemake.config['costs']['EUR_to_ZAR'],
-                      # intersect between macroeconomic and surveybased
-                      # willingness to pay
-                      # http://journal.frontiersin.org/article/10.3389/fenrg.2015.00055/full
-                      p_nom=1e6)
+        load_i = n.madd("Generator", n.buses.index, suffix=" Load",
+                        bus=n.buses.index,
+                        carrier='load',
+                        marginal_cost=1.0e5 * snakemake.config['costs']['EUR_to_ZAR'],
+                        # intersect between macroeconomic and surveybased
+                        # willingness to pay
+                        # http://journal.frontiersin.org/article/10.3389/fenrg.2015.00055/full
+                        p_nom=1e6)
 
         if 'SAFE' in snakemake.wildcards.opts.split('-'):
             # there must be no load shedding in the extra hour introduced in the SAFE scenario
