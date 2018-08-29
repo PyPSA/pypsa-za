@@ -111,10 +111,8 @@ else:
 
 
 line_colors_with_alpha = \
-pd.concat(dict(Line=(line_widths_cur['Line'] / n.lines.s_nom > 1e-3)
-                    .map({True: line_colors['cur'], False: to_rgba(line_colors['cur'], 0.)}),
-               Link=(line_widths_cur['Link'] / n.links.p_nom > 1e-3)
-                    .map({True: line_colors['cur'], False: to_rgba(line_colors['cur'], 0.)})))
+((line_widths_cur / pd.concat(dict(Line=n.lines.s_nom, Link=n.links.p_nom)) > 1e-3)
+ .map({True: line_colors['cur'], False: to_rgba(line_colors['cur'], 0.)}))
 
 ## FORMAT
 linewidth_factor = opts['map'][snakemake.wildcards.attr]['linewidth_factor']
