@@ -4,18 +4,19 @@ if 'snakemake' not in globals():
     import yaml
     snakemake = Dict()
     snakemake.wildcards = Dict(#cost=#'IRP2016-Apr2016',
-                               cost='csir',
+                               cost='csir-aggressive',
                                mask='redz',
-                               sectors='E+BEV',
-                               opts='Co2L-T',
+                               sectors='E',
+                               opts='Co2L',
                                attr='p_nom')
-    snakemake.input = Dict(network='../results/networks/{cost}_{mask}_{sectors}_{opts}'.format(**snakemake.wildcards),
-                           supply_regions='../data/external/supply_regions/supply_regions.shp',
-                           resarea = "../data/external/masks/{mask}".format(**snakemake.wildcards))
+    snakemake.input = Dict(network='../results/version-0.5/networks/{cost}_{mask}_{sectors}_{opts}.nc'.format(**snakemake.wildcards),
+                           supply_regions='../data/supply_regions/supply_regions.shp',
+                           resarea = "../data/bundle/REDZ_DEA_Unpublished_Draft_2015")
     snakemake.output = (expand('../results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}.pdf',
                                **snakemake.wildcards) +
                         expand('../results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}_ext.pdf',
                                **snakemake.wildcards))
+    snakemake.params = Dict(ext=['png'])
     with open('../config.yaml') as f:
         snakemake.config = yaml.load(f)
 else:
