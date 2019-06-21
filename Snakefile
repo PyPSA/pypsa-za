@@ -140,6 +140,17 @@ rule scenario_comparison:
        plot_dir='results/version-' + str(config['version']) + '/plots'
     script: "scripts/scenario_comparison.py"
 
+def input_make_summary(w):
+    # It's mildly hacky to include the separate costs input as first entry
+    return (expand("results/version-" + str(config['version']) + "/networks/{cost}_{resarea}_{sectors}_{opts}.nc",
+                   **{k: config["scenario"][k] if getattr(w, k) == "all" else getattr(w, k)
+                      for k in ["cost", "resarea", "sectors", "opts"]}))
+
+rule make_summary:
+    input: input_make_summary
+    output: directory("results/version-" + str(config['version']) + "/summaries/{cost}_{resarea}_{sectors}_{opts}")
+    script: "scripts/make_summary.py"
+
 # extract_summaries and plot_costs needs to be updated before it can be used again
 #
 # rule extract_summaries:
