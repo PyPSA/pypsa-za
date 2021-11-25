@@ -1,10 +1,8 @@
-version: 0.5
-
 scenario:
-  resarea: [redz, corridors]
+  resarea: [redz] #, corridors]
   sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
   cost: [csir-aggressive] # [csir-today, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
-  opts: [LC, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
+  opts: [LC] #, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
 
 data:
   resarea:
@@ -109,6 +107,7 @@ transport:
 solving:
   tmpdir: /tmp
   options:
+    everynhours: 49
     clip_p_max_pu: 1.e-2
     load_shedding: true
     noisy_costs: true

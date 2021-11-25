@@ -21,7 +21,7 @@ if 'snakemake' not in globals():
         snakemake.config = yaml.load(f)
 else:
     import matplotlib as mpl
-    mpl.use('Agg')
+    #mpl.use('Agg')
 
 from add_electricity import add_emission_prices
 from _helpers import load_network, aggregate_p, aggregate_costs
@@ -98,7 +98,7 @@ renewable_regions = gpd.read_file(snakemake.input.resarea).to_crs(supply_regions
 
 ## DATA
 line_colors = {'cur': "purple",
-               'exp': to_rgba("red", 0.7)}
+               'exp': "red"} #to_rgba("red", 0.7)}
 tech_colors = opts['tech_colors']
 
 if snakemake.wildcards.attr == 'p_nom':
@@ -123,19 +123,22 @@ bus_size_factor  = opts['map'][snakemake.wildcards.attr]['bus_size_factor']
 fig, ax = plt.subplots(figsize=map_figsize)
 vplot.shapes(supply_regions.geometry, facecolors='k', outline='k', ax=ax, rasterized=True)
 vplot.shapes(renewable_regions.geometry, facecolors='gray', alpha=0.2, ax=ax, rasterized=True)
-n.plot(line_widths=line_widths_exp/linewidth_factor,
-       line_colors=dict(Line=line_colors['exp'], Link=line_colors['exp']),
+n.plot(line_widths=line_widths_exp['Line']/linewidth_factor,
+       #link_widths=line_widths_exp['Link']/linewidth_factor,
+       line_colors=line_colors['exp'],
+       #link_colors=line_colors['exp'],
        bus_sizes=bus_sizes/bus_size_factor,
        bus_colors=tech_colors,
        boundaries=map_boundaries,
-       basemap=False,
+       geomap=False,
        ax=ax)
-n.plot(line_widths=line_widths_cur/linewidth_factor,
-       line_colors=line_colors_with_alpha,
+n.plot(line_widths=line_widths_cur['Line']/linewidth_factor,
+       #link_widths=line_widths_cur['Link']/linewidth_factor,
+       line_colors=line_colors_with_alpha['Line'],
+       #link_colors=line_colors_with_alpha['Link'],
        bus_sizes=0,
-       bus_colors=tech_colors,
        boundaries=map_boundaries,
-       basemap=False,
+       geomap=False,
        ax=ax)
 ax.set_aspect('equal')
 ax.axis('off')
@@ -230,7 +233,7 @@ for t1, t2, i in zip(texts, autotexts, e_primary.index):
 # ax2 = ax = fig.add_axes([-0.1, 0.2, 0.1, 0.33])
 # ax2 = ax = fig.add_axes([-0.1, 0.15, 0.1, 0.37])
 ax2 = ax = fig.add_axes([-0.1, 0.19, 0.15, 0.33])
-total_load = n.loads_t.p.sum().sum()
+total_load = n.loads_t.p.multiply(n.snapshot_weightings, axis=0).sum().sum()
 
 def split_costs(n):
     costs = aggregate_costs(n).reset_index(level=0, drop=True)
@@ -283,7 +286,8 @@ ax.grid(True, axis="y", color='k', linestyle='dotted')
 
 for ext in snakemake.params.ext:
     fig.savefig(snakemake.output.ext + '.' + ext, transparent=True,
-                bbox_inches='tight', bbox_extra_artists=[l1, l2, l3, ax1, ax2])
+                #bbox_inches='tight',
+                bbox_extra_artists=[l1, l2, l3])#, ax1, ax2])
 
 
 # if False:

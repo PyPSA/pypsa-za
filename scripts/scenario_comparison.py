@@ -1,7 +1,7 @@
 import os
 from itertools import product
 from snakemake.utils import report
-from snakemake.report import data_uri
+from snakemake.report import data_uri_from_file
 from textwrap import dedent
 
 param = snakemake.wildcards.param
@@ -37,7 +37,7 @@ for vals in product(*scenarios.values()):
                {param} = {value}
 
         ''').format(param=param, value=p, link=fn,
-                    data=data_uri(os.path.join(plot_dir, fn + '.png')))
+                    data=data_uri_from_file(os.path.join(plot_dir, fn + '.png')))
 
 # text += dedent('''
 

@@ -12,7 +12,7 @@ if 'tmpdir' in snakemake.config['solving']:
     import os
     if not os.path.isdir(tmpdir):
         os.mkdir(tmpdir)
-    from pyutilib.services import TempfileManager
+    from pyomo.common.tempfiles import TempfileManager
     TempfileManager.tempdir = tmpdir
 
 def prepare_network(n):
@@ -50,6 +50,11 @@ def prepare_network(n):
         nhours = solve_opts['nhours']
         n = n[:solve_opts['nhours'], :]
         n.snapshot_weightings[:] = 8760./nhours
+
+    if solve_opts.get('everynhours'):
+        everyn = solve_opts['everynhours']
+        n = n[::everyn, :]
+        n.snapshot_weightings[:] = 8760./n.snapshot_weightings.sum()
 
     return n
 

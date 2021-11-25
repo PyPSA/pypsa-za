@@ -38,15 +38,15 @@ def aggregate_p_nom(n):
         n.generators.groupby("carrier").p_nom_opt.sum(),
         n.storage_units.groupby("carrier").p_nom_opt.sum(),
         n.links.groupby("carrier").p_nom_opt.sum(),
-        n.loads_t.p.groupby(n.loads.carrier,axis=1).sum().mean()
+        n.loads_t.p.multiply(n.snapshot_weightings, axis=0).groupby(n.loads.carrier,axis=1).sum().mean()
     ])
 
 def aggregate_p(n):
     return pd.concat([
-        n.generators_t.p.sum().groupby(n.generators.carrier).sum(),
-        n.storage_units_t.p.sum().groupby(n.storage_units.carrier).sum(),
-        n.stores_t.p.sum().groupby(n.stores.carrier).sum(),
-        -n.loads_t.p.sum().groupby(n.loads.carrier).sum()
+        n.generators_t.p.multiply(n.snapshot_weightings, axis=0).sum().groupby(n.generators.carrier).sum(),
+        n.storage_units_t.p.multiply(n.snapshot_weightings, axis=0).sum().groupby(n.storage_units.carrier).sum(),
+        n.stores_t.p.multiply(n.snapshot_weightings, axis=0).sum().groupby(n.stores.carrier).sum(),
+        -n.loads_t.p.multiply(n.snapshot_weightings, axis=0).sum().groupby(n.loads.carrier).sum()
     ])
 
 def aggregate_e_nom(n):
@@ -79,7 +79,7 @@ def aggregate_costs(n, flatten=False, opts=None, existing_only=False):
         if not existing_only: p_nom += "_opt"
         costs[(c.list_name, 'capital')] = (c.df[p_nom] * c.df.capital_cost).groupby(c.df.carrier).sum()
         if p_attr is not None:
-            p = c.pnl[p_attr].sum()
+            p = c.pnl[p_attr].multiply(n.snapshot_weightings, axis=0).sum()
             if c.name == 'StorageUnit':
                 p = p.loc[p > 0]
             costs[(c.list_name, 'marginal')] = (p*c.df.marginal_cost).groupby(c.df.carrier).sum()

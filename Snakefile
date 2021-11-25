@@ -10,7 +10,7 @@ wildcard_constraints:
 
 rule all:
     input:
-        expand("results/version-" + str(config['version']) + "/plots/scenario_{param}.html",
+        expand("results/plots/scenario_{param}.html",
                param=list(config['scenario']))
 
 rule build_landuse_remove_protected_and_conservation_areas:
@@ -106,7 +106,7 @@ rule add_sectors:
 
 rule solve_network:
     input: network="networks/sector_{cost}_{resarea}_{sectors}_{opts}.nc"
-    output: "results/version-" + str(config['version']) + "/networks/{cost}_{resarea}_{sectors}_{opts}.nc"
+    output: "results/networks/{cost}_{resarea}_{sectors}_{opts}.nc"
     shadow: "shallow"
     log:
         gurobi="logs/{cost}_{resarea}_{sectors}_{opts}_gurobi.log",
@@ -118,48 +118,46 @@ rule solve_network:
 
 rule plot_network:
     input:
-        network='results/version-' + str(config['version']) + '/networks/{cost}_{resarea}_{sectors}_{opts}.nc',
+        network='results/networks/{cost}_{resarea}_{sectors}_{opts}.nc',
         supply_regions='data/supply_regions/supply_regions.shp',
         resarea=lambda w: 'data/bundle/' + config['data']['resarea'][w.resarea]
     output:
-        only_map=touch('results/version-' + str(config['version']) + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}'),
-        ext=touch('results/version-' + str(config['version']) + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext')
+        only_map=touch('results/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}'),
+        ext=touch('results/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext')
     params: ext=['png', 'pdf']
     script: "scripts/plot_network.py"
 
 rule scenario_comparison:
     input:
-        expand('results/version-{version}/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext',
-               version=config['version'],
+        expand('results/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext',
                attr=['p_nom'],
                **config['scenario'])
     output:
-       html='results/version-' + str(config['version']) + '/plots/scenario_{param}.html'
+       html='results/plots/scenario_{param}.html'
     params:
        tmpl="network_[cost]_[resarea]_[sectors]_[opts]_[attr]_ext",
-       plot_dir='results/version-' + str(config['version']) + '/plots'
+       plot_dir='results/plots'
     script: "scripts/scenario_comparison.py"
 
 def input_make_summary(w):
     # It's mildly hacky to include the separate costs input as first entry
-    return (expand("results/version-" + str(config['version']) + "/networks/{cost}_{resarea}_{sectors}_{opts}.nc",
+    return (expand("results/networks/{cost}_{resarea}_{sectors}_{opts}.nc",
                    **{k: config["scenario"][k] if getattr(w, k) == "all" else getattr(w, k)
                       for k in ["cost", "resarea", "sectors", "opts"]}))
 
 rule make_summary:
     input: input_make_summary
-    output: directory("results/version-" + str(config['version']) + "/summaries/{cost}_{resarea}_{sectors}_{opts}")
+    output: directory("results/summaries/{cost}_{resarea}_{sectors}_{opts}")
     script: "scripts/make_summary.py"
 
 # extract_summaries and plot_costs needs to be updated before it can be used again
 #
 # rule extract_summaries:
 #     input:
-#         expand("results/version-{version}/networks/{cost}_{resarea}_{sectors}_{opts}.nc",
-#                version=config['version'],
+#         expand("results/networks/{cost}_{resarea}_{sectors}_{opts}.nc",
 #                **config['scenario'])
 #     output:
-#         **{n: "results/version-{version}/summaries/{}-summary.csv".format(n, version=config['version'])
+#         **{n: "results/summaries/{}-summary.csv".format(n)
 #            for n in ['costs', 'costs2', 'e_curtailed', 'e_nom_opt', 'e', 'p_nom_opt']}
 #     params:
 #         scenario_tmpl="[cost]_[resarea]_[sectors]_[opts]",

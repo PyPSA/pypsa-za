@@ -7,16 +7,16 @@ dependencies:
   - six
   - snakemake
   - numpy
-  - pyomo
+  - pyomo<6.1
   - scipy
   - pandas>=0.22.0
   - xlrd
   - matplotlib
   - seaborn
   - networkx>=1.10
-  - pyomo
   - netcdf4
   - xarray
+  - pytables
 
   # Include ipython so that one does not inadvertently drop out of the conda
   # environment by calling ipython
@@ -33,6 +33,6 @@ dependencies:
   - conda-forge::shapely
 
   - pip:
-    - pypsa>=0.13
+    - pypsa>=0.13,<0.18
     - vresutils>=0.2.4
     - countrycode
