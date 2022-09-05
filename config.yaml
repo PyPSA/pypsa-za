@@ -10,7 +10,13 @@ data:
   resarea:
     redz: REDZ_DEA_Unpublished_Draft_2015
     corridors: Power_corridors
- 
+
+# definition of the Coordinate Reference Systems
+crs:
+  geo_crs: EPSG:4326  # general geographic projection, not used for metric measures. "EPSG:4326" is the standard used by OSM and google maps
+  distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
+  area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
+
 year: "2040"
 historical_year: "2012"
 
@@ -26,10 +32,10 @@ electricity:
     StorageUnit: [Battery] # [CAES]
 
   buses:
-    OCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
-    CCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH]
-    Coal: [WATERBERG]
-    Nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
+    OCGT: ['RSA'] #[WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
+    CCGT: ['RSA'] #[WEST COAST, EMPANGENI, PORT ELIZABETH]
+    Coal: ['RSA'] #[WATERBERG]
+    Nuclear: ['RSA'] #[PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
 
   BAU_mincapacities:
     Nuclear: 10000
@@ -118,14 +124,14 @@ solving:
     # max_iterations: 1
     # nhours: 10
   solver:
-    name: gurobi
-    threads: 4
-    method: 2
-    crossover: 0 # -1 (Choose freely)
-    BarConvTol: 1.e-5
-    FeasibilityTol: 1.e-6
-    LogToConsole: 0
-    OutputFlag: 1
+    name: cbc
+    # threads: 4
+    # method: 2
+    # crossover: 0 # -1 (Choose freely)
+    # BarConvTol: 1.e-5
+    # FeasibilityTol: 1.e-6
+    # LogToConsole: 0
+    # OutputFlag: 1
 
 plotting:
   map:

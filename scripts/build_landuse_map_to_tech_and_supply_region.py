@@ -5,6 +5,8 @@ import rasterio, rasterio.features, rasterio.mask
 import rasterstats
 import shapely.geometry
 
+area_crs = snakemake.config["crs"]["area_crs"]
+
 # Translate the landuse file into a raster of percentages of available area
 landusetype_percent = snakemake.config['respotentials']['landusetype_percent'][snakemake.wildcards.tech]
 
@@ -49,7 +51,7 @@ with rasterio.open(snakemake.input.landuse) as src, rasterio.open(snakemake.outp
     stats = pd.DataFrame(stats)
 
     stats['area_ratio'] = stats.pop('mean') / 100
-    stats['area'] = regions.to_crs(dict(proj='aea')).area/1e6 # albert equal area has area in m^2
+    stats['area'] = regions.to_crs(area_crs).area/1e6 # albert equal area has area in m^2
     stats['available_area'] = stats['area_ratio'] * stats['area']
 
     stats.set_index(regions.name).to_csv(snakemake.output.area)

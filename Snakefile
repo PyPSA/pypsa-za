@@ -27,7 +27,7 @@ rule build_landuse_remove_protected_and_conservation_areas:
 rule build_landuse_map_to_tech_and_supply_region:
     input:
         landuse = "resources/landuse_without_protected_conservation.tiff",
-        supply_regions = "data/supply_regions/supply_regions.shp",
+        supply_regions = "data/supply_regions_new/RSA_single.shp",
         resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
     output:
         raster = "resources/raster_{tech}_percent_{resarea}.tiff",
@@ -39,7 +39,7 @@ rule build_landuse_map_to_tech_and_supply_region:
 
 rule build_population:
     input:
-        supply_regions='data/supply_regions/supply_regions.shp',
+        supply_regions='data/supply_regions_new/RSA_single.shp',
         population='data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif'
     output: 'resources/population.csv'
     threads: 1
@@ -57,8 +57,8 @@ if not config['hydro_inflow']['disable']:
 
 rule build_topology:
     input:
-        supply_regions='data/supply_regions/supply_regions.shp',
-        centroids='data/supply_regions/centroids.shp',
+        supply_regions='data/supply_regions_new/RSA_single.shp',
+        centroids='data/supply_regions_new/centroid_RSA_single.shp',
         num_lines='data/num_lines.csv'
     output:
         buses='resources/buses.csv',
@@ -80,7 +80,7 @@ rule base_network:
 rule add_electricity:
     input:
         base_network='networks/base_{opts}.nc',
-        supply_regions='data/supply_regions/supply_regions.shp',
+        supply_regions='data/supply_regions_new/RSA_single.shp',
         load='data/bundle/SystemEnergy2009_13.csv',
         wind_profiles='data/bundle/Supply area normalised power feed-in for Wind.xlsx',
         pv_profiles='data/bundle/Supply area normalised power feed-in for PV.xlsx',
@@ -119,7 +119,7 @@ rule solve_network:
 rule plot_network:
     input:
         network='results/version-' + str(config['version']) + '/networks/{cost}_{resarea}_{sectors}_{opts}.nc',
-        supply_regions='data/supply_regions/supply_regions.shp',
+        supply_regions='data/supply_regions_new/RSA_single.shp',
         resarea=lambda w: 'data/bundle/' + config['data']['resarea'][w.resarea]
     output:
         only_map=touch('results/version-' + str(config['version']) + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}'),
