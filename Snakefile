@@ -5,6 +5,7 @@ localrules: all, base_network, add_electricity, add_sectors, plot_network, scena
 wildcard_constraints:
     resarea="[a-zA-Z0-9]+",
     cost="[-a-zA-Z0-9]+",
+    regions="[-+a-zA-Z0-9]+",
     sectors="[+a-zA-Z0-9]+",
     opts="[-+a-zA-Z0-9]+"
 
@@ -27,21 +28,21 @@ rule build_landuse_remove_protected_and_conservation_areas:
 rule build_landuse_map_to_tech_and_supply_region:
     input:
         landuse = "resources/landuse_without_protected_conservation.tiff",
-        supply_regions = "data/supply_regions_new/RSA_single.shp",
+        supply_regions = "data/supply_regions/supply_regions_{regions}.shp",
         resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
     output:
-        raster = "resources/raster_{tech}_percent_{resarea}.tiff",
-        area = "resources/area_{tech}_{resarea}.csv"
-    benchmark: "benchmarks/build_landuse_map_to_tech_and_supply_region/{tech}_{resarea}"
+        raster = "resources/raster_{tech}_percent_{resarea}_{regions}.tiff",
+        area = "resources/area_{tech}_{resarea}_{regions}.csv"
+    benchmark: "benchmarks/build_landuse_map_to_tech_and_supply_region/{tech}_{resarea}_{regions}"
     threads: 1
     resources: mem_mb=10000
     script: "scripts/build_landuse_map_to_tech_and_supply_region.py"
 
 rule build_population:
     input:
-        supply_regions='data/supply_regions_new/RSA_single.shp',
+        supply_regions='data/supply_regions/supply_regions_{regions}.shp',
         population='data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif'
-    output: 'resources/population.csv'
+    output: 'resources/population_{regions}.csv'
     threads: 1
     resources: mem_mb=1000
     script: "scripts/build_population.py"
@@ -57,79 +58,79 @@ if not config['hydro_inflow']['disable']:
 
 rule build_topology:
     input:
-        supply_regions='data/supply_regions_new/RSA_single.shp',
-        centroids='data/supply_regions_new/centroid_RSA_single.shp',
+        supply_regions='data/supply_regions/supply_regions_{regions}.shp',
+        centroids='data/supply_regions/centroids_{regions}.shp',
         num_lines='data/num_lines.csv'
     output:
-        buses='resources/buses.csv',
-        lines='resources/lines.csv'
+        buses='resources/buses_{regions}.csv',
+        lines='resources/lines_{regions}.csv'
     threads: 1
     script: "scripts/build_topology.py"
 
 rule base_network:
     input:
-        buses='resources/buses.csv',
-        lines='resources/lines.csv',
-        population='resources/population.csv'
-    output: "networks/base_{opts}.nc"
-    benchmark: "benchmarks/base_network_{opts}"
+        buses='resources/buses_{regions}.csv',
+        lines='resources/lines_{regions}.csv',
+        population='resources/population_{regions}.csv'
+    output: "networks/base_{opts}_{regions}.nc"
+    benchmark: "benchmarks/base_network_{opts}_{regions}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/base_network.py"
 
 rule add_electricity:
     input:
-        base_network='networks/base_{opts}.nc',
-        supply_regions='data/supply_regions_new/RSA_single.shp',
+        base_network='networks/base_{opts}_{regions}.nc',
+        supply_regions='data/supply_regions/supply_regions_{regions}.shp',
         load='data/bundle/SystemEnergy2009_13.csv',
         wind_profiles='data/bundle/Supply area normalised power feed-in for Wind.xlsx',
         pv_profiles='data/bundle/Supply area normalised power feed-in for PV.xlsx',
-        wind_area='resources/area_wind_{resarea}.csv',
-        solar_area='resources/area_solar_{resarea}.csv',
+        wind_area='resources/area_wind_{resarea}_{regions}.csv',
+        solar_area='resources/area_solar_{resarea}_{regions}.csv',
         existing_generators="data/Existing Power Stations SA.xlsx",
         hydro_inflow="resources/hydro_inflow.csv",
         tech_costs="data/technology_costs.xlsx"
-    output: "networks/elec_{cost}_{resarea}_{opts}.nc"
-    benchmark: "benchmarks/add_electricity/elec_{cost}_{resarea}_{opts}"
+    output: "networks/elec_{cost}_{resarea}_{opts}_{regions}.nc"
+    benchmark: "benchmarks/add_electricity/elec_{cost}_{resarea}_{opts}_{regions}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/add_electricity.py"
 
 rule add_sectors:
     input:
-        network="networks/elec_{cost}_{resarea}_{opts}.nc"
+        network="networks/elec_{cost}_{resarea}_{opts}_{regions}.nc"
         # emobility="data/emobility"
-    output: "networks/sector_{cost}_{resarea}_{sectors}_{opts}.nc"
+    output: "networks/sector_{cost}_{resarea}_{sectors}_{opts}_{regions}.nc"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/add_sectors.py"
 
 rule solve_network:
-    input: network="networks/sector_{cost}_{resarea}_{sectors}_{opts}.nc"
-    output: "results/version-" + str(config['version']) + "/networks/{cost}_{resarea}_{sectors}_{opts}.nc"
+    input: network="networks/sector_{cost}_{resarea}_{sectors}_{opts}_{regions}.nc"
+    output: "results/version-" + str(config['version']) + "/networks/{cost}_{resarea}_{sectors}_{opts}_{regions}.nc"
     shadow: "shallow"
     log:
-        gurobi="logs/{cost}_{resarea}_{sectors}_{opts}_gurobi.log",
-        python="logs/{cost}_{resarea}_{sectors}_{opts}_python.log"
-    benchmark: "benchmarks/solve_network/{cost}_{resarea}_{sectors}_{opts}"
+        gurobi="logs/{cost}_{resarea}_{sectors}_{opts}_{regions}_gurobi.log",
+        python="logs/{cost}_{resarea}_{sectors}_{opts}_{regions}_python.log"
+    benchmark: "benchmarks/solve_network/{cost}_{resarea}_{sectors}_{opts}_{regions}"
     threads: 4
     resources: mem_mb=19000 # for electricity only
     script: "scripts/solve_network.py"
 
 rule plot_network:
     input:
-        network='results/version-' + str(config['version']) + '/networks/{cost}_{resarea}_{sectors}_{opts}.nc',
-        supply_regions='data/supply_regions_new/RSA_single.shp',
+        network='results/version-' + str(config['version']) + '/networks/{cost}_{resarea}_{sectors}_{opts}_{regions}.nc',
+        supply_regions='data/supply_regions/supply_regions_{regions}.shp',
         resarea=lambda w: 'data/bundle/' + config['data']['resarea'][w.resarea]
     output:
-        only_map=touch('results/version-' + str(config['version']) + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}'),
-        ext=touch('results/version-' + str(config['version']) + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext')
+        only_map=touch('results/version-' + str(config['version']) + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{regions}_{attr}'),
+        ext=touch('results/version-' + str(config['version']) + '/plots/network_{cost}_{resarea}_{sectors}_{opts}_{regions}_{attr}_ext')
     params: ext=['png', 'pdf']
     script: "scripts/plot_network.py"
 
 rule scenario_comparison:
     input:
-        expand('results/version-{version}/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_ext',
+        expand('results/version-{version}/plots/network_{cost}_{resarea}_{sectors}_{opts}_{attr}_{regions}_ext',
                version=config['version'],
                attr=['p_nom'],
                **config['scenario'])
@@ -142,13 +143,13 @@ rule scenario_comparison:
 
 def input_make_summary(w):
     # It's mildly hacky to include the separate costs input as first entry
-    return (expand("results/version-" + str(config['version']) + "/networks/{cost}_{resarea}_{sectors}_{opts}.nc",
+    return (expand("results/version-" + str(config['version']) + "/networks/{cost}_{resarea}_{sectors}_{opts}_{regions}.nc",
                    **{k: config["scenario"][k] if getattr(w, k) == "all" else getattr(w, k)
                       for k in ["cost", "resarea", "sectors", "opts"]}))
 
 rule make_summary:
     input: input_make_summary
-    output: directory("results/version-" + str(config['version']) + "/summaries/{cost}_{resarea}_{sectors}_{opts}")
+    output: directory("results/version-" + str(config['version']) + "/summaries/{cost}_{resarea}_{sectors}_{opts}_{regions}")
     script: "scripts/make_summary.py"
 
 # extract_summaries and plot_costs needs to be updated before it can be used again

@@ -2,6 +2,7 @@ version: 0.5
 
 scenario:
   resarea: [redz, corridors]
+  regions: ['RSA','27-supply']
   sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
   cost: [csir-aggressive] # [csir-today, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
   opts: [LC, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
@@ -10,6 +11,9 @@ data:
   resarea:
     redz: REDZ_DEA_Unpublished_Draft_2015
     corridors: Power_corridors
+  supply_regions:
+    shapes: data/supply_regions_new/RSA_single.shp
+    centroids: 'data/supply_regions_new/centroid_RSA_single.shp'
 
 # definition of the Coordinate Reference Systems
 crs:
@@ -32,10 +36,10 @@ electricity:
     StorageUnit: [Battery] # [CAES]
 
   buses:
-    OCGT: ['RSA'] #[WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
-    CCGT: ['RSA'] #[WEST COAST, EMPANGENI, PORT ELIZABETH]
-    Coal: ['RSA'] #[WATERBERG]
-    Nuclear: ['RSA'] #[PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
+    OCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
+    CCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH]
+    Coal: [WATERBERG]
+    Nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
 
   BAU_mincapacities:
     Nuclear: 10000

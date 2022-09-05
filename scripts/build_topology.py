@@ -40,7 +40,9 @@ def build_topology():
              )
              .drop('geometry', axis=1))
 
-    if len(buses)>1:
+    if snakemake.wildcards.regions=='RSA':
+        lines=pd.DataFrame(index=[],columns=['name','bus0','bus1','length','num_parallel'])
+    else:
         # Lines from touching regions
         def asarray(x): return np.asarray(list(map(np.asarray, x)))
         lines = pd.DataFrame(list(edges_between_touching_regions(regions)), columns=['bus0', 'bus1'])
@@ -56,8 +58,7 @@ def build_topology():
                 .join(num_parallel.rename("num_parallel_i"), on=['bus1', 'bus0']))
 
         lines['num_parallel'] = line_config['s_nom_factor'] * lines['num_parallel'].fillna(lines.pop('num_parallel_i'))
-    else:
-        lines=pd.DataFrame(index=[],columns=['name','bus0','bus1','length','num_parallel'])
+
     return buses, lines
 
 if __name__ == "__main__":

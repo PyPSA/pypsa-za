@@ -22,8 +22,6 @@ from _helpers import pdbcast
 
 def normed(s): return s/s.sum()
 
-
-
 def _add_missing_carriers_from_costs(n, costs, carriers):
     missing_carriers = pd.Index(carriers).difference(n.carriers.index)
     emissions_cols = costs.columns.to_series().loc[lambda s: s.str.endswith('_emissions')].values
@@ -93,15 +91,13 @@ def attach_wind_and_solar(n, costs):
     ## Wind
 
     n.add("Carrier", name="Wind")
-    windarea = pd.read_csv(snakemake.input.wind_area, index_col=0).loc[lambda s: s.available_area > 0.] \
-               .loc[n.buses.index]
+    windarea = pd.read_csv(snakemake.input.wind_area, index_col=0).loc[lambda s: s.available_area > 0.]
     windres = (pd.read_excel(snakemake.input.wind_profiles,
                              skiprows=[1], sheet_name='Wind power profiles')
                .rename(columns={'supply area\'s name': 't'}).set_index('t')
                .resample('1h').mean().loc[historical_year]
                .reindex(columns=windarea.index)
-               .clip(lower=0., upper=1.)) \
-               [n.buses.index]
+               .clip(lower=0., upper=1.))
     n.madd("Generator", windarea.index, suffix=" Wind",
            bus=windarea.index,
            carrier="Wind",
@@ -115,16 +111,14 @@ def attach_wind_and_solar(n, costs):
     ## PV
 
     n.add("Carrier", name="PV")
-    pvarea = pd.read_csv(snakemake.input.solar_area, index_col=0).loc[lambda s: s.available_area > 0.] \
-             .loc[n.buses.index]
+    pvarea = pd.read_csv(snakemake.input.solar_area, index_col=0).loc[lambda s: s.available_area > 0.]
     pvres = (pd.read_excel(snakemake.input.pv_profiles,
                            skiprows=[1], sheet_name='PV profiles')
              .rename(columns={'supply area\'s name': 't'})
              .set_index('t')
              .resample('1h').mean().loc[historical_year].reindex(n.snapshots, fill_value=0.)
              .reindex(columns=pvarea.index)
-             .clip(lower=0., upper=1.)) \
-             [n.buses.index]
+             .clip(lower=0., upper=1.))
     n.madd("Generator", pvarea.index, suffix=" PV",
            bus=pvarea.index,
            carrier="PV",
@@ -212,10 +206,10 @@ def attach_existing_generators(n, costs):
 
     gens.loc[gens.bus.isnull(), "bus"] = pos[gens.bus.isnull()].map(lambda p: regions.distance(p).idxmin())
 
-    if len(regions)>1:
+    if snakemake.wildcards.regions=='RSA':
+        CahoraBassa['bus'] = "RSA"
+    elif snakemake.wildcards.regions=='27-supply':
         CahoraBassa['bus'] = "POLOKWANE"
-    else:
-        CahoraBassa['bus'] = regions.index[0]
     gens = gens.append(CahoraBassa)
 
     # Now we split them by carrier and have some more carrier specific cleaning
@@ -266,7 +260,10 @@ def attach_existing_generators(n, costs):
 def attach_extendable_generators(n, costs):
     elec_opts = snakemake.config['electricity']
     carriers = elec_opts['extendable_carriers']['Generator']
-    buses = elec_opts['buses']
+    if snakemake.wildcards.regions=='RSA':
+        buses=['RSA']
+    elif snakemake.wildcards.regions=='27-supply':
+        buses = elec_opts['buses']
 
     _add_missing_carriers_from_costs(n, costs, carriers)
 
@@ -334,7 +331,6 @@ def add_peak_demand_hour_without_variable_feedin(n):
 
 if __name__ == "__main__":
     opts = snakemake.wildcards.opts.split('-')
-
     n = pypsa.Network(snakemake.input.base_network)
     costs = load_costs()
     attach_load(n)

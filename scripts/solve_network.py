@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-
 import logging
 logging.basicConfig(filename=snakemake.log.python, level=logging.INFO)
 
@@ -255,10 +254,8 @@ def solve_network(n):
 
 if __name__ == "__main__":
     n = pypsa.Network(snakemake.input[0])
-
     n = prepare_network(n)
     n = apply_time_segmentation(n, 200, solver_name='cbc')
-
     n = solve_network(n)
 
     n.export_to_netcdf(snakemake.output[0])
