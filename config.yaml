@@ -31,7 +31,7 @@ crs:
   distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
 
-year: "2040"
+year: "2050"
 historical_year: "2012"
 
 electricity:
@@ -59,13 +59,13 @@ electricity:
       coal: [WATERBERG]
       nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
   
-  BAU_min_capacities:
+  BAU_mincapacities:
     nuclear: 10000
     coal: 10000
   
   SAFE_reservemargin: 0.1
 
-  operational_reserve_margin: # like https://genxproject.github.io/GenX/dev/core/#Reserves
+  operational_reserve: # like https://genxproject.github.io/GenX/dev/core/#Reserves
     activate: false
     epsilon_load: 0.02 # share of total load
     epsilon_vres: 0.02 # share of total renewable supply
@@ -119,6 +119,13 @@ links:
   s_nom_factor: 0.7
   length_factor: 1.25
 
+augmented_line_connection:
+  add_to_snakefile: true  # If True, includes this rule to the workflow
+  connectivity_upgrade: 2  # Min. lines connection per node, https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.connectivity.edge_augmentation.k_edge_augmentation.html#networkx.algorithms.connectivity.edge_augmentation.k_edge_augmentation
+  new_line_type: ["HVAC", "HVDC"]  # Expanded lines can be either ["HVAC"] or ["HVDC"] or both ["HVAC", "HVDC"]
+  min_expansion: 1  # [MW] New created line expands by float/int input
+  min_DC_length: 600  # [km] Minimum line length of DC line
+
 costs:
   # costs come from data/technology_costs.xlsx
   discountrate: 0.08
@@ -133,7 +140,7 @@ costs:
     #PV: 0.01
     #Wind: 0.015
   USD2013_to_EUR2013: 0.7532
-  EUR_to_ZAR: 15.63
+  EUR2013_to_ZAR2013: 15.63
 
   emission_prices: # only used with the option Ep (emission prices)
     # Externality costs from Integrated Energy Plan by the ZA DOE
@@ -150,16 +157,15 @@ solving:
     clip_p_max_pu: 1.e-2
     load_shedding: true
     noisy_costs: true
-    min_iterations: 4
-    max_iterations: 10
+    min_iterations: 1
+    max_iterations: 1
     formulation: kirchhoff
     # max_iterations: 1
     # nhours: 10
   solver:
-    name: cbc
-    # threads: 4
-    # method: 2
-    # crossover: 0 # -1 (Choose freely)
+    name: xpress
+    lpflags: 4
+    crossover: 0
     # BarConvTol: 1.e-5
     # FeasibilityTol: 1.e-6
     # LogToConsole: 0

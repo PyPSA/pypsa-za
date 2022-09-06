@@ -77,6 +77,7 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
     # correct units to MW and EUR
     costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
     costs.loc[costs.unit.str.contains("USD"), "value"] *= config["USD2013_to_EUR2013"]
+    costs.loc[costs.unit.str.contains("EUR"), "value"] *= config["EUR2013_to_ZAR2013"]
 
     costs = (
         costs.loc[idx[:, config["year"], :], "value"]
@@ -84,7 +85,8 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
         .groupby("technology")
         .sum(min_count=1)
     )
-
+    costs['efficiency_store']=costs['efficiency'].pow(1./2) #if only 1 efficiency value is given assume it is round trip efficiency
+    costs['efficiency_dispatch']=costs['efficiency'].pow(1./2)
     costs = costs.fillna(
         {
             "CO2 intensity": 0,
@@ -92,6 +94,8 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
             "VOM": 0,
             "discount rate": config["discountrate"],
             "efficiency": 1,
+            "efficiency_store": 1,
+            "efficiency_dispatch": 1,
             "fuel": 0,
             "investment": 0,
             "lifetime": 25,
@@ -131,17 +135,22 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
         )
 
     max_hours = elec_config["max_hours"]
-    costs.loc["battery"] = costs_for_storage(
+    costs.at["battery"] = costs_for_storage(
         costs.loc["battery storage"],
         costs.loc["battery inverter"],
         max_hours=max_hours["battery"],
     )
-    costs.loc["H2"] = costs_for_storage(
+    costs.loc['battery',:].fillna(costs.loc['battery inverter',:],inplace=True)
+    
+    costs.at["H2"] = costs_for_storage(
         costs.loc["hydrogen storage"],
         costs.loc["fuel cell"],
         costs.loc["electrolysis"],
         max_hours=max_hours["H2"],
     )
+    costs.loc['H2',:].fillna(costs.loc['electrolysis',:],inplace=True)
+    costs.at['H2', 'efficiency_store'] = costs.at['electrolysis','efficiency']
+    costs.at['H2', 'efficiency_dispatch'] = costs.at['fuel cell','efficiency']
 
     for attr in ("marginal_cost", "capital_cost"):
         overwrites = config.get(attr)
@@ -150,8 +159,6 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
             costs.loc[overwrites.index, attr] = overwrites
 
     return costs
-
-
 
 # def load_costs():
 #     costs = pd.read_excel(snakemake.input.tech_costs,
@@ -332,6 +339,7 @@ def attach_existing_generators(n, costs):
     gens['ramp_limit_up'] = 60*gens.pop(g_f['max_ramp_up'])/gens[g_f['p_nom']]
 
     year = snakemake.config['year']
+    print(year)
     gens = (gens
             # rename remaining fields
             .rename(columns={g_f[f]: f
@@ -416,9 +424,6 @@ def attach_existing_generators(n, costs):
 def attach_extendable_generators(n, costs):
     elec_opts = snakemake.config['electricity']
     carriers = elec_opts['extendable_carriers']['Generator']
-    #if snakemake.wildcards.regions=='RSA':
-    #    buses=['RSA']
-    #elif snakemake.wildcards.regions=='27-supply':
     buses = elec_opts['buses'][snakemake.wildcards.regions]
 
     _add_missing_carriers_from_costs(n, costs, carriers)
@@ -450,8 +455,8 @@ def attach_storage(n, costs):
                carrier=carrier,
                capital_cost=costs.at[carrier, 'capital_cost'],
                marginal_cost=costs.at[carrier, 'marginal_cost'],
-               efficiency_store=costs.at[carrier, 'efficiency'],
-               efficiency_dispatch=costs.at[carrier, 'efficiency'],
+               efficiency_store=costs.at[carrier, 'efficiency_store'],
+               efficiency_dispatch=costs.at[carrier, 'efficiency_dispatch'],
                max_hours=max_hours[carrier],
                cyclic_state_of_charge=True)
 

@@ -175,7 +175,7 @@ def average_every_nhours(n, offset):
     return m
 
 
-def apply_time_segmentation(n, segments):
+def apply_time_segmentation(n, segments, solver_name):
     logger.info(f"Aggregating time series to {segments} segments.")
     try:
         import tsam.timeseriesaggregation as tsam
@@ -194,8 +194,6 @@ def apply_time_segmentation(n, segments):
     inflow = n.storage_units_t.inflow / inflow_norm
 
     raw = pd.concat([p_max_pu, load, inflow], axis=1, sort=False)
-
-    solver_name = snakemake.config["solving"]["solver"]["name"]
 
     agg = tsam.TimeSeriesAggregation(
         raw,
