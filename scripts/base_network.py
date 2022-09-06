@@ -20,8 +20,8 @@ def base_network():
 
     line_config = snakemake.config['lines']
     v_nom = line_config['v_nom']
-    line_type = line_config['type']
-
+    line_type = line_config["types"][380.]#line_config['types']
+    
     lines['capacity'] = np.sqrt(3)*v_nom*n.line_types.loc[line_type, 'i_nom']*lines.num_parallel
 
     # Buses from regions

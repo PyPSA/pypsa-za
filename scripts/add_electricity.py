@@ -1,57 +1,183 @@
 # coding: utf-8
+import logging
+import os
 
-import networkx as nx
-import pandas as pd
-import numpy as np
-import scipy as sp
-from operator import attrgetter
-from six import string_types
-
-import rasterio
-import fiona
-import rasterstats
 import geopandas as gpd
-
-from shapely.geometry import Point
-from vresutils.shapes import haversine
-from vresutils.costdata import annuity
-
+import numpy as np
+import pandas as pd
+import powerplantmatching as pm
 import pypsa
+import xarray as xr
+from _helpers import configure_logging, getContinent, update_p_nom_max, pdbcast
+from shapely.validation import make_valid
+from shapely.geometry import Point
+from vresutils import transfer as vtransfer
 
-from _helpers import pdbcast
+idx = pd.IndexSlice
 
-def normed(s): return s/s.sum()
+logger = logging.getLogger(__name__)
+
+
+# import networkx as nx
+# import pandas as pd
+# import numpy as np
+# import scipy as sp
+# from operator import attrgetter
+# from six import string_types
+
+# import rasterio
+# import fiona
+# import rasterstats
+# import geopandas as gpd
+
+# from shapely.geometry import Point
+# from vresutils.shapes import haversine
+# from vresutils.costdata import annuity
+
+# import pypsa
+
+# from _helpers import pdbcast
+
+def normed(s):
+    return s / s.sum()
+
+def calculate_annuity(n, r):
+    """
+    Calculate the annuity factor for an asset with lifetime n years and
+    discount rate of r, e.g. annuity(20, 0.05) * 20 = 1.6
+    """
+    if isinstance(r, pd.Series):
+        return pd.Series(1 / n, index=r.index).where(
+            r == 0, r / (1.0 - 1.0 / (1.0 + r) ** n)
+        )
+    elif r > 0:
+        return r / (1.0 - 1.0 / (1.0 + r) ** n)
+    else:
+        return 1 / n
 
 def _add_missing_carriers_from_costs(n, costs, carriers):
     missing_carriers = pd.Index(carriers).difference(n.carriers.index)
-    emissions_cols = costs.columns.to_series().loc[lambda s: s.str.endswith('_emissions')].values
-    n.import_components_from_dataframe(costs.loc[missing_carriers, emissions_cols].fillna(0.), 'Carrier')
+    if missing_carriers.empty:
+        return
 
-def load_costs():
-    costs = pd.read_excel(snakemake.input.tech_costs,
-                          sheet_name=snakemake.wildcards.cost,
-                          index_col=0).T
+    emissions_cols = (
+        costs.columns.to_series().loc[lambda s: s.str.endswith("_emissions")].values
+    )
+    suptechs = missing_carriers.str.split("-").str[0]
+    emissions = costs.loc[suptechs, emissions_cols].fillna(0.0)
+    emissions.index = missing_carriers
+    n.import_components_from_dataframe(emissions, "Carrier")
 
-    discountrate = snakemake.config['costs']['discountrate']
-    costs['capital_cost'] = ((annuity(costs.pop('Lifetime [a]'), discountrate) +
-                              costs.pop('FOM [%/a]').fillna(0.) / 100.)
-                             * costs.pop('Overnight cost [R/kW_el]')*1e3)
+def load_costs(tech_costs, config, elec_config, Nyears=1):
+    """
+    set all asset costs and other parameters
+    """
+    costs = pd.read_csv(tech_costs, index_col=list(range(3))).sort_index()
 
-    costs['efficiency'] = costs.pop('Efficiency').fillna(1.)
-    costs['marginal_cost'] = (costs.pop('VOM [R/MWh_el]').fillna(0.) +
-                              (costs.pop('Fuel cost [R/MWh_th]') / costs['efficiency']).fillna(0.))
+    # correct units to MW and EUR
+    costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
+    costs.loc[costs.unit.str.contains("USD"), "value"] *= config["USD2013_to_EUR2013"]
 
-    emissions_cols = costs.columns.to_series().loc[lambda s: s.str.endswith(' emissions [kg/MWh_th]')]
-    costs.loc[:, emissions_cols.index] = (costs.loc[:, emissions_cols.index]/1e3).fillna(0.)
-    costs = costs.rename(columns=emissions_cols.str[:-len(" [kg/MWh_th]")].str.lower().str.replace(' ', '_'))
+    costs = (
+        costs.loc[idx[:, config["year"], :], "value"]
+        .unstack(level=2)
+        .groupby("technology")
+        .sum(min_count=1)
+    )
 
-    for attr in ('marginal_cost', 'capital_cost'):
-        overwrites = snakemake.config['costs'].get(attr)
+    costs = costs.fillna(
+        {
+            "CO2 intensity": 0,
+            "FOM": 0,
+            "VOM": 0,
+            "discount rate": config["discountrate"],
+            "efficiency": 1,
+            "fuel": 0,
+            "investment": 0,
+            "lifetime": 25,
+        }
+    )
+
+    costs["capital_cost"] = (
+        (
+            calculate_annuity(costs["lifetime"], costs["discount rate"])
+            + costs["FOM"] / 100.0
+        )
+        * costs["investment"]
+        * Nyears
+    )
+
+    costs.at["OCGT", "fuel"] = costs.at["gas", "fuel"]
+    costs.at["CCGT", "fuel"] = costs.at["gas", "fuel"]
+
+    costs["marginal_cost"] = costs["VOM"] + costs["fuel"] / costs["efficiency"]
+
+    costs = costs.rename(columns={"CO2 intensity": "co2_emissions"})
+
+    costs.at["OCGT", "co2_emissions"] = costs.at["gas", "co2_emissions"]
+    costs.at["CCGT", "co2_emissions"] = costs.at["gas", "co2_emissions"]
+
+    costs.at["solar", "capital_cost"] = 0.5 * (
+        costs.at["solar-rooftop", "capital_cost"]
+        + costs.at["solar-utility", "capital_cost"]
+    )
+
+    def costs_for_storage(store, link1, link2=None, max_hours=1.0):
+        capital_cost = link1["capital_cost"] + max_hours * store["capital_cost"]
+        if link2 is not None:
+            capital_cost += link2["capital_cost"]
+        return pd.Series(
+            dict(capital_cost=capital_cost, marginal_cost=0.0, co2_emissions=0.0)
+        )
+
+    max_hours = elec_config["max_hours"]
+    costs.loc["battery"] = costs_for_storage(
+        costs.loc["battery storage"],
+        costs.loc["battery inverter"],
+        max_hours=max_hours["battery"],
+    )
+    costs.loc["H2"] = costs_for_storage(
+        costs.loc["hydrogen storage"],
+        costs.loc["fuel cell"],
+        costs.loc["electrolysis"],
+        max_hours=max_hours["H2"],
+    )
+
+    for attr in ("marginal_cost", "capital_cost"):
+        overwrites = config.get(attr)
         if overwrites is not None:
             overwrites = pd.Series(overwrites)
             costs.loc[overwrites.index, attr] = overwrites
 
     return costs
+
+
+
+# def load_costs():
+#     costs = pd.read_excel(snakemake.input.tech_costs,
+#                           sheet_name=snakemake.wildcards.cost,
+#                           index_col=0).T
+
+#     discountrate = snakemake.config['costs']['discountrate']
+#     costs['capital_cost'] = ((annuity(costs.pop('Lifetime [a]'), discountrate) +
+#                               costs.pop('FOM [%/a]').fillna(0.) / 100.)
+#                              * costs.pop('Overnight cost [R/kW_el]')*1e3)
+
+#     costs['efficiency'] = costs.pop('Efficiency').fillna(1.)
+#     costs['marginal_cost'] = (costs.pop('VOM [R/MWh_el]').fillna(0.) +
+#                               (costs.pop('Fuel cost [R/MWh_th]') / costs['efficiency']).fillna(0.))
+
+#     emissions_cols = costs.columns.to_series().loc[lambda s: s.str.endswith(' emissions [kg/MWh_th]')]
+#     costs.loc[:, emissions_cols.index] = (costs.loc[:, emissions_cols.index]/1e3).fillna(0.)
+#     costs = costs.rename(columns=emissions_cols.str[:-len(" [kg/MWh_th]")].str.lower().str.replace(' ', '_'))
+
+#     for attr in ('marginal_cost', 'capital_cost'):
+#         overwrites = snakemake.config['costs'].get(attr)
+#         if overwrites is not None:
+#             overwrites = pd.Series(overwrites)
+#             costs.loc[overwrites.index, attr] = overwrites
+
+#     return costs
 
 # ## Attach components
 
@@ -73,66 +199,96 @@ def attach_load(n):
 
 ### Set line costs
 
-def update_transmission_costs(n, costs):
-    opts = snakemake.config['lines']
-    for df in (n.lines, n.links):
-        if df.empty: continue
+# def update_transmission_costs(n, costs):
+#     opts = snakemake.config['lines']
+#     for df in (n.lines, n.links):
+#         if df.empty: continue
 
-        df['capital_cost'] = (df['length'] / opts['s_nom_factor'] *
-                              costs.at['Transmission lines', 'capital_cost'])
+#         df['capital_cost'] = (df['length'] / opts['s_nom_factor'] *
+#                               costs.at['Transmission lines', 'capital_cost'])
+
+def update_transmission_costs(n, costs, length_factor=1.0, simple_hvdc_costs=False):
+    n.lines["capital_cost"] = (
+        n.lines["length"] * length_factor * costs.at["HVAC overhead", "capital_cost"]
+    )
+
+    if n.links.empty:
+        return
+
+    dc_b = n.links.carrier == "DC"
+    # If there are no "DC" links, then the 'underwater_fraction' column
+    # may be missing. Therefore we have to return here.
+    # TODO: Require fix
+    if n.links.loc[n.links.carrier == "DC"].empty:
+        return
+
+    if simple_hvdc_costs:
+        costs = (
+            n.links.loc[dc_b, "length"]
+            * length_factor
+            * costs.at["HVDC overhead", "capital_cost"]
+        )
+    else:
+        costs = (
+            n.links.loc[dc_b, "length"]
+            * length_factor
+            * (
+                (1.0 - n.links.loc[dc_b, "underwater_fraction"])
+                * costs.at["HVDC overhead", "capital_cost"]
+                + n.links.loc[dc_b, "underwater_fraction"]
+                * costs.at["HVDC submarine", "capital_cost"]
+            )
+            + costs.at["HVDC inverter pair", "capital_cost"]
+        )
+    n.links.loc[dc_b, "capital_cost"] = costs
 
 
-# ### Generators
-
+# ### Generators - TODO Update from pypa-eur
 def attach_wind_and_solar(n, costs):
     historical_year = snakemake.config['historical_year']
     capacity_per_sqm = snakemake.config['respotentials']['capacity_per_sqm']
 
-    ## Wind
-
-    n.add("Carrier", name="Wind")
-    windarea = pd.read_csv(snakemake.input.wind_area, index_col=0).loc[lambda s: s.available_area > 0.]
-    windres = (pd.read_excel(snakemake.input.wind_profiles,
+    ## Onshore wind
+    n.add("Carrier", name="onwind")
+    onwind_area = pd.read_csv(snakemake.input.onwind_area, index_col=0).loc[lambda s: s.available_area > 0.]
+    onwind_res = (pd.read_excel(snakemake.input.onwind_profiles,
                              skiprows=[1], sheet_name='Wind power profiles')
-               .rename(columns={'supply area\'s name': 't'}).set_index('t')
-               .resample('1h').mean().loc[historical_year]
-               .reindex(columns=windarea.index)
-               .clip(lower=0., upper=1.))
-    n.madd("Generator", windarea.index, suffix=" Wind",
-           bus=windarea.index,
-           carrier="Wind",
+                    .rename(columns={'supply area\'s name': 't'}).set_index('t')
+                    .resample('1h').mean().loc[historical_year]
+                    .reindex(columns=onwind_area.index)
+                    .clip(lower=0., upper=1.))
+    n.madd("Generator", onwind_area.index, suffix=" onwind",
+           bus=onwind_area.index,
+           carrier="onwind",
            p_nom_extendable=True,
-           p_nom_max=windarea.available_area * capacity_per_sqm['wind'],
-           marginal_cost=costs.at['Wind', 'marginal_cost'],
-           capital_cost=costs.at['Wind', 'capital_cost'],
-           efficiency=costs.at['Wind', 'efficiency'],
-           p_max_pu=windres)
+           p_nom_max=onwind_area.available_area * capacity_per_sqm['onwind'],
+           marginal_cost=costs.at['onwind', 'marginal_cost'],
+           capital_cost=costs.at['onwind', 'capital_cost'],
+           efficiency=costs.at['onwind', 'efficiency'],
+           p_max_pu=onwind_res)
 
-    ## PV
-
-    n.add("Carrier", name="PV")
-    pvarea = pd.read_csv(snakemake.input.solar_area, index_col=0).loc[lambda s: s.available_area > 0.]
-    pvres = (pd.read_excel(snakemake.input.pv_profiles,
+    ## Solar PV
+    n.add("Carrier", name="solar")
+    solar_area = pd.read_csv(snakemake.input.solar_area, index_col=0).loc[lambda s: s.available_area > 0.]
+    solar_res = (pd.read_excel(snakemake.input.solar_profiles,
                            skiprows=[1], sheet_name='PV profiles')
              .rename(columns={'supply area\'s name': 't'})
              .set_index('t')
              .resample('1h').mean().loc[historical_year].reindex(n.snapshots, fill_value=0.)
-             .reindex(columns=pvarea.index)
+             .reindex(columns=solar_area.index)
              .clip(lower=0., upper=1.))
-    n.madd("Generator", pvarea.index, suffix=" PV",
-           bus=pvarea.index,
-           carrier="PV",
+    n.madd("Generator", solar_area.index, suffix=" solar",
+           bus=solar_area.index,
+           carrier="solar",
            p_nom_extendable=True,
-           p_nom_max=pvarea.available_area * capacity_per_sqm['solar'],
-           marginal_cost=costs.at['PV', 'marginal_cost'],
-           capital_cost=costs.at['PV', 'capital_cost'],
-           efficiency=costs.at['PV', 'efficiency'],
-           p_max_pu=pvres)
+           p_nom_max=solar_area.available_area * capacity_per_sqm['solar'],
+           marginal_cost=costs.at['solar', 'marginal_cost'],
+           capital_cost=costs.at['solar', 'capital_cost'],
+           efficiency=costs.at['solar', 'efficiency'],
+           p_max_pu=solar_res)
 
 
 # # Generators
-
-
 def attach_existing_generators(n, costs):
     historical_year = snakemake.config['historical_year']
 
@@ -213,14 +369,14 @@ def attach_existing_generators(n, costs):
     gens = gens.append(CahoraBassa)
 
     # Now we split them by carrier and have some more carrier specific cleaning
-    gens.carrier.replace({"Pumped Storage": "Pumped storage"}, inplace=True)
+    gens.carrier.replace({"Pumped Storage": "PHS"}, inplace=True)
 
     # HYDRO
 
-    n.add("Carrier", "Hydro")
-    n.add("Carrier", "Pumped storage")
+    n.add("Carrier", "hydro")
+    n.add("Carrier", "PHS")
 
-    hydro = pd.DataFrame(gens.loc[gens.carrier.isin({'Pumped storage', 'Hydro'})])
+    hydro = pd.DataFrame(gens.loc[gens.carrier.isin({'PHS', 'hydro'})])
     hydro["efficiency_store"] = hydro["efficiency_dispatch"] = np.sqrt(hydro.pop(ps_f['efficiency'])/100.).fillna(1.)
 
     hydro["max_hours"] = 1e3*hydro.pop(ps_f["max_storage"])/hydro["p_nom"]
@@ -252,7 +408,7 @@ def attach_existing_generators(n, costs):
 
         # TODO add to network with time-series and everything
 
-    gens = (gens.loc[gens.carrier.isin({"Coal", "Nuclear"})]
+    gens = (gens.loc[gens.carrier.isin({"coal", "nuclear"})]
             .drop(list(ps_f.values()) + list(csp_f.values()), axis=1))
     _add_missing_carriers_from_costs(n, costs, gens.carrier.unique())
     n.import_components_from_dataframe(gens, "Generator")
@@ -260,10 +416,10 @@ def attach_existing_generators(n, costs):
 def attach_extendable_generators(n, costs):
     elec_opts = snakemake.config['electricity']
     carriers = elec_opts['extendable_carriers']['Generator']
-    if snakemake.wildcards.regions=='RSA':
-        buses=['RSA']
-    elif snakemake.wildcards.regions=='27-supply':
-        buses = elec_opts['buses']
+    #if snakemake.wildcards.regions=='RSA':
+    #    buses=['RSA']
+    #elif snakemake.wildcards.regions=='27-supply':
+    buses = elec_opts['buses'][snakemake.wildcards.regions]
 
     _add_missing_carriers_from_costs(n, costs, carriers)
 
@@ -332,7 +488,13 @@ def add_peak_demand_hour_without_variable_feedin(n):
 if __name__ == "__main__":
     opts = snakemake.wildcards.opts.split('-')
     n = pypsa.Network(snakemake.input.base_network)
-    costs = load_costs()
+    Nyears = n.snapshot_weightings.objective.sum() / 8760.0
+    costs = load_costs(
+        snakemake.input.tech_costs,
+        snakemake.config["costs"],
+        snakemake.config["electricity"],
+        Nyears,
+    )
     attach_load(n)
     update_transmission_costs(n, costs)
     attach_existing_generators(n, costs)
@@ -340,14 +502,14 @@ if __name__ == "__main__":
     attach_extendable_generators(n, costs)
     attach_storage(n, costs)
 
-    if 'Co2L' in opts:
-        add_co2limit(n)
-        add_emission_prices(n, exclude_co2=True)
+    # if 'Co2L' in opts:
+    #     add_co2limit(n)
+    #     add_emission_prices(n, exclude_co2=True)
 
-    if 'Ep' in opts:
-        add_emission_prices(n)
+    # if 'Ep' in opts:
+    #     add_emission_prices(n)
 
-    if 'SAFE' in opts:
-        add_peak_demand_hour_without_variable_feedin(n)
+    # if 'SAFE' in opts:
+    #     add_peak_demand_hour_without_variable_feedin(n)
 
     n.export_to_netcdf(snakemake.output[0])

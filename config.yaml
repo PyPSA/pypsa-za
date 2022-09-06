@@ -1,11 +1,21 @@
-version: 0.5
+version: 0.6
+
+logging:
+  level: INFO
+  format: "%(levelname)s:%(name)s:%(message)s"
 
 scenario:
   resarea: [redz, corridors]
   regions: ['RSA','27-supply']
-  sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
+  #sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
   cost: [csir-aggressive] # [csir-today, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
   opts: [LC, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
+  ll: ['copt']
+
+snapshots:
+  start: "2013-03-1"
+  end: "2013-03-14"
+  inclusive: "left" # end is not inclusive
 
 data:
   resarea:
@@ -28,28 +38,42 @@ electricity:
   demand: 428.e+6     # 344TWh 2030, 428TWh 2040, 522TWh 2050
                       # IRP_Update_Assumptions_1904.pdf
   co2limit: 10.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
-
   csp: false
-
+  renewable_carriers: [solar, onwind, offwind-ac, offwind-dc, hydro]
+  
   extendable_carriers:
-    Generator: [OCGT, CCGT, Coal, Nuclear]
-    StorageUnit: [Battery] # [CAES]
-
+    Generator: [CCGT, OCGT, coal, nuclear]
+    StorageUnit: [battery] 
+    #Store: [battery]
+    #Link: []
+    
   buses:
-    OCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
-    CCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH]
-    Coal: [WATERBERG]
-    Nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
-
-  BAU_mincapacities:
-    Nuclear: 10000
-    Coal: 10000
-
+    RSA:
+      OCGT: [RSA]
+      CCGT: [RSA]
+      coal: [RSA]
+      nuclear: [RSA]
+    27-supply:
+      OCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
+      CCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH]
+      coal: [WATERBERG]
+      nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
+  
+  BAU_min_capacities:
+    nuclear: 10000
+    coal: 10000
+  
   SAFE_reservemargin: 0.1
 
+  operational_reserve_margin: # like https://genxproject.github.io/GenX/dev/core/#Reserves
+    activate: false
+    epsilon_load: 0.02 # share of total load
+    epsilon_vres: 0.02 # share of total renewable supply
+    contingency: 0 # fixed capacity in MW
+
   max_hours:
-    Battery: 3
-    CAES: 10
+    battery: 4
+    H2: 10
 
 respotentials:
   # Gives us ball-park the available areas the IWES study reports
@@ -64,7 +88,7 @@ respotentials:
       # - [[46, 47, 51, 56, 64, 68, 72], 10]
 
   capacity_per_sqm:
-    wind: 5   # half of 10 (IWES)
+    onwind: 5   # half of 10 (IWES)
     solar: 16.5 # half of 33 (IWES)
 
 hydro_inflow:
@@ -74,8 +98,23 @@ hydro_inflow:
 
 lines:
   v_nom: 380.
-  type: 'Al/St 240/40 4-bundle 380.0'
+  #type: 'Al/St 240/40 4-bundle 380.0'
+#lines:
+  types:
+    220.: "Al/St 240/40 2-bundle 220.0"
+    300.: "Al/St 240/40 3-bundle 300.0"
+    380.: "Al/St 240/40 4-bundle 380.0"
+  dc_type: "DC_custom_linetype"
+  s_max_pu: 0.7
+  s_nom_max: .inf
+  length_factor: 1.25
+  under_construction: "zero" # 'zero': set capacity to zero, 'remove': remove, 'keep': with full capacity
 
+links:
+  p_max_pu: 1.0
+  p_nom_max: .inf
+  include_tyndp: true
+  under_construction: "zero" # 'zero': set capacity to zero, 'remove': remove, 'keep': with full capacity
   # costs
   s_nom_factor: 0.7
   length_factor: 1.25
@@ -83,13 +122,17 @@ lines:
 costs:
   # costs come from data/technology_costs.xlsx
   discountrate: 0.08
-
+  year: 2030
   # Marginal and capital costs can be overwritten
   # capital_cost:
   #   Wind: Bla
-  marginal_cost: # 
-    PV: 0.01
-    Wind: 0.015
+  marginal_cost: #
+    solar: 0.01
+    onwind: 0.015
+    offwind: 0.015 
+    #PV: 0.01
+    #Wind: 0.015
+  USD2013_to_EUR2013: 0.7532
   EUR_to_ZAR: 15.63
 
   emission_prices: # only used with the option Ep (emission prices)
@@ -100,21 +143,6 @@ costs:
     hg: 41484.e-6 # is also part of the excel sheet
     particulate: 11.3e+3
 
-transport:
-  # 2014 Energy 702EJ
-  # Table 18 in 20170331CSIR_EC_DOE p. 48 (64)
-  energy_total: 25.2e+6 # 24 2030, 25.2 2040, 26.7 2050
-  # efficiency_gain: 3.5 # Explanation
-  availability_max: 0.95
-  availability_mean: 0.8
-  total_cars: 8.4e+6 # 8.0 2030, 8.4 2040, 8.9 2050
-  car_battery_p_nom: 0.011 # 11kW 3-phase charger
-  car_battery_e_nom: 0.05  # 50kWh battery
-  # http://www.zeit.de/mobilitaet/2014-10/auto-fahrzeug-bestand
-  standing_loss: 8.33e-5 # Buddischak
-  efficiency: 0.9 # "
-
-  # cars_per_person: 0.6
 
 solving:
   tmpdir: /tmp
@@ -148,8 +176,8 @@ plotting:
   costs_max: 800
 
   vre_techs: ["Wind", "PV"]
-  conv_techs: ["OCGT", "CCGT", "Nuclear", "Coal"]
-  storage_techs: ["Hydro", "CAES", "Battery", "Pumped storage", "Hydro+PS"]
+  conv_techs: ["OCGT", "CCGT", "nuclear", "coal"]
+  storage_techs: ["hydro", "CAES", "battery", "PHS", "hydro+PHS"]
   store_techs: ["Li ion", "water tanks"]
   load_carriers: ["AC load", "heat load", "Li ion load"]
   AC_carriers: ["AC line", "AC transformer"]
@@ -159,11 +187,11 @@ plotting:
                "central CHP electric", "central gas boiler"]
   heat_generators: ["gas boiler", "central gas boiler", "solar thermal collector", "central solar thermal collector"]
   tech_colors:
-    Wind: "xkcd:azure"
-    Hydro: "g"
+    onwind: "xkcd:azure"
+    hydro: "g"
     ror: "g"
-    Hydro+PS: "g"
-    PV: "y"
+    hydro+PHS: "g"
+    solar: "y"
     OCGT: "brown"
     OCGT marginal: "sandybrown"
     OCGT-heat: "orange"
@@ -183,8 +211,8 @@ plotting:
     CAES: "lightgray"
     Nuclear: "r"
     Nuclear marginal: "r"
-    Coal: "k"
-    Coal marginal: "k"
+    coal: "k"
+    coal marginal: "k"
     Lignite: "grey"
     Lignite marginal: "grey"
     CCGT: "orange"
