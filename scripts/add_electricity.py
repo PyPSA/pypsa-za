@@ -68,16 +68,16 @@ def _add_missing_carriers_from_costs(n, costs, carriers):
     emissions.index = missing_carriers
     n.import_components_from_dataframe(emissions, "Carrier")
 
-def load_costs(tech_costs, config, elec_config, Nyears=1):
+def load_costs(tech_costs, cost_scenario, config, elec_config, Nyears=1):
     """
     set all asset costs and other parameters
     """
-    costs = pd.read_csv(tech_costs, index_col=list(range(3))).sort_index()
+    costs = pd.read_excel(tech_costs, sheet_name=cost_scenario,index_col=list(range(3))).sort_index()
 
     # correct units to MW and EUR
     costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
-    costs.loc[costs.unit.str.contains("USD"), "value"] *= config["USD2013_to_EUR2013"]
-    costs.loc[costs.unit.str.contains("EUR"), "value"] *= config["EUR2013_to_ZAR2013"]
+    costs.loc[costs.unit.str.contains("USD"), "value"] *= config["USD_to_EUR"]
+    costs.loc[costs.unit.str.contains("EUR"), "value"] *= config["EUR_to_ZAR"]
 
     costs = (
         costs.loc[idx[:, config["year"], :], "value"]
@@ -496,6 +496,7 @@ if __name__ == "__main__":
     Nyears = n.snapshot_weightings.objective.sum() / 8760.0
     costs = load_costs(
         snakemake.input.tech_costs,
+        snakemake.wildcards.costs,
         snakemake.config["costs"],
         snakemake.config["electricity"],
         Nyears,

@@ -8,14 +8,9 @@ scenario:
   resarea: [redz, corridors]
   regions: ['RSA','27-supply']
   #sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
-  cost: [csir-aggressive] # [csir-today, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
+  costs: [original] # [csir-today, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
   opts: [LC, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
   ll: ['copt']
-
-snapshots:
-  start: "2013-03-1"
-  end: "2013-03-14"
-  inclusive: "left" # end is not inclusive
 
 data:
   resarea:
@@ -31,7 +26,7 @@ crs:
   distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
 
-year: "2050"
+year: "2040"
 historical_year: "2012"
 
 electricity:
@@ -54,9 +49,9 @@ electricity:
       coal: [RSA]
       nuclear: [RSA]
     27-supply:
-      OCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
-      CCGT: [WEST COAST, EMPANGENI, PORT ELIZABETH]
-      coal: [WATERBERG]
+      OCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
+      CCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH]
+      coal: [JOHANNESBURG, WATERBERG]
       nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
   
   BAU_mincapacities:
@@ -72,7 +67,7 @@ electricity:
     contingency: 0 # fixed capacity in MW
 
   max_hours:
-    battery: 4
+    battery: 3
     H2: 10
 
 respotentials:
@@ -139,8 +134,9 @@ costs:
     offwind: 0.015 
     #PV: 0.01
     #Wind: 0.015
-  USD2013_to_EUR2013: 0.7532
-  EUR2013_to_ZAR2013: 15.63
+  USD_to_EUR: 0.7532
+  EUR_to_ZAR: 15.63
+  load_shedding: 100000 #R100/kWh
 
   emission_prices: # only used with the option Ep (emission prices)
     # Externality costs from Integrated Energy Plan by the ZA DOE
@@ -158,7 +154,7 @@ solving:
     load_shedding: true
     noisy_costs: true
     min_iterations: 1
-    max_iterations: 1
+    max_iterations: 10
     formulation: kirchhoff
     # max_iterations: 1
     # nhours: 10

@@ -248,6 +248,7 @@ if __name__ == "__main__":
     Nyears = n.snapshot_weightings.objective.sum() / 8760.0
     costs = load_costs(
         snakemake.input.tech_costs,
+        snakemake.wildcards.costs,
         snakemake.config["costs"],
         snakemake.config["electricity"],
         Nyears,

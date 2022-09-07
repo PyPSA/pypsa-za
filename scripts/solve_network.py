@@ -370,7 +370,7 @@ def prepare_network(n, solve_opts):
         n.add("Carrier", "Load")
         buses_i = n.buses.query("carrier == 'AC'").index
         if not np.isscalar(load_shedding):
-            load_shedding = 8e3  # Eur/kWh
+            load_shedding = 1.0e5  # ZAR/MWh
         # intersect between macroeconomic and surveybased
         # willingness to pay
         # http://journal.frontiersin.org/article/10.3389/fenrg.2015.00055/full)
@@ -381,9 +381,9 @@ def prepare_network(n, solve_opts):
             " load",
             bus=buses_i,
             carrier="load",
-            sign=1e-3,  # Adjust sign to measure p and p_nom in kW instead of MW
-            marginal_cost=load_shedding,
-            p_nom=1e9,  # kW
+            #sign=1e-3,  # Adjust sign to measure p and p_nom in kW instead of MW
+            marginal_cost=1e5,#load_shedding,
+            p_nom=1e6,  # MW
         )
 
     if solve_opts.get("noisy_costs"):
