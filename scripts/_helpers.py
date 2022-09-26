@@ -141,14 +141,13 @@ def load_network(import_name=None, custom_components=None):
         override_component_attrs=override_component_attrs,
     )
 
-
 def pdbcast(v, h):
     return pd.DataFrame(
         v.values.reshape((-1, 1)) * h.values, index=v.index, columns=h.index
     )
 
 
-def load_network_for_plots(fn, tech_costs, config, combine_hydro_ps=True):
+def load_network_for_plots(fn, tech_costs, config, wildcards, combine_hydro_ps=True):
     import pypsa
     from add_electricity import load_costs, update_transmission_costs
 
@@ -176,7 +175,16 @@ def load_network_for_plots(fn, tech_costs, config, combine_hydro_ps=True):
     # n.storage_units.loc[bus_carrier == "heat","carrier"] = "water tanks"
 
     Nyears = n.snapshot_weightings.objective.sum() / 8760.0
-    costs = load_costs(Nyears, tech_costs, config["costs"], config["electricity"])
+    #costs = load_costs(Nyears, tech_costs, config["costs"], config["electricity"])
+
+    costs = load_costs(
+        tech_costs,
+        wildcards.costs,
+        config["costs"],
+        config["electricity"],
+        Nyears,
+    )
+
     update_transmission_costs(n, costs)
 
     return n

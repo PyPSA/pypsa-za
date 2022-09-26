@@ -4,30 +4,35 @@ if 'snakemake' not in globals():
     import yaml
     snakemake = Dict()
     snakemake.wildcards = Dict(#cost=#'IRP2016-Apr2016',
-                               cost='csir-aggressive',
-                               mask='redz',
-                               sectors='E',
-                               opts='Co2L',
+                               costs='original',
+                               region='27-supply',
+                               resarea='redz',
+                               ll='copt',
+                               opts='LC',
                                attr='p_nom')
-    snakemake.input = Dict(network='../results/version-0.6/networks/{cost}_{mask}_{sectors}_{opts}.nc'.format(**snakemake.wildcards),
-                           supply_regions='../data/supply_regions/supply_regions.shp',
-                           resarea = "../data/bundle/REDZ_DEA_Unpublished_Draft_2015")
-    snakemake.output = (expand('../results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}.pdf',
+    snakemake.input = Dict(network='results/version-0.6/networks/solved_{costs}_{region}_{resarea}_l{ll}_{opts}.nc'.format(**snakemake.wildcards),
+                           supply_regions='data/supply_regions/supply_regions_{region}.shp'.format(**snakemake.wildcards),
+                           resarea = "data/bundle/REDZ_DEA_Unpublished_Draft_2015")
+    snakemake.output = (expand('results/plots/network_{costs}_{region}_{resarea}_l{ll}_{opts}_{attr}.pdf',
                                **snakemake.wildcards) +
-                        expand('../results/plots/network_{cost}_{mask}_{sectors}_{opts}_{attr}_ext.pdf',
+                        expand('results/plots/network_{costs}_{region}_{resarea}_l{ll}_{opts}_{attr}_ext.pdf',
                                **snakemake.wildcards))
     snakemake.params = Dict(ext=['png'])
-    with open('../config.yaml') as f:
-        snakemake.config = yaml.load(f)
+    with open("config.yaml", 'r') as stream:
+        try:
+            snakemake.config=yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
 else:
     import matplotlib as mpl
     mpl.use('Agg')
 
 from add_electricity import add_emission_prices
-from _helpers import load_network, aggregate_p, aggregate_costs
+from _helpers_za import load_network, aggregate_p, aggregate_costs
 from vresutils import plot as vplot
 
-
+import cartopy.crs as ccrs
+import logging
 import os
 import pypsa
 import pandas as pd
@@ -106,6 +111,7 @@ def set_plot_style():
         ]
     )
 
+attribute="p_nom"
 
 opts = snakemake.config['plotting']
 map_figsize = opts['map']['figsize']
@@ -128,40 +134,62 @@ line_colors = {'cur': "purple",
 tech_colors = opts['tech_colors']
 
 if snakemake.wildcards.attr == 'p_nom':
-    # bus_sizes = n.generators_t.p.sum().loc[n.generators.carrier == "load"].groupby(n.generators.bus).sum()
-    bus_sizes = pd.concat((n.generators.query('carrier != "load"').groupby(['bus', 'carrier']).p_nom_opt.sum(),
-                           n.storage_units.groupby(['bus', 'carrier']).p_nom_opt.sum()))
-    line_widths_exp = pd.concat(dict(Line=n.lines.s_nom_opt, Link=n.links.p_nom_opt))
-    line_widths_cur = pd.concat(dict(Line=n.lines.s_nom_min, Link=n.links.p_nom_min))
+        # bus_sizes = n.generators_t.p.sum().loc[n.generators.carrier == "load"].groupby(n.generators.bus).sum()
+        bus_sizes = pd.concat(
+            (
+                n.generators.query('carrier != "load"')
+                .groupby(["bus", "carrier"])
+                .p_nom_opt.sum(),
+                n.storage_units.groupby(["bus", "carrier"]).p_nom_opt.sum(),
+            )
+        )
+        line_widths_exp = n.lines.s_nom_opt
+        line_widths_cur = n.lines.s_nom_min
+        link_widths_exp = n.links.p_nom_opt
+        link_widths_cur = n.links.p_nom_min
 else:
-    raise 'plotting of {} has not been implemented yet'.format(plot)
+    _logger.error("plotting of {} has not been implemented yet".format(attribute))
 
-
-line_colors_with_alpha = \
-((line_widths_cur / pd.concat(dict(Line=n.lines.s_nom, Link=n.links.p_nom)) > 1e-3)
- .map({True: line_colors['cur'], False: to_rgba(line_colors['cur'], 0.)}))
+line_colors_with_alpha = (line_widths_cur / n.lines.s_nom > 1e-3).map(
+    {True: line_colors["cur"], False: to_rgba(line_colors["cur"], 0.0)}
+)
+link_colors_with_alpha = (link_widths_cur / n.links.p_nom > 1e-3).map(
+    {True: line_colors["cur"], False: to_rgba(line_colors["cur"], 0.0)}
+)
 
 ## FORMAT
-linewidth_factor = opts['map'][snakemake.wildcards.attr]['linewidth_factor']
-bus_size_factor  = opts['map'][snakemake.wildcards.attr]['bus_size_factor']
+linewidth_factor = opts["map"][attribute]["linewidth_factor"]
+bus_size_factor = opts["map"][attribute]["bus_size_factor"]
 
 ## PLOT
-fig, ax = plt.subplots(figsize=map_figsize)
+fig, ax = plt.subplots(figsize=map_figsize,subplot_kw={"projection":ccrs.PlateCarree()})
 vplot.shapes(supply_regions.geometry, facecolors='k', outline='k', ax=ax, rasterized=True)
 vplot.shapes(renewable_regions.geometry, facecolors='gray', alpha=0.2, ax=ax, rasterized=True)
+
+n.plot(
+    line_widths=line_widths_exp / linewidth_factor,
+    link_widths=link_widths_exp / linewidth_factor,
+    line_colors=line_colors["exp"],
+    link_colors=line_colors["exp"],
+    bus_sizes=bus_sizes / bus_size_factor,
+    bus_colors=tech_colors,
+    # boundaries=map_boundaries,
+    color_geomap=True,
+    geomap=True,
+    ax=ax,
+)
+
 n.plot(line_widths=line_widths_exp/linewidth_factor,
        line_colors=dict(Line=line_colors['exp'], Link=line_colors['exp']),
        bus_sizes=bus_sizes/bus_size_factor,
        bus_colors=tech_colors,
        boundaries=map_boundaries,
-       basemap=False,
        ax=ax)
 n.plot(line_widths=line_widths_cur/linewidth_factor,
        line_colors=line_colors_with_alpha,
        bus_sizes=0,
        bus_colors=tech_colors,
        boundaries=map_boundaries,
-       basemap=False,
        ax=ax)
 ax.set_aspect('equal')
 ax.axis('off')
@@ -221,9 +249,9 @@ l3 = ax.legend(handles, labels, loc="lower left",  bbox_to_anchor=(0.6, -0.15), 
                handletextpad=0., columnspacing=0.5, ncol=2, title='Technology')
 
 
-for ext in snakemake.params.ext:
-    fig.savefig(snakemake.output.only_map+'.'+ext, dpi=150,
-                bbox_inches='tight', bbox_extra_artists=[l1,l2,l3])
+# for ext in snakemake.params.ext:
+#     fig.savefig(snakemake.output.only_map+'.'+ext, dpi=150,
+#                 bbox_inches='tight', bbox_extra_artists=[l1,l2,l3])
 
 
 co2_emi = ((n.generators_t.p.multiply(n.snapshot_weightings,axis=0)).sum()/n.generators.efficiency * n.generators.carrier.map(n.carriers.co2_emissions)).sum()
@@ -241,7 +269,7 @@ e_primary = aggregate_p(n).drop('load', errors='ignore').loc[lambda s: s>0]
 
 patches, texts, autotexts = ax.pie(e_primary,
        startangle=90,
-       labels = e_primary.rename(opts['nice_names_n']).index,
+       labels = e_primary.rename(opts['nice_names']).index,
       autopct='%.0f%%',
       shadow=False,
           colors = [tech_colors[tech] for tech in e_primary.index])
@@ -307,9 +335,9 @@ ax.grid(True, axis="y", color='k', linestyle='dotted')
 #fig.tight_layout()
 
 
-for ext in snakemake.params.ext:
-    fig.savefig(snakemake.output.ext + '.' + ext, transparent=True,
-                bbox_inches='tight', bbox_extra_artists=[l1, l2, l3, ax1, ax2])
+# for ext in snakemake.params.ext:
+#     fig.savefig(snakemake.output.ext + '.' + ext, transparent=True,
+#                 bbox_inches='tight', bbox_extra_artists=[l1, l2, l3, ax1, ax2])
 
 
 # if False:

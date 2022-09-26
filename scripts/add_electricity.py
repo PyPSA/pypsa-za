@@ -488,6 +488,21 @@ def add_peak_demand_hour_without_variable_feedin(n):
         * (1.+snakemake.config['electricity']['SAFE_reservemargin'])
     )
 
+def add_nice_carrier_names(n, config):
+    carrier_i = n.carriers.index
+    nice_names = (
+        pd.Series(config["plotting"]["nice_names"])
+        .reindex(carrier_i)
+        .fillna(carrier_i.to_series().str.title())
+    )
+    n.carriers["nice_name"] = nice_names
+    colors = pd.Series(config["plotting"]["tech_colors"]).reindex(carrier_i)
+    if colors.isna().any():
+        missing_i = list(colors.index[colors.isna()])
+        logger.warning(
+            f"tech_colors for carriers {missing_i} not defined " "in config."
+        )
+    n.carriers["color"] = colors
 
 
 if __name__ == "__main__":
@@ -508,14 +523,6 @@ if __name__ == "__main__":
     attach_extendable_generators(n, costs)
     attach_storage(n, costs)
 
-    # if 'Co2L' in opts:
-    #     add_co2limit(n)
-    #     add_emission_prices(n, exclude_co2=True)
-
-    # if 'Ep' in opts:
-    #     add_emission_prices(n)
-
-    # if 'SAFE' in opts:
-    #     add_peak_demand_hour_without_variable_feedin(n)
+    add_nice_carrier_names(n, snakemake.config)
 
     n.export_to_netcdf(snakemake.output[0])

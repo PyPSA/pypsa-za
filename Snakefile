@@ -122,29 +122,41 @@ rule prepare_network:
 
 rule solve_network:
     input: network="networks/pre_{costs}_{regions}_{resarea}_l{ll}_{opts}.nc"
-    output: "results/version-" + str(config['version']) + "/networks/{costs}_{regions}_{resarea}_l{ll}_{opts}.nc"
+    output: "results/version-" + str(config['version']) + "/networks/solved_{costs}_{regions}_{resarea}_l{ll}_{opts}.nc"
     shadow: "shallow"
     log:
         solver=normpath(
-            "logs/solve_network/{costs}_{regions}_{resarea}_l{ll}_{opts}_solver.log"
+            "logs/solve_network/solved_{costs}_{regions}_{resarea}_l{ll}_{opts}_solver.log"
         ),
-        python="logs/solve_network/{costs}_{regions}_{resarea}_l{ll}_{opts}_python.log",
-        memory="logs/solve_network/{costs}_{regions}_{resarea}_l{ll}_{opts}_memory.log",
-    benchmark: "benchmarks/solve_network/{costs}_{regions}_{resarea}_l{ll}_{opts}"
+        python="logs/solve_network/solved_{costs}_{regions}_{resarea}_l{ll}_{opts}_python.log",
+        memory="logs/solve_network/solved_{costs}_{regions}_{resarea}_l{ll}_{opts}_memory.log",
+    benchmark: "benchmarks/solve_network/solved_{costs}_{regions}_{resarea}_l{ll}_{opts}"
     threads: 4
     resources: mem_mb=19000 # for electricity only
     script: "scripts/solve_network.py"
 
+
 rule plot_network:
     input:
-        network='results/version-' + str(config['version']) + '/networks/{costs}_{regions}_{resarea}_l{ll}_{opts}.nc',
-        supply_regions='data/supply_regions/supply_regions_{regions}.shp',
-        resarea=lambda w: 'data/bundle/' + config['data']['resarea'][w.resarea]
+        network='results/version-0.6/networks/solved_{costs}_{regions}_{resarea}_l{ll}_{opts}.nc',
+        tech_costs="data/costs.xlsx",
     output:
-        only_map=touch('results/version-' + str(config['version']) + '/plots/network_{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}'),
-        ext=touch('results/version-' + str(config['version']) + '/plots/network_{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}_ext')
-    params: ext=['png', 'pdf']
-    script: "scripts/plot_network.py"
+        only_map='results/version-0.6/plots/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}.{ext}',
+        ext='results/version-0.6/plots/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}_ext.{ext}',
+    log: 'logs/plot_network/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}.{ext}.log'
+    script: "scripts/plot_network_za.py"
+
+# rule plot_network:
+
+#     input:
+#         network='results/version-' + str(config['version']) + '/networks/{costs}_{regions}_{resarea}_l{ll}_{opts}.nc',
+#         supply_regions = "data/supply_regions/supply_regions_{regions}.shp",
+#         resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
+#     output:
+#         only_map=touch('results/version-' + str(config['version']) + '/plots/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}'),
+#         ext=touch('results/version-' + str(config['version']) + '/plots/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}_ext')
+#     params: ext=['png', 'pdf']
+#     script: "scripts/plot_network.py"
 
 rule scenario_comparison:
     input:
