@@ -139,12 +139,12 @@ rule solve_network:
 rule plot_network:
     input:
         network='results/version-0.6/networks/solved_{costs}_{regions}_{resarea}_l{ll}_{opts}.nc',
-        tech_costs="data/costs.xlsx",
+        tech_costs="data/costs.csv",
     output:
         only_map='results/version-0.6/plots/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}.{ext}',
         ext='results/version-0.6/plots/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}_ext.{ext}',
     log: 'logs/plot_network/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}.{ext}.log'
-    script: "scripts/plot_network_za.py"
+    script: "scripts/plot_network_eur.py"
 
 # rule plot_network:
 

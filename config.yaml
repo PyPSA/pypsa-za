@@ -137,6 +137,15 @@ costs:
   USD_to_EUR: 0.7532
   EUR_to_ZAR: 15.63
   load_shedding: 100000 #R100/kWh
+  fill_values:
+    FOM: 0
+    VOM: 0
+    efficiency: 1
+    fuel: 0
+    investment: 0
+    lifetime: 25
+    "CO2 intensity": 0
+    "discount rate": 0.07
 
   emission_prices: # only used with the option Ep (emission prices)
     # Externality costs from Integrated Energy Plan by the ZA DOE
