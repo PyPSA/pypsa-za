@@ -41,6 +41,9 @@ logger = logging.getLogger(__name__)
 def normed(s):
     return s / s.sum()
 
+def remove_leap_day(df):
+    return df[~((df.index.month == 2) & (df.index.day == 29))]
+
 def calculate_annuity(n, r):
     """
     Calculate the annuity factor for an asset with lifetime n years and
@@ -198,8 +201,17 @@ def attach_load(n):
         .rename('t')
     )['SYSTEMENERGY']
 
-    demand = (snakemake.config['electricity']['demand'] *
-              normed(load.loc[snakemake.config['historical_year']]))
+    demand=pd.Series(0,index=n.snapshots)
+    base_demand = (snakemake.config['electricity']['demand'] *
+              normed(load.loc[str(snakemake.config['base_demand_year'])]))
+    base_demand = remove_leap_day(base_demand)
+    
+    if len(n.investment_periods)==1:
+        demand = base_demand.values
+    else:
+        for y in n.investment_periods:
+                demand.loc[y]=base_demand.values #TODO add annual growth in demand
+    
     n.madd("Load", n.buses.index,
            bus=n.buses.index,
            p_set=pdbcast(demand, normed(n.buses.population)))
@@ -252,48 +264,86 @@ def update_transmission_costs(n, costs, length_factor=1.0, simple_hvdc_costs=Fal
 
 # ### Generators - TODO Update from pypa-eur
 def attach_wind_and_solar(n, costs):
-    historical_year = snakemake.config['historical_year']
     capacity_per_sqm = snakemake.config['respotentials']['capacity_per_sqm']
+    # repeat weather years to fill multi horizon
+    len_years = len(n.investment_periods)
+    weather_years=snakemake.config['base_weather_years']
+    len_weather_years = len(weather_years)
+    for i in range(0,int(np.ceil(len_years/len_weather_years)-1)):
+        weather_years+=weather_years
 
     ## Onshore wind
     n.add("Carrier", name="onwind")
     onwind_area = pd.read_csv(snakemake.input.onwind_area, index_col=0).loc[lambda s: s.available_area > 0.]
-    onwind_res = (pd.read_excel(snakemake.input.onwind_profiles,
-                             skiprows=[1], sheet_name='Wind power profiles')
-                    .rename(columns={'supply area\'s name': 't'}).set_index('t')
-                    .resample('1h').mean().loc[historical_year]
-                    .reindex(columns=onwind_area.index)
-                    .clip(lower=0., upper=1.))
-    n.madd("Generator", onwind_area.index, suffix=" onwind",
-           bus=onwind_area.index,
-           carrier="onwind",
-           p_nom_extendable=True,
-           p_nom_max=onwind_area.available_area * capacity_per_sqm['onwind'],
-           marginal_cost=costs.at['onwind', 'marginal_cost'],
-           capital_cost=costs.at['onwind', 'capital_cost'],
-           efficiency=costs.at['onwind', 'efficiency'],
-           p_max_pu=onwind_res)
+    onwind_res=pd.DataFrame(0,index=n.snapshots,columns=onwind_area.index)
+    onwind_data = (pd.read_excel(snakemake.input.onwind_profiles,
+                                skiprows=[1], sheet_name='Wind power profiles')
+                                .rename(columns={'supply area\'s name': 't'}).set_index('t')
+                                .resample('1h').mean())
+    onwind_data = remove_leap_day(onwind_data)
+
+    cnt=0
+    #
+    if len_years==1:
+        onwind_res = (onwind_data.loc[str(weather_years[cnt])]
+                            .reindex(columns=onwind_area.index)
+                            .clip(lower=0., upper=1.)).values     
+    else:
+        for y in n.investment_periods:    
+
+            onwind_res.loc[y] = (onwind_data.loc[str(weather_years[cnt])]
+                                .reindex(columns=onwind_area.index)
+                                .clip(lower=0., upper=1.)).values     
+            cnt+=1
+        
+    for y in n.investment_periods:
+        n.madd("Generator", onwind_area.index, suffix=" onwind_"+str(y),
+            bus=onwind_area.index,
+            carrier="onwind",
+            build_year=y,
+            lifetime=20,
+            p_nom_extendable=True,
+            p_nom_max=onwind_area.available_area * capacity_per_sqm['onwind'],
+            marginal_cost=costs.at['onwind', 'marginal_cost'],
+            capital_cost=costs.at['onwind', 'capital_cost'],
+            efficiency=costs.at['onwind', 'efficiency'],
+            p_max_pu=onwind_res)
 
     ## Solar PV
     n.add("Carrier", name="solar")
     solar_area = pd.read_csv(snakemake.input.solar_area, index_col=0).loc[lambda s: s.available_area > 0.]
-    solar_res = (pd.read_excel(snakemake.input.solar_profiles,
-                           skiprows=[1], sheet_name='PV profiles')
-             .rename(columns={'supply area\'s name': 't'})
-             .set_index('t')
-             .resample('1h').mean().loc[historical_year].reindex(n.snapshots, fill_value=0.)
-             .reindex(columns=solar_area.index)
-             .clip(lower=0., upper=1.))
-    n.madd("Generator", solar_area.index, suffix=" solar",
-           bus=solar_area.index,
-           carrier="solar",
-           p_nom_extendable=True,
-           p_nom_max=solar_area.available_area * capacity_per_sqm['solar'],
-           marginal_cost=costs.at['solar', 'marginal_cost'],
-           capital_cost=costs.at['solar', 'capital_cost'],
-           efficiency=costs.at['solar', 'efficiency'],
-           p_max_pu=solar_res)
+    solar_res=pd.DataFrame(0,index=n.snapshots,columns=solar_area.index)
+    solar_data = (pd.read_excel(snakemake.input.solar_profiles,
+                                skiprows=[1], sheet_name='PV profiles')
+                                .rename(columns={'supply area\'s name': 't'}).set_index('t')
+                                .resample('1h').mean())
+    solar_data = remove_leap_day(solar_data)
 
+    cnt=0
+    if len_years==1:
+        solar_res = (solar_data.loc[str(weather_years[cnt])]
+                            .reindex(columns=solar_area.index)
+                            .clip(lower=0., upper=1.)).values     
+    else:
+        for y in n.investment_periods:    
+
+            solar_res.loc[y] = (solar_data.loc[str(weather_years[cnt])]
+                                .reindex(columns=solar_area.index)
+                                .clip(lower=0., upper=1.)).values     
+            cnt+=1
+
+    for y in snakemake.config['years']:
+        n.madd("Generator", solar_area.index, suffix=" solar_"+str(y),
+            bus=solar_area.index,
+            carrier="solar",
+            build_year=y,
+            lifetime=25,
+            p_nom_extendable=True,
+            p_nom_max=solar_area.available_area * capacity_per_sqm['solar'],
+            marginal_cost=costs.at['solar', 'marginal_cost'],
+            capital_cost=costs.at['solar', 'capital_cost'],
+            efficiency=costs.at['solar', 'efficiency'],
+            p_max_pu=solar_res)
 
 # # Generators
 def attach_existing_generators(n, costs):
@@ -310,6 +360,7 @@ def attach_existing_generators(n, costs):
                p_nom='Installed/ Operational Capacity in 2016 (MW)',
                name='Power Station Name',
                carrier='Fuel/technology type',
+               build_year='Commissioning Date',
                decomdate='Decommissioning Date',
                x='GPS Longitude',
                y='GPS Latitude',
@@ -325,6 +376,7 @@ def attach_existing_generators(n, costs):
                owner='Owner')
 
     gens = pd.read_excel(snakemake.input.existing_generators, na_values=['-'])
+    year = snakemake.config['years']
 
     # Make field "Fixed Operations and maintenance costs" numeric
     includescapex_i = gens[g_f['fom']].str.endswith(' (includes capex)').dropna().index
@@ -337,20 +389,13 @@ def attach_existing_generators(n, costs):
     gens['marginal_cost'] = 3.6*gens.pop(g_f['fuel_price'])/gens['efficiency'] + gens.pop(g_f['vom'])
     gens['capital_cost'] = 1e3*gens.pop(g_f['fom'])
     gens['ramp_limit_up'] = 60*gens.pop(g_f['max_ramp_up'])/gens[g_f['p_nom']]
-
-    year = snakemake.config['year']
-    print(year)
-    gens = (gens
-            # rename remaining fields
-            .rename(columns={g_f[f]: f
-                             for f in {'p_nom', 'name', 'carrier', 'x', 'y'}})
-            # remove all power plants decommissioned before 2030
-            .loc[lambda df: ((pd.to_datetime(df[g_f['decomdate']].replace({'beyond 2050': np.nan}).dropna()) >= year)
-                                .reindex(df.index, fill_value=True))]
-            # drop unused fields
-            .drop([g_f[f] for f in {'unit_size', 'units', 'maint_rate',
-                                    'out_rate', 'decomdate', 'status'}], axis=1)
-    ).set_index('name')
+    
+    gens = gens.rename(columns={g_f[f]: f for f in {'p_nom', 'name', 'carrier', 'x', 'y','build_year','decomdate'}})
+    gens['build_year'] = pd.to_datetime(gens['build_year'].fillna('{}-01-01'.format(year[0])).values).year 
+    gens['decomdate'] = pd.to_datetime(gens['decomdate'].replace({'beyond 2050': '2051-01-01'}).values).year
+    gens['lifetime'] = gens['decomdate'] - gens['build_year']
+    gens = gens[gens.lifetime>0].drop(['decomdate','Status','Owner',g_f['maint_rate'],g_f['out_rate'],g_f['units'],g_f['unit_size']],axis=1)
+    gens.set_index('name',inplace=True)
 
     # CahoraBassa will be added later, even though we don't have coordinates
     CahoraBassa = gens.loc["CahoraBassa"]
@@ -409,16 +454,15 @@ def attach_existing_generators(n, costs):
 
     if snakemake.config['electricity'].get('csp'):
         n.add("Carrier", "CSP")
-
         csp = (pd.DataFrame(gens.loc[gens.carrier == "CSP"])
                .drop(list(ps_f.values()) + ["ramp_limit_up", "efficiency"], axis=1)
                .rename(columns={csp_f['max_hours']: 'max_hours'}))
 
         # TODO add to network with time-series and everything
-
     gens = (gens.loc[gens.carrier.isin({"coal", "nuclear"})]
             .drop(list(ps_f.values()) + list(csp_f.values()), axis=1))
     _add_missing_carriers_from_costs(n, costs, gens.carrier.unique())
+
     n.import_components_from_dataframe(gens, "Generator")
 
 def attach_extendable_generators(n, costs):
@@ -428,16 +472,17 @@ def attach_extendable_generators(n, costs):
 
     _add_missing_carriers_from_costs(n, costs, carriers)
 
-    for carrier in carriers:
-        buses_i = buses.get(carrier, n.buses.index)
-        n.madd("Generator", buses_i, suffix=" " + carrier,
-               bus=buses_i,
-               p_nom_extendable=True,
-               carrier=carrier,
-               capital_cost=costs.at[carrier, 'capital_cost'],
-               marginal_cost=costs.at[carrier, 'marginal_cost'],
-               efficiency=costs.at[carrier, 'efficiency'])
-
+    for y in snakemake.config['years']: 
+        for carrier in carriers:
+            buses_i = buses.get(carrier, n.buses.index)
+            n.madd("Generator", buses_i, suffix=" " + carrier + "_"+str(y),
+                bus=buses_i,
+                p_nom_extendable=True,
+                carrier=carrier,
+                build_year=y,
+                capital_cost=costs.at[carrier, 'capital_cost'],
+                marginal_cost=costs.at[carrier, 'marginal_cost'],
+                efficiency=costs.at[carrier, 'efficiency'])
 
 def attach_storage(n, costs):
     elec_opts = snakemake.config['electricity']
@@ -447,18 +492,20 @@ def attach_storage(n, costs):
 
     _add_missing_carriers_from_costs(n, costs, carriers)
 
-    for carrier in carriers:
-        buses_i = buses.get(carrier, n.buses.index)
-        n.madd("StorageUnit", buses_i, " " + carrier,
-               bus=buses_i,
-               p_nom_extendable=True,
-               carrier=carrier,
-               capital_cost=costs.at[carrier, 'capital_cost'],
-               marginal_cost=costs.at[carrier, 'marginal_cost'],
-               efficiency_store=costs.at[carrier, 'efficiency_store'],
-               efficiency_dispatch=costs.at[carrier, 'efficiency_dispatch'],
-               max_hours=max_hours[carrier],
-               cyclic_state_of_charge=True)
+    for y in snakemake.config['years']:
+        for carrier in carriers:
+            buses_i = buses.get(carrier, n.buses.index)
+            n.madd("StorageUnit", buses_i, " " + carrier + "_" + str(y),
+                bus=buses_i,
+                p_nom_extendable=True,
+                carrier=carrier,
+                build_year=y,
+                capital_cost=costs.at[carrier, 'capital_cost'],
+                marginal_cost=costs.at[carrier, 'marginal_cost'],
+                efficiency_store=costs.at[carrier, 'efficiency_store'],
+                efficiency_dispatch=costs.at[carrier, 'efficiency_dispatch'],
+                max_hours=max_hours[carrier],
+                cyclic_state_of_charge=True)
 
 def add_co2limit(n):
     n.add("GlobalConstraint", "CO2Limit",
@@ -506,6 +553,15 @@ def add_nice_carrier_names(n, config):
 
 
 if __name__ == "__main__":
+    if 'snakemake' not in globals():
+        from _helpers import mock_snakemake
+        snakemake = mock_snakemake('add_electricity', **{'costs':'original',
+                            'regions':'27-supply',
+                            'resarea':'redz',
+                            'll':'copt',
+                            'opts':'LC',
+                            'attr':'p_nom'})
+
     opts = snakemake.wildcards.opts.split('-')
     n = pypsa.Network(snakemake.input.base_network)
     Nyears = n.snapshot_weightings.objective.sum() / 8760.0
@@ -522,7 +578,6 @@ if __name__ == "__main__":
     attach_wind_and_solar(n, costs)
     attach_extendable_generators(n, costs)
     attach_storage(n, costs)
-
     add_nice_carrier_names(n, snakemake.config)
 
     n.export_to_netcdf(snakemake.output[0])

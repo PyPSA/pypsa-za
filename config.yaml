@@ -26,7 +26,9 @@ crs:
   distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
 
-year: "2040"
+years: [2025,2030]
+base_demand_year: 2012
+base_weather_years: [2012,2013]
 historical_year: "2012"
 
 electricity:

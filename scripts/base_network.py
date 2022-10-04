@@ -25,7 +25,32 @@ def base_network():
     lines['capacity'] = np.sqrt(3)*v_nom*n.line_types.loc[line_type, 'i_nom']*lines.num_parallel
 
     # Buses from regions
-    n.set_snapshots(pd.date_range(snakemake.config['historical_year'], periods=8760, freq='h'))
+    if len(snakemake.config['years'])==1:
+        n.set_snapshots(pd.date_range(snakemake.config['historical_year'], periods=8760, freq='h'))
+    else:
+        snapshots = pd.DatetimeIndex([])
+        for y in snakemake.config['years']:
+            if (round(y/4,0)-y/4)==0:
+                year_len=8784
+            else:
+                year_len=8760
+            period = pd.date_range(start ='{}-01-01 00:00'.format(y), 
+                                freq ='{}min'.format('60'),
+                                periods=year_len/(float('60')/60))
+            period = period[~((period.month == 2) & (period.day == 29))] # exclude Feb 29 for leap years
+            snapshots = snapshots.append(period) 
+        n.set_snapshots(pd.MultiIndex.from_arrays([snapshots.year, snapshots]))
+        n.investment_periods=snakemake.config['years']
+
+        n.investment_period_weightings["years"] = list(np.diff(snakemake.config['years'])) + [5]
+
+        T = 0
+        for period, nyears in n.investment_period_weightings.years.items():
+            discounts = [(1 / (1 + snakemake.config['costs']['discountrate']) ** t) for t in range(T, T + nyears)]
+            n.investment_period_weightings.at[period, "objective"] = sum(discounts)
+            T += nyears
+        n.investment_period_weightings
+
     n.import_components_from_dataframe(buses, 'Bus')
 
     if 'T' in snakemake.wildcards.opts.split('-'):
@@ -56,6 +81,15 @@ def base_network():
     return n
 
 if __name__ == "__main__":
+    if 'snakemake' not in globals():
+        from _helpers import mock_snakemake
+        snakemake = mock_snakemake('base_network', **{'costs':'original',
+                            'regions':'27-supply',
+                            'resarea':'redz',
+                            'll':'copt',
+                            'opts':'LC',
+                            'attr':'p_nom'})
+
     n = base_network()
     n.export_to_netcdf(snakemake.output[0])
 
