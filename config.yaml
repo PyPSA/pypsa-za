@@ -28,7 +28,7 @@ crs:
 
 years: [2025,2030]
 base_demand_year: 2012
-base_weather_years: [2012,2013]
+base_weather_years: [2012]
 historical_year: "2012"
 
 electricity:

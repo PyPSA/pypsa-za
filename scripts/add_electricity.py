@@ -332,7 +332,7 @@ def attach_wind_and_solar(n, costs):
                                 .clip(lower=0., upper=1.)).values     
             cnt+=1
 
-    for y in snakemake.config['years']:
+    for y in n.investment_periods:
         n.madd("Generator", solar_area.index, suffix=" solar_"+str(y),
             bus=solar_area.index,
             carrier="solar",
@@ -348,7 +348,12 @@ def attach_wind_and_solar(n, costs):
 # # Generators
 def attach_existing_generators(n, costs):
     historical_year = snakemake.config['historical_year']
-
+    len_years = len(n.investment_periods)
+    weather_years=snakemake.config['base_weather_years']
+    len_weather_years = len(weather_years)
+    for i in range(0,int(np.ceil(len_years/len_weather_years)-1)):
+        weather_years+=weather_years
+        
     ps_f = dict(efficiency="Pump Efficiency (%)",
                 pump_units="Pump Units",
                 pump_load="Pump Load per unit (MW)",
@@ -376,8 +381,7 @@ def attach_existing_generators(n, costs):
                owner='Owner')
 
     gens = pd.read_excel(snakemake.input.existing_generators, na_values=['-'])
-    year = snakemake.config['years']
-
+    
     # Make field "Fixed Operations and maintenance costs" numeric
     includescapex_i = gens[g_f['fom']].str.endswith(' (includes capex)').dropna().index
     gens.loc[includescapex_i, g_f['fom']] = gens.loc[includescapex_i, g_f['fom']].str[:-len(' (includes capex)')]
@@ -391,7 +395,7 @@ def attach_existing_generators(n, costs):
     gens['ramp_limit_up'] = 60*gens.pop(g_f['max_ramp_up'])/gens[g_f['p_nom']]
     
     gens = gens.rename(columns={g_f[f]: f for f in {'p_nom', 'name', 'carrier', 'x', 'y','build_year','decomdate'}})
-    gens['build_year'] = pd.to_datetime(gens['build_year'].fillna('{}-01-01'.format(year[0])).values).year 
+    gens['build_year'] = pd.to_datetime(gens['build_year'].fillna('{}-01-01'.format(n.investment_periods[0])).values).year 
     gens['decomdate'] = pd.to_datetime(gens['decomdate'].replace({'beyond 2050': '2051-01-01'}).values).year
     gens['lifetime'] = gens['decomdate'] - gens['build_year']
     gens = gens[gens.lifetime>0].drop(['decomdate','Status','Owner',g_f['maint_rate'],g_f['out_rate'],g_f['units'],g_f['unit_size']],axis=1)
@@ -424,7 +428,7 @@ def attach_existing_generators(n, costs):
     # Now we split them by carrier and have some more carrier specific cleaning
     gens.carrier.replace({"Pumped Storage": "PHS"}, inplace=True)
 
-    # HYDRO
+    # HYDRO - currently only a single year of data
 
     n.add("Carrier", "hydro")
     n.add("Carrier", "PHS")
@@ -442,12 +446,24 @@ def attach_existing_generators(n, costs):
 
     hydro.max_hours.fillna(hydro.max_hours.mean(), inplace=True)
 
-    hydro_inflow = pd.read_csv(snakemake.input.hydro_inflow, index_col=0, parse_dates=True).loc[historical_year]
-    hydro_za_b = (hydro.index.to_series() != 'CahoraBassa')
-    hydro_inflow_za = pd.DataFrame(hydro_inflow[['ZA']].values * normed(hydro.loc[hydro_za_b, 'p_nom'].values),
-                                   columns=hydro.index[hydro_za_b], index=hydro_inflow.index)
-    hydro_inflow_za['CahoraBassa'] = hydro.at['CahoraBassa', 'p_nom']/2187.*hydro_inflow['MZ']
+#TODO fix this for multi-horizon
+    # hydro_inflow_data = pd.read_csv(snakemake.input.hydro_inflow, index_col=0, parse_dates=True)
+    # hydro_inflow_data = remove_leap_day(hydro_inflow_data)
+    # hydro_res = pd.DataFrame(0,index=n.snapshots,columns=hydro.index)
 
+    # if len(n.investment_periods)==1:
+    #     hydro_inflow = hydro_inflow_data.loc[str(weather_years[0])]
+    #     hydro_inflow_za = pd.DataFrame(hydro_inflow[['ZA']].values * normed(hydro.loc[hydro_za_b, 'p_nom'].values),
+    #                                 columns=hydro.index[hydro_za_b], index=hydro_inflow.index)
+    #     hydro_inflow_za['CahoraBassa'] = hydro.at['CahoraBassa', 'p_nom']/2187.*hydro_inflow['MZ']
+    # else:
+    #     for y in n.investment_periods:    
+
+    #         hydro_res.loc[y] = (solar_data.loc[str(weather_years[cnt])]
+    #                             .reindex(columns=solar_area.index)
+    #                             .clip(lower=0., upper=1.)).values     
+    #         cnt+=1
+    hydro_inflow_za=pd.DataFrame(0.1,index=n.snapshots,columns=hydro.index)
     hydro.marginal_cost.fillna(0., inplace=True)
     n.import_components_from_dataframe(hydro, "StorageUnit")
     n.import_series_from_dataframe(hydro_inflow_za, "StorageUnit", "inflow")
@@ -556,7 +572,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', **{'costs':'original',
-                            'regions':'27-supply',
+                            'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC',

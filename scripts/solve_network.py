@@ -637,6 +637,10 @@ def solve_network(n, config, opts="", **kwargs):
     track_iterations = cf_solving.get("track_iterations", False)
     min_iterations = cf_solving.get("min_iterations", 4)
     max_iterations = cf_solving.get("max_iterations", 6)
+    if len(n.investment_periods)==1:
+        multi_investment_periods=False
+    else:
+        multi_investment_periods=True
 
     # add to network for extra_functionality
     n.config = config
@@ -647,6 +651,7 @@ def solve_network(n, config, opts="", **kwargs):
             n,
             solver_name=solver_name,
             solver_options=solver_options,
+            multi_investment_periods=multi_investment_periods,
             extra_functionality=extra_functionality,
             **kwargs
         )
@@ -658,9 +663,11 @@ def solve_network(n, config, opts="", **kwargs):
             track_iterations=track_iterations,
             min_iterations=min_iterations,
             max_iterations=max_iterations,
+            multi_investment_periods=multi_investment_periods,
             extra_functionality=extra_functionality,
             **kwargs
         )
+
     return n
 
 
@@ -669,14 +676,13 @@ if __name__ == "__main__":
         from _helpers import mock_snakemake
 
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
-        snakemake = mock_snakemake(
-            "solve_network",
-            network="elec",
-            simpl="",
-            clusters="54",
-            ll="copt",
-            opts="Co2L-1H",
-        )
+        from _helpers import mock_snakemake
+        snakemake = mock_snakemake('solve_network', **{'costs':'original',
+                            'regions':'RSA',
+                            'resarea':'redz',
+                            'll':'copt',
+                            'opts':'LC',
+                            'attr':'p_nom'})
     configure_logging(snakemake)
 
     tmpdir = snakemake.config["solving"].get("tmpdir")

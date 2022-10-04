@@ -27,6 +27,7 @@ def base_network():
     # Buses from regions
     if len(snakemake.config['years'])==1:
         n.set_snapshots(pd.date_range(snakemake.config['historical_year'], periods=8760, freq='h'))
+        n.investment_periods=snakemake.config['years']
     else:
         snapshots = pd.DatetimeIndex([])
         for y in snakemake.config['years']:

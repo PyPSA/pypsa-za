@@ -10,4 +10,4 @@ results/*
 benchmarks/*
 logs/*
 
-data/*
+data/bundle/*
