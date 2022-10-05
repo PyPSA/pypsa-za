@@ -111,6 +111,8 @@ rule prepare_network:
     input:
         network="networks/elec_{costs}_{regions}_{resarea}_{opts}.nc",
         tech_costs="data/costs.xlsx",
+        onwind_area='resources/area_wind_{regions}_{resarea}.csv',
+        solar_area='resources/area_solar_{regions}_{resarea}.csv',
     output:"networks/pre_{costs}_{regions}_{resarea}_l{ll}_{opts}.nc",
     log:"logs/prepare_network/pre_{costs}_{regions}_{resarea}_l{ll}_{opts}.log",
     benchmark:"benchmarks/prepare_network/pre_{costs}_{regions}_{resarea}_l{ll}_{opts}.nc",

@@ -69,6 +69,34 @@ idx = pd.IndexSlice
 logger = logging.getLogger(__name__)
 
 
+def add_wind_and_solar_limits(n):
+    capacity_per_sqm = snakemake.config['respotentials']['capacity_per_sqm']
+    onwind_area = pd.read_csv(snakemake.input.onwind_area, index_col=0).loc[lambda s: s.available_area > 0.]['available_area']
+    solar_area = pd.read_csv(snakemake.input.solar_area, index_col=0).loc[lambda s: s.available_area > 0.]['available_area']
+    onwind_max_capacity = onwind_area * capacity_per_sqm['onwind']
+    solar_max_capacity  = solar_area * capacity_per_sqm['solar']
+
+    p_nom_max_limit = n.generators.p_nom_max.groupby([n.generators.carrier, n.generators.bus]).max()
+    p_nom_max_limit['onwind'] = onwind_max_capacity
+    p_nom_max_limit['solar'] = solar_max_capacity
+
+    # global p_nom_max for each carrier + investment_period at each node
+    p_nom_max_inv_p = pd.DataFrame(np.repeat([p_nom_max_limit.values],
+                                            len(n.snapshots.levels[0]), axis=0),
+                                index=n.snapshots.levels[0], columns=p_nom_max_limit.index)
+
+    logger.info("Set maximum installed capacity")
+    for carrier in ["onwind","solar"]:
+        nodes = p_nom_max_inv_p[carrier].columns
+        max_cap = p_nom_max_inv_p[carrier].iloc[0,:].rename(lambda x: "TechLimit " + x + " " +carrier)
+        n.madd("GlobalConstraint",
+              "TechLimit " + nodes + " " + carrier,
+              carrier_attribute=carrier,
+              sense="<=",
+              type="tech_capacity_expansion_limit",
+              bus=nodes,
+              constant=max_cap)
+
 def add_co2limit(n, factor=None):
 
     if factor is not None:
@@ -239,7 +267,7 @@ def set_line_nom_max(n, s_nom_max_set=np.inf, p_nom_max_set=np.inf):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('prepare_network', **{'costs':'original',
+        snakemake = mock_snakemake('prepare_network', **{'costs':'ambitions',
                             'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
@@ -259,6 +287,7 @@ if __name__ == "__main__":
         snakemake.config["years"],
     )
 
+    add_wind_and_solar_limits(n)
     set_line_s_max_pu(n)
 
     for o in opts:
