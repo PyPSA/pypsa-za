@@ -8,6 +8,7 @@ aggregate PyPSA network to representative periods
 @author: bw0928
 """
 import pandas as pd
+import numpy as np
 import logging
 logger = logging.getLogger(__name__)
 import tsam.timeseriesaggregation as tsam
@@ -107,7 +108,11 @@ def tsam_clustering(timeseries_df,  timeseries_df_max, noTypicalPeriods=30, extr
     map_snapshots_to_periods["day_of_year"] = map_snapshots_to_periods.index.day_of_year
     cluster_weights = aggregation.clusterPeriodNoOccur
     clusterCenterIndices = aggregation.clusterCenterIndices
-    new_snapshots = map_snapshots_to_periods[(map_snapshots_to_periods.day_of_year-1).isin(clusterCenterIndices)]
+    mapped_day_of_year = map_snapshots_to_periods.day_of_year-1
+    if map_snapshots_to_periods.index[0].is_leap_year:
+        mapped_day_of_year.loc[mapped_day_of_year>59]-=1    
+
+    new_snapshots = map_snapshots_to_periods[mapped_day_of_year.isin(clusterCenterIndices)]
     new_snapshots["weightings"] = new_snapshots["PeriodNum"].map(cluster_weights).astype(float)
     clustered.set_index(new_snapshots.index, inplace=True)
 

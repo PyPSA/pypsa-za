@@ -53,7 +53,7 @@ def load_costs(tech_costs, cost_scenario, config, elec_config, config_years):
     
     # Interpolate for years in config file but not in cost_data excel file
     config_years_array = np.array(config_years)
-    missing_year = config_years_array[~np.isin(config,cost_data.columns)]
+    missing_year = config_years_array[~np.isin(config_years_array,cost_data.columns)]
     if len(missing_year) > 0:
         for i in missing_year: 
             cost_data.insert(0,i,np.nan) # add columns of missing year to dataframe
@@ -516,11 +516,11 @@ def add_nice_carrier_names(n, config):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('add_electricity', **{'costs':'original',
+        snakemake = mock_snakemake('add_electricity', **{'costs':'ambitions',
                             'regions':'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC',
+                            'opts':'LC-30SEG',
                             'attr':'p_nom'})
 
     opts = snakemake.wildcards.opts.split('-')

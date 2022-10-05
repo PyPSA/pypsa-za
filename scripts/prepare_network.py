@@ -198,9 +198,16 @@ def set_transmission_limit(n, ll_type, factor, costs, Nyears=1):
 
 def average_every_nhours(n, offset):
     logger.info(f"Resampling the network to {offset}")
-    m = n.copy(with_time=False)
+    m = n.copy()#with_time=False)
 
-    snapshot_weightings = n.snapshot_weightings.resample(offset).sum()
+    if len(n.investment_periods)>1:
+        snapshots_unstacked = n.snapshots.get_level_values(1)
+    else:
+        snapshots_unstacked = n.snapshots.copy()
+
+    snapshot_weightings = n.snapshot_weightings.copy().set_index(snapshots_unstacked).resample(offset).sum()
+    snapshot_weightings=snapshot_weightings[snapshot_weightings.index.year.isin(n.investment_periods)]
+    snapshot_weightings.index = pd.MultiIndex.from_arrays([snapshot_weightings.index.year, snapshot_weightings.index])
     m.set_snapshots(snapshot_weightings.index)
     m.snapshot_weightings = snapshot_weightings
 
@@ -208,8 +215,10 @@ def average_every_nhours(n, offset):
         pnl = getattr(m, c.list_name + "_t")
         for k, df in c.pnl.items():
             if not df.empty:
-                pnl[k] = df.resample(offset).mean()
-
+                resampled = df.set_index(snapshots_unstacked).resample(offset).mean()
+                resampled=resampled[resampled.index.year.isin(n.investment_periods)]
+                resampled.index = snapshot_weightings.index
+                pnl[k] = resampled
     return m
 
 def apply_time_segmentation(n, segments, config):
@@ -285,7 +294,7 @@ if __name__ == "__main__":
                             'regions':'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC-10SEG',
+                            'opts':'LC-3H',
                             'attr':'p_nom'})
     configure_logging(snakemake)
 

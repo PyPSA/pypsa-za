@@ -414,10 +414,10 @@ if __name__ == "__main__":
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('solve_network', **{'costs':'ambitions',
-                            'regions':'RSA',
+                            'regions':'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC',
+                            'opts':'LC-3H',
                             'attr':'p_nom'})
     configure_logging(snakemake)
 
