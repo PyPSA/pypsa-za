@@ -131,8 +131,8 @@ rule solve_network:
         python="logs/solve_network/solved_{costs}_{regions}_{resarea}_l{ll}_{opts}_python.log",
         memory="logs/solve_network/solved_{costs}_{regions}_{resarea}_l{ll}_{opts}_memory.log",
     benchmark: "benchmarks/solve_network/solved_{costs}_{regions}_{resarea}_l{ll}_{opts}"
-    threads: 4
-    resources: mem_mb=19000 # for electricity only
+    threads: 20
+    resources: mem_mb=50000 # for electricity only
     script: "scripts/solve_network.py"
 
 

@@ -381,6 +381,7 @@ def prepare_network(n, solve_opts):
             " load_shedding",
             bus=buses_i,
             carrier="load_shedding",
+            build_year=n.investment_periods[0],
             #sign=1e-3,  # Adjust sign to measure p and p_nom in kW instead of MW
             marginal_cost=1e5,#load_shedding,
             p_nom=1e6,  # MW
@@ -646,7 +647,7 @@ def solve_network(n, config, opts="", **kwargs):
     n.config = config
     n.opts = opts
 
-    if cf_solving.get("skip_iterations", False):
+    if (snakemake.wildcards.regions=='RSA') | (cf_solving.get("skip_iterations", False)):
         network_lopf(
             n,
             solver_name=solver_name,

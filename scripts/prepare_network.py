@@ -69,23 +69,31 @@ idx = pd.IndexSlice
 logger = logging.getLogger(__name__)
 
 
-def add_co2limit(n, Nyears=1.0, factor=None):
+def add_co2limit(n, factor=None):
 
     if factor is not None:
-        annual_emissions = factor * snakemake.config["electricity"]["co2base"]
+        co2_emissions_limit = factor * snakemake.config["electricity"]["co2base"]
     else:
-        annual_emissions = snakemake.config["electricity"]["co2limit"]
+        co2_emissions_limit = snakemake.config["electricity"]["co2limit"]
 
     n.add(
         "GlobalConstraint",
         "CO2Limit",
         carrier_attribute="co2_emissions",
         sense="<=",
-        constant=annual_emissions * Nyears,
+        constant=co2_emissions_limit,
     )
 
+    # n.add("GlobalConstraint",
+    #       "CO2neutral",
+    #       type="primary_energy",
+    #       carrier_attribute="co2_emissions",
+    #       investment_period=n.snapshots.levels[0][-1],
+    #       sense="<=",
+    #       constant=0)
 
-def add_gaslimit(n, gaslimit, Nyears=1.0):
+
+def add_gaslimit(n, gaslimit):
 
     sel = n.carriers.index.intersection(["OCGT", "CCGT", "CHP"])
     n.carriers.loc[sel, "gas_usage"] = 1.0
@@ -95,8 +103,9 @@ def add_gaslimit(n, gaslimit, Nyears=1.0):
         "GasLimit",
         carrier_attribute="gas_usage",
         sense="<=",
-        constant=gaslimit * Nyears,
+        constant=gaslimit,
     )
+
 
 
 def add_emission_prices(n, emission_prices={"co2": 0.0}, exclude_co2=False):
@@ -247,7 +256,7 @@ if __name__ == "__main__":
         snakemake.wildcards.costs,
         snakemake.config["costs"],
         snakemake.config["electricity"],
-        Nyears,
+        snakemake.config["years"],
     )
 
     set_line_s_max_pu(n)

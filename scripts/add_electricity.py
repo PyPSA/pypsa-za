@@ -1,7 +1,6 @@
 # coding: utf-8
 import logging
 import os
-
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -12,31 +11,8 @@ from _helpers import configure_logging, getContinent, update_p_nom_max, pdbcast
 from shapely.validation import make_valid
 from shapely.geometry import Point
 from vresutils import transfer as vtransfer
-
 idx = pd.IndexSlice
-
 logger = logging.getLogger(__name__)
-
-
-# import networkx as nx
-# import pandas as pd
-# import numpy as np
-# import scipy as sp
-# from operator import attrgetter
-# from six import string_types
-
-# import rasterio
-# import fiona
-# import rasterstats
-# import geopandas as gpd
-
-# from shapely.geometry import Point
-# from vresutils.shapes import haversine
-# from vresutils.costdata import annuity
-
-# import pypsa
-
-# from _helpers import pdbcast
 
 def normed(s):
     return s / s.sum()
@@ -60,37 +36,29 @@ def calculate_annuity(n, r):
 
 def _add_missing_carriers_from_costs(n, costs, carriers):
     missing_carriers = pd.Index(carriers).difference(n.carriers.index)
-    if missing_carriers.empty:
-        return
+    if missing_carriers.empty: return
 
-    emissions_cols = (
-        costs.columns.to_series().loc[lambda s: s.str.endswith("_emissions")].values
-    )
-    suptechs = missing_carriers.str.split("-").str[0]
-    emissions = costs.loc[suptechs, emissions_cols].fillna(0.0)
+    emissions_cols = costs.columns.to_series()\
+                           .loc[lambda s: s.str.endswith('_emissions')].values
+    suptechs = missing_carriers.str.split('-').str[0]
+    emissions = costs.loc[suptechs, emissions_cols].fillna(0.)
     emissions.index = missing_carriers
-    n.import_components_from_dataframe(emissions, "Carrier")
+    n.import_components_from_dataframe(emissions, 'Carrier')
 
-def load_costs(tech_costs, cost_scenario, config, elec_config, Nyears=1):
+def load_costs(tech_costs, cost_scenario, config, elec_config, config_years):
     """
     set all asset costs and other parameters
     """
-    costs = pd.read_excel(tech_costs, sheet_name=cost_scenario,index_col=list(range(3))).sort_index()
-
+    cost_data = pd.read_excel(tech_costs, sheet_name=cost_scenario,index_col=list(range(2))).sort_index()
+    
     # correct units to MW and EUR
-    costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
-    costs.loc[costs.unit.str.contains("USD"), "value"] *= config["USD_to_EUR"]
-    costs.loc[costs.unit.str.contains("EUR"), "value"] *= config["EUR_to_ZAR"]
+    cost_data.loc[cost_data.unit.str.contains("/kW"), config_years] *= 1e3
+    cost_data.loc[cost_data.unit.str.contains("USD"), config_years] *= config["USD_to_EUR"]
+    cost_data.loc[cost_data.unit.str.contains("EUR"), config_years] *= config["EUR_to_ZAR"]
 
-    costs = (
-        costs.loc[idx[:, config["year"], :], "value"]
-        .unstack(level=2)
-        .groupby("technology")
-        .sum(min_count=1)
-    )
-    costs['efficiency_store']=costs['efficiency'].pow(1./2) #if only 1 efficiency value is given assume it is round trip efficiency
-    costs['efficiency_dispatch']=costs['efficiency'].pow(1./2)
-    costs = costs.fillna(
+    costs = {}
+    for y in config_years:
+        costs[y]=cost_data.loc[idx[:, y]].unstack(level=1).fillna(
         {
             "CO2 intensity": 0,
             "FOM": 0,
@@ -102,92 +70,57 @@ def load_costs(tech_costs, cost_scenario, config, elec_config, Nyears=1):
             "fuel": 0,
             "investment": 0,
             "lifetime": 25,
-        }
-    )
+        })
 
-    costs["capital_cost"] = (
-        (
-            calculate_annuity(costs["lifetime"], costs["discount rate"])
-            + costs["FOM"] / 100.0
-        )
-        * costs["investment"]
-        * Nyears
-    )
+        costs[y]['efficiency_store']=costs[y]['efficiency'].pow(1./2) #if only 1 efficiency value is given assume it is round trip efficiency
+        costs[y]['efficiency_dispatch']=costs[y]['efficiency'].pow(1./2)
 
-    costs.at["OCGT", "fuel"] = costs.at["gas", "fuel"]
-    costs.at["CCGT", "fuel"] = costs.at["gas", "fuel"]
-
-    costs["marginal_cost"] = costs["VOM"] + costs["fuel"] / costs["efficiency"]
-
-    costs = costs.rename(columns={"CO2 intensity": "co2_emissions"})
-
-    costs.at["OCGT", "co2_emissions"] = costs.at["gas", "co2_emissions"]
-    costs.at["CCGT", "co2_emissions"] = costs.at["gas", "co2_emissions"]
-
-    costs.at["solar", "capital_cost"] = 0.5 * (
-        costs.at["solar-rooftop", "capital_cost"]
-        + costs.at["solar-utility", "capital_cost"]
-    )
-
-    def costs_for_storage(store, link1, link2=None, max_hours=1.0):
-        capital_cost = link1["capital_cost"] + max_hours * store["capital_cost"]
-        if link2 is not None:
-            capital_cost += link2["capital_cost"]
-        return pd.Series(
-            dict(capital_cost=capital_cost, marginal_cost=0.0, co2_emissions=0.0)
+        costs[y]["capital_cost"] = (
+            (
+                calculate_annuity(costs[y]["lifetime"], costs[y]["discount rate"])
+                + costs[y]["FOM"] / 100.0
+            )
+            * costs[y]["investment"]
         )
 
-    max_hours = elec_config["max_hours"]
-    costs.at["battery"] = costs_for_storage(
-        costs.loc["battery storage"],
-        costs.loc["battery inverter"],
-        max_hours=max_hours["battery"],
-    )
-    costs.loc['battery',:].fillna(costs.loc['battery inverter',:],inplace=True)
+        costs[y].at["OCGT", "fuel"] = costs[y].at["gas", "fuel"]
+        costs[y].at["CCGT", "fuel"] = costs[y].at["gas", "fuel"]
+
+        costs[y]["marginal_cost"] = costs[y]["VOM"] + costs[y]["fuel"] / costs[y]["efficiency"]
+
+        costs[y] = costs[y].rename(columns={"CO2 intensity": "co2_emissions"})
+
+        costs[y].at["OCGT", "co2_emissions"] = costs[y].at["gas", "co2_emissions"]
+        costs[y].at["CCGT", "co2_emissions"] = costs[y].at["gas", "co2_emissions"]
+
+        costs[y].at["solar", "capital_cost"] = 0.5 * (
+            costs[y].at["solar-rooftop", "capital_cost"]
+            + costs[y].at["solar-utility", "capital_cost"]
+        )
+
+        def costs_for_storage(store, link1, link2=None, max_hours=1.0):
+            capital_cost = link1["capital_cost"] + max_hours * store["capital_cost"]
+            if link2 is not None:
+                capital_cost += link2["capital_cost"]
+            return pd.Series(
+                dict(capital_cost=capital_cost, marginal_cost=0.0, co2_emissions=0.0)
+            )
+
+        max_hours = elec_config["max_hours"]
+        costs[y].loc["battery"] = costs_for_storage(
+            costs[y].loc["battery storage"],
+            costs[y].loc["battery inverter"],
+            max_hours=max_hours["battery"],
+        )
+        costs[y].loc['battery',:].fillna(costs[y].loc['battery inverter',:],inplace=True)
     
-    costs.at["H2"] = costs_for_storage(
-        costs.loc["hydrogen storage"],
-        costs.loc["fuel cell"],
-        costs.loc["electrolysis"],
-        max_hours=max_hours["H2"],
-    )
-    costs.loc['H2',:].fillna(costs.loc['electrolysis',:],inplace=True)
-    costs.at['H2', 'efficiency_store'] = costs.at['electrolysis','efficiency']
-    costs.at['H2', 'efficiency_dispatch'] = costs.at['fuel cell','efficiency']
-
     for attr in ("marginal_cost", "capital_cost"):
         overwrites = config.get(attr)
         if overwrites is not None:
             overwrites = pd.Series(overwrites)
-            costs.loc[overwrites.index, attr] = overwrites
+            costs[y].loc[overwrites.index, attr] = overwrites
 
     return costs
-
-# def load_costs():
-#     costs = pd.read_excel(snakemake.input.tech_costs,
-#                           sheet_name=snakemake.wildcards.cost,
-#                           index_col=0).T
-
-#     discountrate = snakemake.config['costs']['discountrate']
-#     costs['capital_cost'] = ((annuity(costs.pop('Lifetime [a]'), discountrate) +
-#                               costs.pop('FOM [%/a]').fillna(0.) / 100.)
-#                              * costs.pop('Overnight cost [R/kW_el]')*1e3)
-
-#     costs['efficiency'] = costs.pop('Efficiency').fillna(1.)
-#     costs['marginal_cost'] = (costs.pop('VOM [R/MWh_el]').fillna(0.) +
-#                               (costs.pop('Fuel cost [R/MWh_th]') / costs['efficiency']).fillna(0.))
-
-#     emissions_cols = costs.columns.to_series().loc[lambda s: s.str.endswith(' emissions [kg/MWh_th]')]
-#     costs.loc[:, emissions_cols.index] = (costs.loc[:, emissions_cols.index]/1e3).fillna(0.)
-#     costs = costs.rename(columns=emissions_cols.str[:-len(" [kg/MWh_th]")].str.lower().str.replace(' ', '_'))
-
-#     for attr in ('marginal_cost', 'capital_cost'):
-#         overwrites = snakemake.config['costs'].get(attr)
-#         if overwrites is not None:
-#             overwrites = pd.Series(overwrites)
-#             costs.loc[overwrites.index, attr] = overwrites
-
-#     return costs
 
 # ## Attach components
 
@@ -227,39 +160,40 @@ def attach_load(n):
 #                               costs.at['Transmission lines', 'capital_cost'])
 
 def update_transmission_costs(n, costs, length_factor=1.0, simple_hvdc_costs=False):
-    n.lines["capital_cost"] = (
-        n.lines["length"] * length_factor * costs.at["HVAC overhead", "capital_cost"]
-    )
-
-    if n.links.empty:
-        return
-
-    dc_b = n.links.carrier == "DC"
-    # If there are no "DC" links, then the 'underwater_fraction' column
-    # may be missing. Therefore we have to return here.
-    # TODO: Require fix
-    if n.links.loc[n.links.carrier == "DC"].empty:
-        return
-
-    if simple_hvdc_costs:
-        costs = (
-            n.links.loc[dc_b, "length"]
-            * length_factor
-            * costs.at["HVDC overhead", "capital_cost"]
+    for y in n.investment_periods:
+        n.lines["capital_cost"] = (
+            n.lines["length"] * length_factor * costs[y].at["HVAC overhead", "capital_cost"]
         )
-    else:
-        costs = (
-            n.links.loc[dc_b, "length"]
-            * length_factor
-            * (
-                (1.0 - n.links.loc[dc_b, "underwater_fraction"])
-                * costs.at["HVDC overhead", "capital_cost"]
-                + n.links.loc[dc_b, "underwater_fraction"]
-                * costs.at["HVDC submarine", "capital_cost"]
+
+        if n.links.empty:
+            return
+
+        dc_b = n.links.carrier == "DC"
+        # If there are no "DC" links, then the 'underwater_fraction' column
+        # may be missing. Therefore we have to return here.
+        # TODO: Require fix
+        if n.links.loc[n.links.carrier == "DC"].empty:
+            return
+
+        if simple_hvdc_costs:
+            costs = (
+                n.links.loc[dc_b, "length"]
+                * length_factor
+                * costs[y].at["HVDC overhead", "capital_cost"]
             )
-            + costs.at["HVDC inverter pair", "capital_cost"]
-        )
-    n.links.loc[dc_b, "capital_cost"] = costs
+        else:
+            costs = (
+                n.links.loc[dc_b, "length"]
+                * length_factor
+                * (
+                    (1.0 - n.links.loc[dc_b, "underwater_fraction"])
+                    * costs[y].at["HVDC overhead", "capital_cost"]
+                    + n.links.loc[dc_b, "underwater_fraction"]
+                    * costs[y].at["HVDC submarine", "capital_cost"]
+                )
+                + costs[y].at["HVDC inverter pair", "capital_cost"]
+            )
+        n.links.loc[dc_b, "capital_cost"] = costs
 
 
 # ### Generators - TODO Update from pypa-eur
@@ -304,9 +238,9 @@ def attach_wind_and_solar(n, costs):
             lifetime=20,
             p_nom_extendable=True,
             p_nom_max=onwind_area.available_area * capacity_per_sqm['onwind'],
-            marginal_cost=costs.at['onwind', 'marginal_cost'],
-            capital_cost=costs.at['onwind', 'capital_cost'],
-            efficiency=costs.at['onwind', 'efficiency'],
+            marginal_cost=costs[y].at['onwind', 'marginal_cost'],
+            capital_cost=costs[y].at['onwind', 'capital_cost'],
+            efficiency=costs[y].at['onwind', 'efficiency'],
             p_max_pu=onwind_res)
 
     ## Solar PV
@@ -340,9 +274,9 @@ def attach_wind_and_solar(n, costs):
             lifetime=25,
             p_nom_extendable=True,
             p_nom_max=solar_area.available_area * capacity_per_sqm['solar'],
-            marginal_cost=costs.at['solar', 'marginal_cost'],
-            capital_cost=costs.at['solar', 'capital_cost'],
-            efficiency=costs.at['solar', 'efficiency'],
+            marginal_cost=costs[y].at['solar', 'marginal_cost'],
+            capital_cost=costs[y].at['solar', 'capital_cost'],
+            efficiency=costs[y].at['solar', 'efficiency'],
             p_max_pu=solar_res)
 
 # # Generators
@@ -477,7 +411,7 @@ def attach_existing_generators(n, costs):
         # TODO add to network with time-series and everything
     gens = (gens.loc[gens.carrier.isin({"coal", "nuclear"})]
             .drop(list(ps_f.values()) + list(csp_f.values()), axis=1))
-    _add_missing_carriers_from_costs(n, costs, gens.carrier.unique())
+    _add_missing_carriers_from_costs(n, costs[n.investment_periods[0]], gens.carrier.unique())
 
     n.import_components_from_dataframe(gens, "Generator")
 
@@ -486,7 +420,7 @@ def attach_extendable_generators(n, costs):
     carriers = elec_opts['extendable_carriers']['Generator']
     buses = elec_opts['buses'][snakemake.wildcards.regions]
 
-    _add_missing_carriers_from_costs(n, costs, carriers)
+    _add_missing_carriers_from_costs(n, costs[n.investment_periods[0]], carriers)
 
     for y in snakemake.config['years']: 
         for carrier in carriers:
@@ -496,9 +430,10 @@ def attach_extendable_generators(n, costs):
                 p_nom_extendable=True,
                 carrier=carrier,
                 build_year=y,
-                capital_cost=costs.at[carrier, 'capital_cost'],
-                marginal_cost=costs.at[carrier, 'marginal_cost'],
-                efficiency=costs.at[carrier, 'efficiency'])
+                lifetime=costs[y].at[carrier, 'lifetime'],
+                capital_cost=costs[y].at[carrier, 'capital_cost'],
+                marginal_cost=costs[y].at[carrier, 'marginal_cost'],
+                efficiency=costs[y].at[carrier, 'efficiency'])
 
 def attach_storage(n, costs):
     elec_opts = snakemake.config['electricity']
@@ -506,7 +441,7 @@ def attach_storage(n, costs):
     max_hours = elec_opts['max_hours']
     buses = elec_opts['buses']
 
-    _add_missing_carriers_from_costs(n, costs, carriers)
+    _add_missing_carriers_from_costs(n, costs[n.investment_periods[0]], carriers)
 
     for y in snakemake.config['years']:
         for carrier in carriers:
@@ -516,10 +451,10 @@ def attach_storage(n, costs):
                 p_nom_extendable=True,
                 carrier=carrier,
                 build_year=y,
-                capital_cost=costs.at[carrier, 'capital_cost'],
-                marginal_cost=costs.at[carrier, 'marginal_cost'],
-                efficiency_store=costs.at[carrier, 'efficiency_store'],
-                efficiency_dispatch=costs.at[carrier, 'efficiency_dispatch'],
+                capital_cost=costs[y].at[carrier, 'capital_cost'],
+                marginal_cost=costs[y].at[carrier, 'marginal_cost'],
+                efficiency_store=costs[y].at[carrier, 'efficiency_store'],
+                efficiency_dispatch=costs[y].at[carrier, 'efficiency_dispatch'],
                 max_hours=max_hours[carrier],
                 cyclic_state_of_charge=True)
 
@@ -572,7 +507,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', **{'costs':'original',
-                            'regions':'RSA',
+                            'regions':'27-supply',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC',
@@ -586,10 +521,12 @@ if __name__ == "__main__":
         snakemake.wildcards.costs,
         snakemake.config["costs"],
         snakemake.config["electricity"],
-        Nyears,
+        snakemake.config["years"],
     )
+
     attach_load(n)
-    update_transmission_costs(n, costs)
+    if snakemake.wildcards.regions!='RSA':
+        update_transmission_costs(n, costs)
     attach_existing_generators(n, costs)
     attach_wind_and_solar(n, costs)
     attach_extendable_generators(n, costs)

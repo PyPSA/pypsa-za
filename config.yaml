@@ -26,7 +26,7 @@ crs:
   distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
 
-years: [2025,2030]
+years: [2025,2030,2035,2040]
 base_demand_year: 2012
 base_weather_years: [2012]
 historical_year: "2012"
@@ -34,7 +34,7 @@ historical_year: "2012"
 electricity:
   demand: 428.e+6     # 344TWh 2030, 428TWh 2040, 522TWh 2050
                       # IRP_Update_Assumptions_1904.pdf
-  co2limit: 10.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
+  co2limit: 50.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
   csp: false
   renewable_carriers: [solar, onwind, offwind-ac, offwind-dc, hydro]
   
@@ -88,7 +88,10 @@ respotentials:
     onwind: 5   # half of 10 (IWES)
     solar: 16.5 # half of 33 (IWES)
 
+  source: eskom_actuals
+
 hydro_inflow:
+  source: eskom actuals
   disable: true
   countries: [ZA, MZ]
   cutout: za-mz-2012
@@ -133,7 +136,7 @@ costs:
   marginal_cost: #
     solar: 0.01
     onwind: 0.015
-    offwind: 0.015 
+    #offwind: 0.015 
     #PV: 0.01
     #Wind: 0.015
   USD_to_EUR: 0.7532
@@ -164,6 +167,7 @@ solving:
     clip_p_max_pu: 1.e-2
     load_shedding: true
     noisy_costs: true
+    skip_iterations: True
     min_iterations: 1
     max_iterations: 1
     formulation: kirchhoff
