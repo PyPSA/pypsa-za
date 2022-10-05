@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 import tsam.timeseriesaggregation as tsam
 
-def prepare_timeseries(network, normed=False):
+def prepare_timeseries_tsam(network, normed=False):
     """
     """
     p_max_pu = network.generators_t.p_max_pu 
@@ -50,7 +50,7 @@ def cluster_snapshots(network, normed=False, noTypicalPeriods=30, extremePeriodM
                       rescaleClusterPeriods=False, hoursPerPeriod=24, clusterMethod='hierarchical',
                       solver='cbc',predefClusterOrder=None):
 
-    timeseries_df, timeseries_df_max=prepare_timeseries(network,True)
+    timeseries_df, timeseries_df_max=prepare_timeseries_tsam(network,True)
     # If modelling a single year 
     if isinstance(network.snapshots, pd.MultiIndex):
         new_snapshots={}
@@ -106,7 +106,7 @@ def tsam_clustering(timeseries_df,  timeseries_df_max, noTypicalPeriods=30, extr
     map_snapshots_to_periods = aggregation.indexMatching()
     map_snapshots_to_periods["day_of_year"] = map_snapshots_to_periods.index.day_of_year
     cluster_weights = aggregation.clusterPeriodNoOccur
-    clusterCenterIndices= aggregation.clusterCenterIndices
+    clusterCenterIndices = aggregation.clusterCenterIndices
     new_snapshots = map_snapshots_to_periods[(map_snapshots_to_periods.day_of_year-1).isin(clusterCenterIndices)]
     new_snapshots["weightings"] = new_snapshots["PeriodNum"].map(cluster_weights).astype(float)
     clustered.set_index(new_snapshots.index, inplace=True)

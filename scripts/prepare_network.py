@@ -63,6 +63,7 @@ import pandas as pd
 import pypsa
 from _helpers import configure_logging
 from add_electricity import load_costs, update_transmission_costs
+from temporal_clustering import prepare_timeseries_tsam, tsam_clustering, cluster_snapshots
 
 idx = pd.IndexSlice
 
@@ -211,53 +212,66 @@ def average_every_nhours(n, offset):
 
     return m
 
+def apply_time_segmentation(n, segments, config):
 
-def apply_time_segmentation(n, segments, solver_name):
-    logger.info(f"Aggregating time series to {segments} segments.")
-    try:
-        import tsam.timeseriesaggregation as tsam
-    except:
-        raise ModuleNotFoundError(
-            "Optional dependency 'tsam' not found." "Install via 'pip install tsam'"
-        )
-
-    p_max_pu_norm = n.generators_t.p_max_pu.max()
-    p_max_pu = n.generators_t.p_max_pu / p_max_pu_norm
-
-    load_norm = n.loads_t.p_set.max()
-    load = n.loads_t.p_set / load_norm
-
-    inflow_norm = n.storage_units_t.inflow.max()
-    inflow = n.storage_units_t.inflow / inflow_norm
-
-    raw = pd.concat([p_max_pu, load, inflow], axis=1, sort=False)
-
-    agg = tsam.TimeSeriesAggregation(
-        raw,
-        hoursPerPeriod=len(raw),
-        noTypicalPeriods=1,
-        noSegments=int(segments),
-        segmentation=True,
-        solver=solver_name,
-    )
-
-    segmented = agg.createTypicalPeriods()
-
-    weightings = segmented.index.get_level_values("Segment Duration")
-    offsets = np.insert(np.cumsum(weightings[:-1]), 0, 0)
-    snapshots = [n.snapshots[0] + pd.Timedelta(f"{offset}h") for offset in offsets]
-
-    n.set_snapshots(pd.DatetimeIndex(snapshots, name="name"))
-    n.snapshot_weightings = pd.Series(
-        weightings, index=snapshots, name="weightings", dtype="float64"
-    )
-
-    segmented.index = snapshots
-    n.generators_t.p_max_pu = segmented[n.generators_t.p_max_pu.columns] * p_max_pu_norm
-    n.loads_t.p_set = segmented[n.loads_t.p_set.columns] * load_norm
-    n.storage_units_t.inflow = segmented[n.storage_units_t.inflow.columns] * inflow_norm
-
+    n = cluster_snapshots(n, normed=False, noTypicalPeriods=30)
+        # n, 
+        #             normed=config['normed'], 
+        #             noTypicalPeriods=segments, 
+        #             extremePeriodMethod = config['extremePeriodMethod'],
+        #             rescaleClusterPeriods= config['rescaleClusterPeriods'], 
+        #             hoursPerPeriod=int(config['hoursPerPeriod']),
+        #             clusterMethod=config['clusterMethod'],
+        #             solver='cbc',
+        #             predefClusterOrder=None)
     return n
+
+# def apply_time_segmentation(n, segments, solver_name):
+#     logger.info(f"Aggregating time series to {segments} segments.")
+#     try:
+#         import tsam.timeseriesaggregation as tsam
+#     except:
+#         raise ModuleNotFoundError(
+#             "Optional dependency 'tsam' not found." "Install via 'pip install tsam'"
+#         )
+
+#     p_max_pu_norm = n.generators_t.p_max_pu.max()
+#     p_max_pu = n.generators_t.p_max_pu / p_max_pu_norm
+
+#     load_norm = n.loads_t.p_set.max()
+#     load = n.loads_t.p_set / load_norm
+
+#     inflow_norm = n.storage_units_t.inflow.max()
+#     inflow = n.storage_units_t.inflow / inflow_norm
+
+#     raw = pd.concat([p_max_pu, load, inflow], axis=1, sort=False)
+
+#     agg = tsam.TimeSeriesAggregation(
+#         raw,
+#         hoursPerPeriod=len(raw),
+#         noTypicalPeriods=1,
+#         noSegments=int(segments),
+#         segmentation=True,
+#         solver=solver_name,
+#     )
+
+#     segmented = agg.createTypicalPeriods()
+
+#     weightings = segmented.index.get_level_values("Segment Duration")
+#     offsets = np.insert(np.cumsum(weightings[:-1]), 0, 0)
+#     snapshots = [n.snapshots[0] + pd.Timedelta(f"{offset}h") for offset in offsets]
+
+#     n.set_snapshots(pd.DatetimeIndex(snapshots, name="name"))
+#     n.snapshot_weightings = pd.Series(
+#         weightings, index=snapshots, name="weightings", dtype="float64"
+#     )
+
+#     segmented.index = snapshots
+#     n.generators_t.p_max_pu = segmented[n.generators_t.p_max_pu.columns] * p_max_pu_norm
+#     n.loads_t.p_set = segmented[n.loads_t.p_set.columns] * load_norm
+#     n.storage_units_t.inflow = segmented[n.storage_units_t.inflow.columns] * inflow_norm
+
+#     return n
 
 def set_line_nom_max(n, s_nom_max_set=np.inf, p_nom_max_set=np.inf):
     n.lines.s_nom_max.clip(upper=s_nom_max_set, inplace=True)
@@ -268,10 +282,10 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('prepare_network', **{'costs':'ambitions',
-                            'regions':'RSA',
+                            'regions':'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC',
+                            'opts':'LC-10SEG',
                             'attr':'p_nom'})
     configure_logging(snakemake)
 
@@ -299,8 +313,7 @@ if __name__ == "__main__":
     for o in opts:
         m = re.match(r"^\d+seg$", o, re.IGNORECASE)
         if m is not None:
-            solver_name = snakemake.config["solving"]["solver"]["name"]
-            n = apply_time_segmentation(n, m.group(0)[:-3], solver_name)
+            n = apply_time_segmentation(n, m.group(0)[:-3],snakemake.config["tsam_clustering"])
             break
 
     for o in opts:

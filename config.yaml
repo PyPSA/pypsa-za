@@ -160,6 +160,12 @@ costs:
     hg: 41484.e-6 # is also part of the excel sheet
     particulate: 11.3e+3
 
+tsam_clustering:
+  normed: true
+  extremePeriodMethod: 'None'
+  rescaleClusterPeriods: False
+  hoursPerPeriod: 24
+  clusterMethod: 'hierarchical'
 
 solving:
   tmpdir: /tmp
