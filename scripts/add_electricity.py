@@ -355,6 +355,8 @@ def attach_existing_generators(n, costs):
 
     if snakemake.wildcards.regions=='RSA':
         CahoraBassa['bus'] = "RSA"
+    elif snakemake.wildcards.regions=='9-supply':
+        CahoraBassa['bus'] = "LIMPOPO"
     elif snakemake.wildcards.regions=='27-supply':
         CahoraBassa['bus'] = "POLOKWANE"
     gens = gens.append(CahoraBassa)
