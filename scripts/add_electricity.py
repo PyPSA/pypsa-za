@@ -148,11 +148,11 @@ def attach_load(n):
               normed(load.loc[str(snakemake.config['base_demand_year'])]))
     base_demand = remove_leap_day(base_demand)
     
-    if ~isinstance(n.snapshots, pd.MultiIndex):
-        demand = base_demand.values
-    else:
+    if isinstance(n.snapshots, pd.MultiIndex):
         for y in n.investment_periods:
-                demand.loc[y]=base_demand.values #TODO add annual growth in demand
+             demand.loc[y]=base_demand.values #TODO add annual growth in demand
+    else:
+        demand = base_demand.values
     
     n.madd("Load", n.buses.index,
            bus=n.buses.index,
@@ -224,16 +224,16 @@ def attach_wind_and_solar(n, costs):
 
     cnt=0
     #
-    if ~isinstance(n.snapshots, pd.MultiIndex):
-        onwind_res = (onwind_data.loc[str(weather_years[cnt])]
-                            .reindex(columns=onwind_area.index)
-                            .clip(lower=0., upper=1.)).values     
-    else:
+    if isinstance(n.snapshots, pd.MultiIndex):
         for y in n.investment_periods:    
             onwind_res.loc[y] = (onwind_data.loc[str(weather_years[cnt])]
                                 .reindex(columns=onwind_area.index)
                                 .clip(lower=0., upper=1.)).values     
-            cnt+=1
+            cnt+=1 
+    else:
+        onwind_res = (onwind_data.loc[str(weather_years[cnt])]
+                            .reindex(columns=onwind_area.index)
+                            .clip(lower=0., upper=1.)).values   
         
     for y in n.investment_periods:
         n.madd("Generator", onwind_area.index, suffix=" onwind_"+str(y),
@@ -258,17 +258,17 @@ def attach_wind_and_solar(n, costs):
     solar_data = remove_leap_day(solar_data)
 
     cnt=0
-    if ~isinstance(n.snapshots, pd.MultiIndex):
-        solar_res = (solar_data.loc[str(weather_years[cnt])]
-                            .reindex(columns=solar_area.index)
-                            .clip(lower=0., upper=1.)).values     
-    else:
+    if isinstance(n.snapshots, pd.MultiIndex):
         for y in n.investment_periods:    
 
             solar_res.loc[y] = (solar_data.loc[str(weather_years[cnt])]
                                 .reindex(columns=solar_area.index)
                                 .clip(lower=0., upper=1.)).values     
-            cnt+=1
+            cnt+=1 
+    else:
+        solar_res = (solar_data.loc[str(weather_years[cnt])]
+                            .reindex(columns=solar_area.index)
+                            .clip(lower=0., upper=1.)).values   
 
     for y in n.investment_periods:
         n.madd("Generator", solar_area.index, suffix=" solar_"+str(y),
@@ -507,10 +507,10 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', **{'costs':'ambitions',
-                            'regions':'27-supply',
+                            'regions':'9-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC-30SEG',
+                            'opts':'LC-24H',
                             'attr':'p_nom'})
 
     opts = snakemake.wildcards.opts.split('-')

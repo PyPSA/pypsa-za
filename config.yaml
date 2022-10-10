@@ -6,9 +6,8 @@ logging:
 
 scenario:
   resarea: [redz, corridors]
-  regions: ['RSA','27-supply']
-  #sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
-  costs: [original] # [csir-today, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
+  regions: ['RSA','9-supply','27-supply'] # Resolution 1-node, 9 provinces, 27 Eskom supply areas 
+  costs: [Ambitions] 
   opts: [LC, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
   ll: ['copt']
 
@@ -50,6 +49,11 @@ electricity:
       CCGT: [RSA]
       coal: [RSA]
       nuclear: [RSA]
+    9-supply: 
+      OCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE] # Saldana Bay, Richards Bay, Coega
+      CCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE]
+      coal: [GAUTENG, LIMPOPO] # JOhannesburg, Waterberg
+      nuclear: [EASTERN CAPE, WESTERN CAPE] # Thyspunt, Koeberg      
     27-supply:
       OCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
       CCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH]
@@ -106,6 +110,7 @@ lines:
     380.: "Al/St 240/40 4-bundle 380.0"
   dc_type: "DC_custom_linetype"
   s_max_pu: 0.7
+  s_nom_factor: 0.7
   s_nom_max: .inf
   length_factor: 1.25
   under_construction: "zero" # 'zero': set capacity to zero, 'remove': remove, 'keep': with full capacity

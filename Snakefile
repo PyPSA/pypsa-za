@@ -62,7 +62,7 @@ rule build_topology:
     input:
         supply_regions='data/supply_regions/supply_regions_{regions}.shp',
         centroids='data/supply_regions/centroids_{regions}.shp',
-        num_lines='data/num_lines.csv'
+        num_lines='data/num_lines.xlsx'
     output:
         buses='resources/buses_{regions}.csv',
         lines='resources/lines_{regions}.csv'
