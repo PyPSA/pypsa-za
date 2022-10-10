@@ -180,9 +180,9 @@ solving:
     # max_iterations: 1
     # nhours: 10
   solver:
-    name: xpress
-    lpflags: 4
-    crossover: 0
+    name: cbc #xpress
+    #lpflags: 4
+    #crossover: 0
     # BarConvTol: 1.e-5
     # FeasibilityTol: 1.e-6
     # LogToConsole: 0
@@ -191,7 +191,7 @@ solving:
 plotting:
   map:
     figsize: [7, 7]
-    boundaries: [16, -35, 33, -22]
+    boundaries: [14, 34, -35, -20] #[x1,x2,y1,y2]
     p_nom:
       bus_size_factor: 5.e+4
       linewidth_factor: 1.e+3 # 1.e+3  #3.e+3
