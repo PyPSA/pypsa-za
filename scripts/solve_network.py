@@ -373,10 +373,8 @@ def solve_network(n, config, opts="", **kwargs):
     track_iterations = cf_solving.get("track_iterations", False)
     min_iterations = cf_solving.get("min_iterations", 4)
     max_iterations = cf_solving.get("max_iterations", 6)
-    if len(n.investment_periods)==1:
-        multi_investment_periods=False
-    else:
-        multi_investment_periods=True
+    multi_investment_periods=isinstance(n.snapshots, pd.MultiIndex)
+
 
     # add to network for extra_functionality
     n.config = config

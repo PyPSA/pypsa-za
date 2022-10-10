@@ -61,7 +61,7 @@ def load_costs(tech_costs, cost_scenario, config, elec_config, config_years):
         cost_data_tmp = cost_data_tmp.interpolate(axis=1)
         cost_data = pd.concat([cost_data_tmp, cost_data[['unit','source']]],ignore_index=False,axis=1)
 
-    # correct units to MW and EUR
+    # correct units to MW and ZAR
     cost_data.loc[cost_data.unit.str.contains("/kW"), config_years] *= 1e3
     cost_data.loc[cost_data.unit.str.contains("USD"), config_years] *= config["USD_to_EUR"]
     cost_data.loc[cost_data.unit.str.contains("EUR"), config_years] *= config["EUR_to_ZAR"]
@@ -141,15 +141,14 @@ def attach_load(n):
     load = load.set_index(
         pd.to_datetime(load['SETTLEMENT_DATE'] + ' ' +
                        load['PERIOD'].astype(str) + ':00')
-        .rename('t')
-    )['SYSTEMENERGY']
+        .rename('t'))['SYSTEMENERGY']
 
     demand=pd.Series(0,index=n.snapshots)
     base_demand = (snakemake.config['electricity']['demand'] *
               normed(load.loc[str(snakemake.config['base_demand_year'])]))
     base_demand = remove_leap_day(base_demand)
     
-    if len(n.investment_periods)==1:
+    if ~isinstance(n.snapshots, pd.MultiIndex):
         demand = base_demand.values
     else:
         for y in n.investment_periods:
@@ -208,12 +207,9 @@ def update_transmission_costs(n, costs, length_factor=1.0, simple_hvdc_costs=Fal
 
 # ### Generators - TODO Update from pypa-eur
 def attach_wind_and_solar(n, costs):
-    capacity_per_sqm = snakemake.config['respotentials']['capacity_per_sqm']
-    # repeat weather years to fill multi horizon
-    len_years = len(n.investment_periods)
+    # If the number of reference weather years are smaller than the number of investment periods, duplicate them
     weather_years=snakemake.config['base_weather_years']
-    len_weather_years = len(weather_years)
-    for i in range(0,int(np.ceil(len_years/len_weather_years)-1)):
+    for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
         weather_years+=weather_years
 
     ## Onshore wind
@@ -228,13 +224,12 @@ def attach_wind_and_solar(n, costs):
 
     cnt=0
     #
-    if len_years==1:
+    if ~isinstance(n.snapshots, pd.MultiIndex):
         onwind_res = (onwind_data.loc[str(weather_years[cnt])]
                             .reindex(columns=onwind_area.index)
                             .clip(lower=0., upper=1.)).values     
     else:
         for y in n.investment_periods:    
-
             onwind_res.loc[y] = (onwind_data.loc[str(weather_years[cnt])]
                                 .reindex(columns=onwind_area.index)
                                 .clip(lower=0., upper=1.)).values     
@@ -247,7 +242,6 @@ def attach_wind_and_solar(n, costs):
             build_year=y,
             lifetime=20,
             p_nom_extendable=True,
-            #p_nom_max=onwind_area.available_area * capacity_per_sqm['onwind'],
             marginal_cost=costs[y].at['onwind', 'marginal_cost'],
             capital_cost=costs[y].at['onwind', 'capital_cost'],
             efficiency=costs[y].at['onwind', 'efficiency'],
@@ -264,7 +258,7 @@ def attach_wind_and_solar(n, costs):
     solar_data = remove_leap_day(solar_data)
 
     cnt=0
-    if len_years==1:
+    if ~isinstance(n.snapshots, pd.MultiIndex):
         solar_res = (solar_data.loc[str(weather_years[cnt])]
                             .reindex(columns=solar_area.index)
                             .clip(lower=0., upper=1.)).values     
@@ -283,7 +277,6 @@ def attach_wind_and_solar(n, costs):
             build_year=y,
             lifetime=25,
             p_nom_extendable=True,
-            #p_nom_max=solar_area.available_area * capacity_per_sqm['solar'],
             marginal_cost=costs[y].at['solar', 'marginal_cost'],
             capital_cost=costs[y].at['solar', 'capital_cost'],
             efficiency=costs[y].at['solar', 'efficiency'],
@@ -291,11 +284,8 @@ def attach_wind_and_solar(n, costs):
 
 # # Generators
 def attach_existing_generators(n, costs):
-    historical_year = snakemake.config['historical_year']
-    len_years = len(n.investment_periods)
     weather_years=snakemake.config['base_weather_years']
-    len_weather_years = len(weather_years)
-    for i in range(0,int(np.ceil(len_years/len_weather_years)-1)):
+    for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
         weather_years+=weather_years
         
     ps_f = dict(efficiency="Pump Efficiency (%)",
@@ -525,7 +515,6 @@ if __name__ == "__main__":
 
     opts = snakemake.wildcards.opts.split('-')
     n = pypsa.Network(snakemake.input.base_network)
-    Nyears = n.snapshot_weightings.objective.sum() / 8760.0
     costs = load_costs(
         snakemake.input.tech_costs,
         snakemake.wildcards.costs,
