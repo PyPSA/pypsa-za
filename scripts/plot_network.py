@@ -14,9 +14,12 @@ Description
 """
 import logging
 from _helpers import (load_network_for_plots, aggregate_p, aggregate_costs, configure_logging)
+from vresutils import plot as vplot
 
 import pandas as pd
+import geopandas as gpd
 import numpy as np
+import pypsa
 
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
@@ -113,6 +116,8 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
     linewidth_factor = opts['map'][snakemake.wildcards.attr]['linewidth_factor']
     bus_size_factor  = opts['map'][snakemake.wildcards.attr]['bus_size_factor']
 
+    vplot.shapes(supply_regions.geometry, facecolors='k', outline='k', ax=ax, rasterized=True)
+    vplot.shapes(renewable_regions.geometry, facecolors='gray', alpha=0.2, ax=ax, rasterized=True)
     ## PLOT
     n.plot(line_widths=line_widths_exp/linewidth_factor,
         line_colors=line_colors["exp"],
@@ -269,13 +274,16 @@ if __name__ == "__main__":
 
     map_figsize = config["plotting"]['map']['figsize']
     map_boundaries = config["plotting"]['map']['boundaries']
-    print(map_boundaries)
     n = load_network_for_plots(
         snakemake.input.network, snakemake.input.tech_costs, config
     )
     scenario_opts = wildcards.opts.split('-')
 
+    supply_regions = gpd.read_file(snakemake.input.supply_regions).buffer(-0.005) #.to_crs(n.crs)
+    renewable_regions = gpd.read_file(snakemake.input.resarea).to_crs(supply_regions.crs)
+
     fig, ax = plt.subplots(figsize=map_figsize, subplot_kw={"projection": ccrs.PlateCarree()})
+
     plot_map(n, config["plotting"], ax=ax, attribute=wildcards.attr)
 
     fig.savefig(snakemake.output.only_map, dpi=150, bbox_inches='tight')
