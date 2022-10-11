@@ -96,7 +96,7 @@ def add_wind_and_solar_limits(n):
               sense="<=",
               type="tech_capacity_expansion_limit",
               bus=nodes,
-              constant=1000)
+              constant=max_cap)
 
 def add_co2limit(n, factor=None):
 
