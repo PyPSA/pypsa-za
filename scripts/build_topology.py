@@ -5,7 +5,7 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 from operator import attrgetter
-
+import pypsa
 from vresutils.costdata import annuity
 from vresutils.shapes import haversine
 
@@ -49,7 +49,7 @@ def build_topology():
         lines['length'] = haversine(asarray(lines.bus0.map(centroids)),
                                     asarray(lines.bus1.map(centroids))) * line_config['length_factor']
 
-        num_lines = pd.read_csv(snakemake.input.num_lines, index_col=0).set_index(['bus0', 'bus1'])
+        num_lines = pd.read_excel(snakemake.input.num_lines, sheet_name = snakemake.wildcards.regions, index_col=0).set_index(['bus0', 'bus1'])
         num_parallel = sum(num_lines['num_parallel_{}'.format(int(v))] * (v/v_nom)**2
                         for v in (275, 400, 765))
 
@@ -62,6 +62,16 @@ def build_topology():
     return buses, lines
 
 if __name__ == "__main__":
+    if 'snakemake' not in globals():
+        from _helpers import mock_snakemake
+        snakemake = mock_snakemake('build_topology', **{'costs':'ambitions',
+                            'regions':'9-supply',
+                            'resarea':'redz',
+                            'll':'copt',
+                            'opts':'LC-24H',
+                            'attr':'p_nom'})
+
+
     buses, lines = build_topology()
 
     buses.to_csv(snakemake.output.buses)

@@ -50,6 +50,7 @@ def prepare_timeseries_tsam(network, normed=False):
 def cluster_snapshots(network, normed=False, noTypicalPeriods=30, extremePeriodMethod = 'None',
                       rescaleClusterPeriods=False, hoursPerPeriod=24, clusterMethod='hierarchical',
                       solver='cbc',predefClusterOrder=None):
+    # Function modified from code by Lisa Zeyen under https://github.com/lisazeyen/learning_curve
 
     timeseries_df, timeseries_df_max=prepare_timeseries_tsam(network,True)
     # If modelling a single year 
@@ -97,6 +98,7 @@ def cluster_snapshots(network, normed=False, noTypicalPeriods=30, extremePeriodM
 def tsam_clustering(timeseries_df,  timeseries_df_max, noTypicalPeriods=30, extremePeriodMethod = 'None', 
                     rescaleClusterPeriods=False, hoursPerPeriod=24, clusterMethod='hierarchical',
                     solver='cbc',predefClusterOrder=None):
+    # Function developed by Lisa Zeyen under https://github.com/lisazeyen/learning_curve
 
     aggregation = tsam.TimeSeriesAggregation(timeseries_df, noTypicalPeriods=noTypicalPeriods, extremePeriodMethod = extremePeriodMethod, 
                                             rescaleClusterPeriods=rescaleClusterPeriods, hoursPerPeriod=hoursPerPeriod, clusterMethod=clusterMethod,

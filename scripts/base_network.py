@@ -20,7 +20,7 @@ def base_network():
 
     line_config = snakemake.config['lines']
     v_nom = line_config['v_nom']
-    line_type = line_config["types"][380.]#line_config['types']
+    line_type = line_config["types"][380.] #line_config['types']
     
     lines['capacity'] = np.sqrt(3)*v_nom*n.line_types.loc[line_type, 'i_nom']*lines.num_parallel
 
@@ -84,8 +84,8 @@ def base_network():
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('base_network', **{'costs':'original',
-                            'regions':'RSA',
+        snakemake = mock_snakemake('base_network', **{'costs':'Ambitions',
+                            'regions':'9-supply',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC',

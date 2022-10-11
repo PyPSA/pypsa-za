@@ -6,9 +6,8 @@ logging:
 
 scenario:
   resarea: [redz, corridors]
-  regions: ['RSA','27-supply']
-  #sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
-  costs: [ambitions] # [csir-today, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
+  regions: ['RSA','9-supply','27-supply'] # Resolution 1-node, 9 provinces, 27 Eskom supply areas 
+  costs: [Ambitions] 
   opts: [LC, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
   ll: ['copt']
 
@@ -26,7 +25,7 @@ crs:
   distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
 
-years: [2025,2027,2030,2035,2040]
+years: [2025,2030,2035,2040]
 base_demand_year: 2012
 base_weather_years: [2012]
 historical_year: "2012"
@@ -50,6 +49,11 @@ electricity:
       CCGT: [RSA]
       coal: [RSA]
       nuclear: [RSA]
+    9-supply: 
+      OCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE] # Saldana Bay, Richards Bay, Coega
+      CCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE]
+      coal: [GAUTENG, LIMPOPO] # JOhannesburg, Waterberg
+      nuclear: [EASTERN CAPE, WESTERN CAPE] # Thyspunt, Koeberg      
     27-supply:
       OCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
       CCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH]
@@ -106,6 +110,7 @@ lines:
     380.: "Al/St 240/40 4-bundle 380.0"
   dc_type: "DC_custom_linetype"
   s_max_pu: 0.7
+  s_nom_factor: 0.7
   s_nom_max: .inf
   length_factor: 1.25
   under_construction: "zero" # 'zero': set capacity to zero, 'remove': remove, 'keep': with full capacity
@@ -180,9 +185,9 @@ solving:
     # max_iterations: 1
     # nhours: 10
   solver:
-    name: cbc #xpress
-    #lpflags: 4
-    #crossover: 0
+    name: xpress
+    lpflags: 4
+    crossover: 0
     # BarConvTol: 1.e-5
     # FeasibilityTol: 1.e-6
     # LogToConsole: 0
