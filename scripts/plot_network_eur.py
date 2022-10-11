@@ -1,24 +1,17 @@
 # SPDX-FileCopyrightText: : 2017-2022 The PyPSA-Eur Authors
 #
 # SPDX-License-Identifier: MIT
-
 """
 Plots map with pie charts and cost box bar charts.
-
 Relevant Settings
 -----------------
-
 Inputs
 ------
-
 Outputs
 -------
-
 Description
 -----------
-
 """
-
 import logging
 from _helpers_eur import (load_network_for_plots, aggregate_p, aggregate_costs, configure_logging)
 
@@ -251,7 +244,7 @@ def plot_total_cost_bar(n, opts, ax=None):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('plot_network', simpl='',
+        snakemake = mock_snakemake(costs='normal','plot_network', simpl='',
                                   clusters='5', ll='copt', opts='Co2L-24H',
                                   attr='p_nom', ext="pdf")
     configure_logging(snakemake)
