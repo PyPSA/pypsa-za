@@ -95,7 +95,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
 
     if attribute == 'p_nom':
         # bus_sizes = n.generators_t.p.sum().loc[n.generators.carrier == "load"].groupby(n.generators.bus).sum()
-        bus_sizes = pd.concat((n.generators.query('carrier != "load"').groupby(['bus', 'carrier']).p_nom_opt.sum(),
+        bus_sizes = pd.concat((n.generators.query('carrier != "load_shedding"').groupby(['bus', 'carrier']).p_nom_opt.sum(),
                               n.storage_units.groupby(['bus', 'carrier']).p_nom_opt.sum()))
         line_widths_exp = n.lines.s_nom_opt
         line_widths_cur = n.lines.s_nom_min
@@ -260,10 +260,10 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('plot_network', **{'costs':'ambitions',
-                            'regions':'RSA',
+                            'regions':'9-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC-3h',
+                            'opts':'LC',
                             'attr':'p_nom',
                             'ext':'pdf'})                                 
     configure_logging(snakemake)
