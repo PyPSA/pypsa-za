@@ -141,7 +141,9 @@ rule solve_network:
 rule plot_network:
     input:
         network='results/version-0.6/networks/solved_{costs}_{regions}_{resarea}_l{ll}_{opts}.nc',
-        tech_costs="data/costs.csv",
+        tech_costs="data/costs.xlsx",
+        supply_regions='data/supply_regions/supply_regions_{regions}.shp',
+        resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
     output:
         only_map='results/version-0.6/plots/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}.{ext}',
         ext='results/version-0.6/plots/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}_ext.{ext}',

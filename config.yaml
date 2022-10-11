@@ -8,7 +8,7 @@ scenario:
   resarea: [redz, corridors]
   regions: ['RSA','27-supply']
   #sectors: [E] # ,E+EV,E+BEV,E+BEV+V2G] # [ E+EV, E+BEV, E+BEV+V2G ]
-  costs: [original] # [csir-today, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
+  costs: [ambitions] # [csir-today, csir-moderate, csir-aggressive] #, IRP2016-Apr2016]
   opts: [LC, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
   ll: ['copt']
 

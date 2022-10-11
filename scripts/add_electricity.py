@@ -517,10 +517,10 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', **{'costs':'ambitions',
-                            'regions':'27-supply',
+                            'regions':'RSA',#'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC-30SEG',
+                            'opts':'LC-3h',#-30SEG',
                             'attr':'p_nom'})
 
     opts = snakemake.wildcards.opts.split('-')
