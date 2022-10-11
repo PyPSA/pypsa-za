@@ -116,8 +116,8 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
     linewidth_factor = opts['map'][snakemake.wildcards.attr]['linewidth_factor']
     bus_size_factor  = opts['map'][snakemake.wildcards.attr]['bus_size_factor']
 
-    vplot.shapes(supply_regions.geometry, facecolors='k', outline='k', ax=ax, rasterized=True)
-    vplot.shapes(renewable_regions.geometry, facecolors='gray', alpha=0.2, ax=ax, rasterized=True)
+    #vplot.shapes(supply_regions.geometry, facecolors='k', outline='k', ax=ax, rasterized=True)
+    #vplot.shapes(renewable_regions.geometry, facecolors='gray', alpha=0.2, ax=ax, rasterized=True)
     ## PLOT
     n.plot(line_widths=line_widths_exp/linewidth_factor,
         line_colors=line_colors["exp"],
@@ -259,11 +259,11 @@ def split_costs(n):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('plot_network', **{'costs':'original',
-                            'regions':'27-supply',
+        snakemake = mock_snakemake('plot_network', **{'costs':'ambitions',
+                            'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC',
+                            'opts':'LC-3h',
                             'attr':'p_nom',
                             'ext':'pdf'})                                 
     configure_logging(snakemake)
@@ -279,8 +279,8 @@ if __name__ == "__main__":
     )
     scenario_opts = wildcards.opts.split('-')
 
-    supply_regions = gpd.read_file(snakemake.input.supply_regions).buffer(-0.005) #.to_crs(n.crs)
-    renewable_regions = gpd.read_file(snakemake.input.resarea).to_crs(supply_regions.crs)
+    #supply_regions = gpd.read_file(snakemake.input.supply_regions).buffer(-0.005) #.to_crs(n.crs)
+    #renewable_regions = gpd.read_file(snakemake.input.resarea).to_crs(supply_regions.crs)
 
     fig, ax = plt.subplots(figsize=map_figsize, subplot_kw={"projection": ccrs.PlateCarree()})
 

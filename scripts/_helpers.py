@@ -176,7 +176,7 @@ def load_network_for_plots(fn, tech_costs, config, combine_hydro_ps=True):
 
     #Nyears = n.snapshot_weightings.objective.sum() / 8760.0
     #costs = load_costs(tech_costs, config["costs"], config["electricity"], Nyears)
-    #costs = load_costs(tech_costs, config["scenario"]["costs"], config, config["electricity"]["max_hours"], Nyears)
+    #costs = load_costs(tech_costs, config["costs"], config, config["electricity"], Nyears)
     #update_transmission_costs(n, costs)
 
     return n

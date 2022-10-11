@@ -148,7 +148,7 @@ rule plot_network:
         only_map='results/version-0.6/plots/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}.{ext}',
         ext='results/version-0.6/plots/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}_ext.{ext}',
     log: 'logs/plot_network/{costs}_{regions}_{resarea}_l{ll}_{opts}_{attr}.{ext}.log'
-    script: "scripts/plot_network_eur.py"
+    script: "scripts/plot_network.py"
 
 # rule plot_network:
 
