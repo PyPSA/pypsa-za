@@ -95,7 +95,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
 
     if attribute == 'p_nom':
         # bus_sizes = n.generators_t.p.sum().loc[n.generators.carrier == "load"].groupby(n.generators.bus).sum()
-        bus_sizes = pd.concat((n.generators.query('carrier != "load_shedding"').groupby(['bus', 'carrier']).p_nom_opt.sum(),
+        bus_sizes = pd.concat((n.generators[n.get_active_assets('Generator',2025)].query('carrier != "load_shedding"').groupby(['bus', 'carrier']).p_nom_opt.sum(),
                               n.storage_units.groupby(['bus', 'carrier']).p_nom_opt.sum()))
         line_widths_exp = n.lines.s_nom_opt
         line_widths_cur = n.lines.s_nom_min
@@ -116,17 +116,20 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
     linewidth_factor = opts['map'][snakemake.wildcards.attr]['linewidth_factor']
     bus_size_factor  = opts['map'][snakemake.wildcards.attr]['bus_size_factor']
 
-    #vplot.shapes(supply_regions.geometry, facecolors='k', outline='k', ax=ax, rasterized=True)
-    #vplot.shapes(renewable_regions.geometry, facecolors='gray', alpha=0.2, ax=ax, rasterized=True)
+    vplot.shapes(supply_regions.geometry, facecolors='k', outline='k', ax=ax, rasterized=True)
+    vplot.shapes(resarea.geometry, facecolors='gray', alpha=0.2, ax=ax, rasterized=True)
     ## PLOT
+    flow = pd.Series(5, index=n.branches().index)
+
     n.plot(line_widths=line_widths_exp/linewidth_factor,
         line_colors=line_colors["exp"],
         link_colors=line_colors["exp"],
         bus_sizes=bus_sizes/bus_size_factor,
         bus_colors=tech_colors,
         boundaries=map_boundaries,
-        color_geomap=True,
+        color_geomap=False,
         geomap=True,
+        flow=flow,
         ax=ax)
     n.plot(line_widths=line_widths_cur/linewidth_factor,
         line_colors=line_colors_with_alpha,
@@ -134,8 +137,9 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
         bus_sizes=0,
         bus_colors=tech_colors,
         boundaries=map_boundaries,
-        color_geomap=True,
+        color_geomap=False,
         geomap=True,
+        flow=flow,
         ax=ax)
     ax.set_aspect('equal')
     ax.axis('off')
@@ -152,7 +156,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
                                 linewidth=s*1e3/linewidth_factor))
         labels.append("{} GW".format(s))
     l1 = l1_1 = ax.legend(handles, labels,
-                loc="upper left", bbox_to_anchor=(0.24, 1.01),
+                loc="upper left", bbox_to_anchor=(0.6,1.3),#(0.24, 1.01),
                 frameon=False,
                 labelspacing=0.8, handletextpad=1.5,
                 title='Transmission Exist./Exp.             ')
@@ -165,7 +169,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
                                 linewidth=s*1e3/linewidth_factor))
         labels.append("/")
     l1_2 = ax.legend(handles, labels,
-                loc="upper left", bbox_to_anchor=(0.26, 1.01),
+                loc="upper left", bbox_to_anchor=(0.62,1.3),#(0.26, 1.01),
                 frameon=False,
                 labelspacing=0.8, handletextpad=0.5,
                 title=' ')
@@ -174,7 +178,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
     handles = make_legend_circles_for([10e3, 5e3, 1e3], scale=bus_size_factor, facecolor="w")
     labels = ["{} GW".format(s) for s in (10, 5, 3)]
     l2 = ax.legend(handles, labels,
-                loc="upper left", bbox_to_anchor=(0.01, 1.01),
+                loc="upper left", bbox_to_anchor=(0.35,1.3),#(0.01, 1.01),
                 frameon=False, labelspacing=1.0,
                 title='Generation',
                 handler_map=make_handler_map_to_scale_circles_as_in(ax))
@@ -186,8 +190,8 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
     for t in techs:
         handles.append(plt.Line2D([0], [0], color=tech_colors[t], marker='o', markersize=8, linewidth=0))
         labels.append(opts['nice_names'].get(t, t))
-    l3 = ax.legend(handles, labels, loc="upper center",  bbox_to_anchor=(0.5, -0.), # bbox_to_anchor=(0.72, -0.05),
-                handletextpad=0., columnspacing=0.5, ncol=4, title='Technology')
+    l3 = ax.legend(handles, labels, loc="lower left",  bbox_to_anchor=(0.6, -0.15), # bbox_to_anchor=(0.72, -0.05),
+                handletextpad=0., columnspacing=0.5, ncol=2, title='Technology')
     return fig
 
 def plot_total_energy_pie(n, opts, ax=None):
@@ -214,18 +218,37 @@ def plot_total_cost_bar(n, opts, ax=None):
     total_load = (n.snapshot_weightings.generators * n.loads_t.p.sum(axis=1)).sum()
     tech_colors = opts['tech_colors']
 
-def split_costs(n):
-    costs = aggregate_costs(n).reset_index(level=0, drop=True)
-    costs_ex = aggregate_costs(n, existing_only=True).reset_index(level=0, drop=True)
-    return (costs['capital'].add(costs['marginal'], fill_value=0.),
-            costs_ex['capital'], costs['capital'] - costs_ex['capital'], costs['marginal'])
+    def split_costs(n):
+        costs = aggregate_costs(n).reset_index(level=0, drop=True)
+        costs_ex = aggregate_costs(n, existing_only=True).reset_index(level=0, drop=True)
+        return (
+            costs['capital'].add(costs['marginal'], fill_value=0.),
+            costs_ex['capital'], 
+            costs['capital'] - costs_ex['capital'], 
+            costs['marginal']
+            )
 
     costs, costs_cap_ex, costs_cap_new, costs_marg = split_costs(n)
 
-    costs_graph = pd.DataFrame(dict(a=costs.drop('load', errors='ignore')),
-                            index=['AC-AC', 'AC line', 'onwind', 'offwind-ac',
-                                   'offwind-dc', 'solar', 'OCGT','CCGT', 'battery', 'H2']).dropna()
-    bottom = np.array([0., 0.])
+    costs_graph = pd.DataFrame(
+        dict(a=costs.drop("load", errors="ignore")),
+        index=[
+            "AC-AC",
+            "AC line",
+            "onwind",
+            "offwind-ac",
+            "offwind-dc",
+            "solar",
+            "ror",
+            "nuclear",
+            "coal",
+            "OCGT",
+            "CCGT",
+            "battery",
+            "H2",
+        ],
+    ).dropna()
+    bottom = np.array([0.0, 0.0])
     texts = []
 
     for i,ind in enumerate(costs_graph.index):
@@ -250,7 +273,7 @@ def split_costs(n):
         text = ax.text(1.1,(bottom-0.5*data)[-1]-3,opts['nice_names'].get(ind,ind))
         texts.append(text)
 
-    ax.set_ylabel("Average system cost [Eur/MWh]")
+    ax.set_ylabel("Average system cost [R/MWh]")
     ax.set_ylim([0, opts.get('costs_max', 80)])
     ax.set_xlim([0, 1])
     ax.set_xticklabels([])
@@ -274,13 +297,15 @@ if __name__ == "__main__":
 
     map_figsize = config["plotting"]['map']['figsize']
     map_boundaries = config["plotting"]['map']['boundaries']
+    config_years = [2035]
+
     n = load_network_for_plots(
         snakemake.input.network, snakemake.input.tech_costs, config
     )
     scenario_opts = wildcards.opts.split('-')
 
-    #supply_regions = gpd.read_file(snakemake.input.supply_regions).buffer(-0.005) #.to_crs(n.crs)
-    #renewable_regions = gpd.read_file(snakemake.input.resarea).to_crs(supply_regions.crs)
+    supply_regions = gpd.read_file(snakemake.input.supply_regions).buffer(-0.005) #.to_crs(n.crs)
+    resarea = gpd.read_file(snakemake.input.resarea).to_crs(supply_regions.crs)
 
     fig, ax = plt.subplots(figsize=map_figsize, subplot_kw={"projection": ccrs.PlateCarree()})
 
@@ -301,5 +326,4 @@ if __name__ == "__main__":
     amnt = '{ll} x today\'s'.format(ll=ll_factor) if ll_factor != 'opt' else 'optimal'
     fig.suptitle('Expansion to {amount} {label} at {regions} regions'
                 .format(amount=amnt, label=lbl, regions=wildcards.regions))
-
     fig.savefig(snakemake.output.ext, transparent=True, bbox_inches='tight')

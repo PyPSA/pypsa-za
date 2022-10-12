@@ -195,15 +195,15 @@ solving:
 
 plotting:
   map:
-    figsize: [15, 15]
-    boundaries: [14, 34, -35, -20] #[x1,x2,y1,y2]
+    figsize: [7, 7]
+    boundaries: [14, 34, -35, -22] #[x1,x2,y1,y2]
     p_nom:
       bus_size_factor: 5.e+4
       linewidth_factor: 3.e+3 #1.e+3 # 1.e+3  #3.e+3
 
   costs_max: 800
 
-  vre_techs: ["Wind", "PV"]
+  vre_techs: ["onwind", "offwind-ac", "offwind-dc", "solar", "ror"]
   conv_techs: ["OCGT", "CCGT", "nuclear", "coal"]
   storage_techs: ["hydro", "CAES", "battery", "PHS", "hydro+PHS"]
   store_techs: ["Li ion", "water tanks"]
