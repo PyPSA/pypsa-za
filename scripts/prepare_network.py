@@ -291,10 +291,10 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('prepare_network', **{'costs':'ambitions',
-                            'regions':'27-supply',
+                            'regions':'9-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC-3H',
+                            'opts':'LC',
                             'attr':'p_nom'})
     configure_logging(snakemake)
 

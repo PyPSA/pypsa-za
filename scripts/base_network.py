@@ -26,7 +26,7 @@ def base_network():
 
     # Buses from regions
     if len(snakemake.config['years'])==1:
-        n.set_snapshots(pd.date_range(snakemake.config['historical_year'], periods=8760, freq='h'))
+        n.set_snapshots(pd.date_range(start=str(snakemake.config['years'][0]), periods=8760, freq='h'))
         n.investment_periods=snakemake.config['years']
     else:
         snapshots = pd.DatetimeIndex([])
@@ -36,13 +36,12 @@ def base_network():
             else:
                 year_len=8760
             period = pd.date_range(start ='{}-01-01 00:00'.format(y), 
-                                freq ='{}min'.format('60'),
-                                periods=year_len/(float('60')/60))
+                                freq ='h',
+                                periods=year_len)
             period = period[~((period.month == 2) & (period.day == 29))] # exclude Feb 29 for leap years
             snapshots = snapshots.append(period) 
         n.set_snapshots(pd.MultiIndex.from_arrays([snapshots.year, snapshots]))
         n.investment_periods=snakemake.config['years']
-
         n.investment_period_weightings["years"] = list(np.diff(snakemake.config['years'])) + [5]
 
         T = 0
