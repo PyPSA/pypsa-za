@@ -139,7 +139,7 @@ def add_generator_availability(n,config_avail):
         snapshots = n.snapshots.get_level_values(1)
     else:
         snapshots=n.snapshots
-    eaf_profiles = pd.DataFrame(1,index=snapshots,columns=n.generators.index)
+    eaf_profiles = pd.DataFrame(1,index=snapshots,columns=[])
     delta_eaf=1 #TODO change with projections into the future
 
     # All existing generators in the Eskom fleet with available data
@@ -158,12 +158,8 @@ def add_generator_availability(n,config_avail):
         for gen_ext in n.generators[(n.generators.carrier==carrier) & (~n.generators.index.isin(eskom_data.index.get_level_values(0).unique()))].index:
             eaf_profiles[gen_ext] = (eaf_profiles[config_avail['new_unit_ref'][carrier]]
                                             * config_avail['new_unit_modifier'][carrier])
-
     eaf_profiles[eaf_profiles>1]=1
-
-    n.import_series_from_dataframe(eaf_profiles,
-                        "Generator",
-                        "p_max_pu")
+    n.generators_t.p_max_pu[eaf_profiles.columns]=eaf_profiles
 
 def add_min_stable_levels(n,generators,config_min_stable):
     # Existing generators
@@ -308,7 +304,6 @@ def attach_wind_and_solar(n, costs):
     cnt=0
     if isinstance(n.snapshots, pd.MultiIndex):
         for y in n.investment_periods:    
-
             solar_res.loc[y] = (solar_data.loc[str(weather_years[cnt])]
                                 .reindex(columns=solar_area.index)
                                 .clip(lower=0., upper=1.)).values     
@@ -462,6 +457,7 @@ def attach_existing_generators(n, costs):
         # TODO add to network with time-series and everything
     gens = (gens.loc[gens.carrier.isin({"coal", "oil", "gas", "nuclear"})]
             .drop(list(ps_f.values()) + list(csp_f.values()), axis=1))
+    
     _add_missing_carriers_from_costs(n, costs[snakemake.config['years'][0]], gens.carrier.unique())
 
     n.import_components_from_dataframe(gens, "Generator")
@@ -560,7 +556,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', **{'costs':'ambitions',
-                            'regions':'9-supply',#'27-supply',
+                            'regions':'RSA',#'27-supply',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC',#-30SEG',
@@ -584,6 +580,6 @@ if __name__ == "__main__":
     attach_extendable_generators(n, costs)
     attach_storage(n, costs)
     add_generator_availability(n,snakemake.config['electricity']['availability_reference'])
-    add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])       
+    #add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])       
     add_nice_carrier_names(n, snakemake.config)
     n.export_to_netcdf(snakemake.output[0])
