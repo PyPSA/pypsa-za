@@ -146,27 +146,33 @@ def add_generator_availability(n,config_avail):
     for tech in n.generators.index[n.generators.index.isin(eskom_data.index.get_level_values(0).unique())]:
         reference_data = eskom_data.loc[tech].loc[eskom_data.loc[tech].index.year.isin(config_avail['years'])]
         base_eaf=(reference_data['EAF %']/100).groupby(reference_data['EAF %'].index.month).mean()
-        if isinstance(n.snapshots, pd.MultiIndex):
-            for y in n.investment_periods:
-                eaf_profiles.loc[str(y),tech]=base_eaf[eaf_profiles.loc[str(y)].index.month].values * delta_eaf
-        else :
-            eaf_profiles[tech]=base_eaf[eaf_profiles.index.month].values * delta_eaf
-    eaf_profiles.index=n.snapshots
+        for y in n.investment_periods:
+            eaf_profiles.loc[str(y),tech]=base_eaf[eaf_profiles.loc[str(y)].index.month].values * delta_eaf
 
     # New plants without existing data take best performing of Eskom fleet
     for carrier in ['coal', 'OCGT', 'CCGT', 'nuclear']:
-        for gen_ext in n.generators[(n.generators.carrier==carrier) & (~n.generators.index.isin(eskom_data.index.get_level_values(0).unique()))].index:
-            eaf_profiles[gen_ext] = (eaf_profiles[config_avail['new_unit_ref'][carrier]]
-                                            * config_avail['new_unit_modifier'][carrier])
+        reference_data = eskom_data.loc[config_avail['new_unit_ref'][carrier]]
+        reference_data = reference_data.loc[reference_data.index.year.isin(config_avail['years'])]
+        base_eaf=(reference_data['EAF %']/100).groupby(reference_data['EAF %'].index.month).mean()* config_avail['new_unit_modifier'][carrier]
+        for gen_ext in n.generators[(n.generators.carrier==carrier) & (n.generators.p_nom_extendable)].index:
+            eaf_profiles[gen_ext]=1
+            for y in n.investment_periods:
+                eaf_profiles.loc[str(y),gen_ext]=base_eaf[eaf_profiles.loc[str(y)].index.month].values
+     
     eaf_profiles[eaf_profiles>1]=1
+    eaf_profiles.index=n.snapshots
     n.generators_t.p_max_pu[eaf_profiles.columns]=eaf_profiles
 
 def add_min_stable_levels(n,generators,config_min_stable):
     # Existing generators
     for gen in generators.index: 
         if generators.loc[gen,'min_stable']!=np.nan:
-            n.generators_t.p_min_pu[gen] = n.generators_t.p_max_pu[gen] * generators.loc[gen,'min_stable']   
-            n.generators_t.p_max_pu[gen][n.generators_t.p_max_pu[gen]<generators.loc[gen,'min_stable']] = generators.loc[gen,'min_stable']   
+            try:
+                n.generators_t.p_min_pu[gen] = n.generators_t.p_max_pu[gen] * generators.loc[gen,'min_stable']   
+                n.generators_t.p_max_pu[gen][n.generators_t.p_max_pu[gen]<generators.loc[gen,'min_stable']] = generators.loc[gen,'min_stable']   
+            except:
+                n.generators_t.p_min_pu[gen] = n.generators.p_max_pu[gen] * generators.loc[gen,'min_stable']   
+                n.generators_t.p_max_pu[gen] = max(n.generators.p_max_pu[gen],generators.loc[gen,'min_stable'])
     
     # New plants without existing data take best performing of Eskom fleet
     for carrier in ['coal', 'OCGT', 'CCGT', 'nuclear']:
@@ -351,6 +357,7 @@ def attach_existing_generators(n, costs):
                fuel_price='Fuel Price (R/GJ)',
                vom='Variable Operations and Maintenance Cost (R/MWh)',
                max_ramp_up='Max Ramp Up (MW/min)',
+               max_ramp_down='Max Ramp Down (MW/min)',
                min_stable='Min Stable Level (%)',
                unit_size='Unit size (MW)',
                units='Number units',
@@ -371,6 +378,7 @@ def attach_existing_generators(n, costs):
     gens['marginal_cost'] = 3.6*gens.pop(g_f['fuel_price'])/gens['efficiency'] + gens.pop(g_f['vom'])
     gens['capital_cost'] = 1e3*gens.pop(g_f['fom'])
     gens['ramp_limit_up'] = 60*gens.pop(g_f['max_ramp_up'])/gens[g_f['p_nom']]
+    gens['ramp_limit_down'] = 60*gens.pop(g_f['max_ramp_down'])/gens[g_f['p_nom']]
 
     gens = gens.rename(columns={g_f[f]: f for f in {'p_nom', 'name', 'carrier', 'x', 'y','build_year','decomdate','min_stable'}})
     gens['build_year'] = pd.to_datetime(gens['build_year'].fillna('{}-01-01'.format(snakemake.config['years'][0])).values).year 
@@ -556,7 +564,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', **{'costs':'ambitions',
-                            'regions':'RSA',#'27-supply',
+                            'regions':'9-supply',#'27-supply',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC',#-30SEG',
@@ -580,6 +588,6 @@ if __name__ == "__main__":
     attach_extendable_generators(n, costs)
     attach_storage(n, costs)
     add_generator_availability(n,snakemake.config['electricity']['availability_reference'])
-    #add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])       
+    add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])       
     add_nice_carrier_names(n, snakemake.config)
     n.export_to_netcdf(snakemake.output[0])

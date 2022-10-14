@@ -25,7 +25,7 @@ crs:
   distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
 
-years: [2030,2040]
+years: [2040]
 base_demand_year: 2012
 base_weather_years: [2012]
 historical_year: "2012"
@@ -44,6 +44,11 @@ electricity:
       OCGT: 'Ankerlig'
       CCGT: 'Ankerlig'
       nuclear: 'Koeberg'
+    new_unit_year:
+      coal: 2017
+      OCGT: 2017
+      CCGT: 2017
+      nuclear: 2017
     new_unit_modifier: # increase availability of existing plant for new units
       coal: 1
       OCGT: 1
@@ -205,9 +210,9 @@ solving:
     clip_p_max_pu: 1.e-2
     load_shedding: true
     noisy_costs: true
-    skip_iterations: True
+    skip_iterations: False
     min_iterations: 1
-    max_iterations: 1
+    max_iterations: 5
     formulation: kirchhoff
     # max_iterations: 1
     # nhours: 10
@@ -215,7 +220,7 @@ solving:
     name: xpress
     lpflags: 4
     crossover: 0
-    # BarConvTol: 1.e-5
+    bargapstop: 1.e-5
     # FeasibilityTol: 1.e-6
     # LogToConsole: 0
     # OutputFlag: 1
