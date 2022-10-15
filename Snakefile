@@ -92,7 +92,7 @@ rule add_electricity:
         solar_profiles='data/bundle/Supply area normalised power feed-in for PV.xlsx',
         onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         solar_area='resources/area_solar_{regions}_{resarea}.csv',
-        existing_generators="data/Existing Power Stations SA.xlsx",
+        model_file="data/model_file.xlsx",
         existing_generators_eaf="data/Eskom EAF data.xlsx",
         hydro_inflow="resources/hydro_inflow.csv",
         tech_costs="data/costs.xlsx"#"data/technology_costs.xlsx"
