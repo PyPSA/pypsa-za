@@ -95,7 +95,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
 
     if attribute == 'p_nom':
         # bus_sizes = n.generators_t.p.sum().loc[n.generators.carrier == "load"].groupby(n.generators.bus).sum()
-        bus_sizes = pd.concat((n.generators[n.get_active_assets('Generator',2025)].query('carrier != "load_shedding"').groupby(['bus', 'carrier']).p_nom_opt.sum(),
+        bus_sizes = pd.concat((n.generators[n.get_active_assets('Generator',2040)].query('carrier != "load_shedding"').groupby(['bus', 'carrier']).p_nom_opt.sum(),
                               n.storage_units.groupby(['bus', 'carrier']).p_nom_opt.sum()))
         line_widths_exp = n.lines.s_nom_opt
         line_widths_cur = n.lines.s_nom_min
@@ -129,7 +129,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
         boundaries=map_boundaries,
         color_geomap=False,
         geomap=True,
-        flow=flow,
+        #flow=flow,
         ax=ax)
     n.plot(line_widths=line_widths_cur/linewidth_factor,
         line_colors=line_colors_with_alpha,
@@ -139,7 +139,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
         boundaries=map_boundaries,
         color_geomap=False,
         geomap=True,
-        flow=flow,
+        #flow=flow,
         ax=ax)
     ax.set_aspect('equal')
     ax.axis('off')
@@ -282,8 +282,8 @@ def plot_total_cost_bar(n, opts, ax=None):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('plot_network', **{'costs':'ambitions',
-                            'regions':'9-supply',
+        snakemake = mock_snakemake('plot_network', **{'costs':'original',
+                            'regions':'27-supply',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC',

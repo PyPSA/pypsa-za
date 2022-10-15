@@ -98,20 +98,27 @@ def add_wind_and_solar_limits(n):
               bus=nodes,
               constant=max_cap)
 
-def add_co2limit(n, factor=None):
+# def add_co2limit(n, factor=None):
 
-    if factor is not None:
-        co2_emissions_limit = factor * snakemake.config["electricity"]["co2base"]
-    else:
-        co2_emissions_limit = snakemake.config["electricity"]["co2limit"]
+#     if factor is not None:
+#         co2_emissions_limit = factor * snakemake.config["electricity"]["co2base"]
+#     else:
+#         co2_emissions_limit = snakemake.config["electricity"]["co2limit"]
 
-    n.add(
-        "GlobalConstraint",
-        "CO2Limit",
-        carrier_attribute="co2_emissions",
-        sense="<=",
-        constant=co2_emissions_limit,
-    )
+#     n.add(
+#         "GlobalConstraint",
+#         "CO2Limit",
+#         carrier_attribute="co2_emissions",
+#         sense="<=",
+#         constant=co2_emissions_limit,
+#     )
+
+def add_co2limit(n):
+    n.add("GlobalConstraint", "CO2Limit",
+          carrier_attribute="co2_emissions", 
+          sense="<=",
+          constant=snakemake.config['electricity']['co2limit'])
+
 
     # n.add("GlobalConstraint",
     #       "CO2neutral",
@@ -330,10 +337,10 @@ if __name__ == "__main__":
             m = re.findall("[0-9]*\.?[0-9]+$", o)
             if len(m) > 0:
                 co2limit = float(m[0]) * snakemake.config["electricity"]["co2base"]
-                add_co2limit(n, co2limit, Nyears)
+                add_co2limit(n)
                 logger.info("Setting CO2 limit according to wildcard value.")
             else:
-                add_co2limit(n, snakemake.config["electricity"]["co2limit"], Nyears)
+                add_co2limit(n)
                 logger.info("Setting CO2 limit according to config value.")
             break
 

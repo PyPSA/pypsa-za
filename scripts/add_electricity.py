@@ -135,16 +135,16 @@ def load_costs(tech_costs, cost_scenario, config, elec_config, config_years):
 def add_generator_availability(n,config_avail):
     # Add plant availability based on actual Eskom data
     eskom_data  = pd.read_excel(snakemake.input.existing_generators_eaf, sheet_name='eskom_data', na_values=['-'],index_col=[1,0],parse_dates=True)
-    if isinstance(n.snapshots, pd.MultiIndex):
-        snapshots = n.snapshots.get_level_values(1)
-    else:
-        snapshots=n.snapshots
+    # if isinstance(n.snapshots, pd.MultiIndex):
+    snapshots = n.snapshots.get_level_values(1)
+    # else:
+    #     snapshots=n.snapshots
     eaf_profiles = pd.DataFrame(1,index=snapshots,columns=[])
     delta_eaf=1 #TODO change with projections into the future
 
     # All existing generators in the Eskom fleet with available data
     for tech in n.generators.index[n.generators.index.isin(eskom_data.index.get_level_values(0).unique())]:
-        reference_data = eskom_data.loc[tech].loc[eskom_data.loc[tech].index.year.isin(config_avail['years'])]
+        reference_data = eskom_data.loc[tech].loc[eskom_data.loc[tech].index.year.isin(config_avail['reference_years'])]
         base_eaf=(reference_data['EAF %']/100).groupby(reference_data['EAF %'].index.month).mean()
         for y in n.investment_periods:
             eaf_profiles.loc[str(y),tech]=base_eaf[eaf_profiles.loc[str(y)].index.month].values * delta_eaf
@@ -197,11 +197,11 @@ def attach_load(n):
               normed(load.loc[str(snakemake.config['base_demand_year'])]))
     base_demand = remove_leap_day(base_demand)
     
-    if isinstance(n.snapshots, pd.MultiIndex):
-        for y in n.investment_periods:
-             demand.loc[y]=base_demand.values #TODO add annual growth in demand
-    else:
-        demand = base_demand
+    # if isinstance(n.snapshots, pd.MultiIndex):
+    for y in n.investment_periods:
+            demand.loc[y]=base_demand.values #TODO add annual growth in demand
+    # else:
+    #     demand = base_demand
     demand.index=n.snapshots
     
     n.madd("Load", n.buses.index,
@@ -274,16 +274,16 @@ def attach_wind_and_solar(n, costs):
 
     cnt=0
     #
-    if isinstance(n.snapshots, pd.MultiIndex):
-        for y in n.investment_periods:    
-            onwind_res.loc[y] = (onwind_data.loc[str(weather_years[cnt])]
-                                .reindex(columns=onwind_area.index)
-                                .clip(lower=0., upper=1.)).values     
-            cnt+=1 
-    else:
-        onwind_res = (onwind_data.loc[str(weather_years[cnt])]
+    # if isinstance(n.snapshots, pd.MultiIndex):
+    for y in n.investment_periods:    
+        onwind_res.loc[y] = (onwind_data.loc[str(weather_years[cnt])]
                             .reindex(columns=onwind_area.index)
-                            .clip(lower=0., upper=1.)).values   
+                            .clip(lower=0., upper=1.)).values     
+        cnt+=1 
+    # else:
+    #     onwind_res = (onwind_data.loc[str(weather_years[cnt])]
+    #                         .reindex(columns=onwind_area.index)
+    #                         .clip(lower=0., upper=1.)).values   
         
     for y in n.investment_periods:
         n.madd("Generator", onwind_area.index, suffix=" onwind_"+str(y),
@@ -308,16 +308,16 @@ def attach_wind_and_solar(n, costs):
     solar_data = remove_leap_day(solar_data)
 
     cnt=0
-    if isinstance(n.snapshots, pd.MultiIndex):
-        for y in n.investment_periods:    
-            solar_res.loc[y] = (solar_data.loc[str(weather_years[cnt])]
-                                .reindex(columns=solar_area.index)
-                                .clip(lower=0., upper=1.)).values     
-            cnt+=1 
-    else:
-        solar_res = (solar_data.loc[str(weather_years[cnt])]
+    # if isinstance(n.snapshots, pd.MultiIndex):
+    for y in n.investment_periods:    
+        solar_res.loc[y] = (solar_data.loc[str(weather_years[cnt])]
                             .reindex(columns=solar_area.index)
-                            .clip(lower=0., upper=1.)).values   
+                            .clip(lower=0., upper=1.)).values     
+        cnt+=1 
+    # else:
+    #     solar_res = (solar_data.loc[str(weather_years[cnt])]
+    #                         .reindex(columns=solar_area.index)
+    #                         .clip(lower=0., upper=1.)).values   
 
     for y in n.investment_periods:
         n.madd("Generator", solar_area.index, suffix=" solar_"+str(y),
@@ -564,10 +564,10 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', **{'costs':'ambitions',
-                            'regions':'9-supply',#'27-supply',
+                            'regions':'27-supply',#'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC',#-30SEG',
+                            'opts':'Co2L',#-30SEG',
                             'attr':'p_nom'})
 
     opts = snakemake.wildcards.opts.split('-')
@@ -587,7 +587,8 @@ if __name__ == "__main__":
     attach_wind_and_solar(n, costs)
     attach_extendable_generators(n, costs)
     attach_storage(n, costs)
-    add_generator_availability(n,snakemake.config['electricity']['availability_reference'])
-    add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])       
+    if snakemake.config['electricity']['generator_availability']['implement_availability']==True:
+        add_generator_availability(n,snakemake.config['electricity']['generator_availability'])
+        add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])       
     add_nice_carrier_names(n, snakemake.config)
     n.export_to_netcdf(snakemake.output[0])

@@ -19,6 +19,12 @@ data:
     shapes: data/supply_regions_new/RSA_single.shp
     centroids: 'data/supply_regions_new/centroid_RSA_single.shp'
 
+enable:
+  build_land_use: False
+  build_population: False
+  build_topology: True
+
+
 # definition of the Coordinate Reference Systems
 crs:
   geo_crs: EPSG:4326  # general geographic projection, not used for metric measures. "EPSG:4326" is the standard used by OSM and google maps
@@ -33,12 +39,13 @@ historical_year: "2012"
 electricity:
   demand: 428.e+6     # 344TWh 2030, 428TWh 2040, 522TWh 2050
                       # IRP_Update_Assumptions_1904.pdf
-  co2limit: 50.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
+  co2limit: 10.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
   csp: false
   renewable_carriers: [solar, onwind, offwind-ac, offwind-dc, hydro]
   
-  availability_reference: 
-    years: [2017,2018,2019,2020,2021]
+  generator_availability: 
+    implement_availability: False
+    reference_years: [2017,2018,2019,2020,2021]
     new_unit_ref:
       coal: 'Lethabo'
       OCGT: 'Ankerlig'
@@ -54,6 +61,7 @@ electricity:
       OCGT: 1
       CCGT: 1
       nuclear: 1.1
+  
   min_stable_levels:
     coal: 0.5 # Applied to coal fleet that is operational at the time
     OCGT: 0
@@ -212,7 +220,7 @@ solving:
     noisy_costs: true
     skip_iterations: False
     min_iterations: 1
-    max_iterations: 5
+    max_iterations: 10
     formulation: kirchhoff
     # max_iterations: 1
     # nhours: 10
