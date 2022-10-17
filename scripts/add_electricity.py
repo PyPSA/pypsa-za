@@ -162,6 +162,35 @@ def load_costs(tech_costs, cost_scenario, config, elec_config, config_years):
 
     return costs
 
+def add_renewables_profiles(n,carriers): 
+    weather_years=snakemake.config['base_weather_years']
+    for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
+        weather_years+=weather_years
+
+    input_files = {'onwind_area':snakemake.input.onwind_area,
+                   'solar_area':snakemake.input.solar_area}
+
+    vre_resource={}
+    vre_area={}
+    for carrier in carriers:
+        n.add("Carrier", name=carrier)
+        vre_area[carrier] = pd.read_csv(input_files[carrier+'_area'], index_col=0)
+        vre_resource[carrier] = pd.DataFrame(0,index=n.snapshots,columns=vre_area[carrier].index)
+
+        vre_pu_data = (pd.read_excel(snakemake.input.vre_profiles,
+                                    skiprows=[1], sheet_name=carrier)
+                                    .rename(columns={'supply area\'s name': 't'}).set_index('t')
+                                    .resample('1h').mean())
+        vre_pu_data  = remove_leap_day(vre_pu_data)
+        cnt=0
+        for y in n.investment_periods:    
+            vre_resource[carrier].loc[y] = (vre_pu_data.loc[str(weather_years[cnt])]
+                                .reindex(columns=vre_area[carrier].index)
+                                .clip(lower=0., upper=1.)).values     
+            cnt+=1
+
+    return vre_area, vre_resource
+
 def add_generator_availability(n,config_avail):
     # Add plant availability based on actual Eskom data
     eskom_data  = pd.read_excel(snakemake.input.existing_generators_eaf, sheet_name='eskom_data', na_values=['-'],index_col=[1,0],parse_dates=True)
@@ -293,37 +322,7 @@ def attach_wind_and_solar(n, costs):
         weather_years+=weather_years
     g_f, ps_f, csp_f = map_generator_parameters() 
 
-    ## Onshore wind
-    n.add("Carrier", name="onwind")
-    onwind_area = pd.read_csv(snakemake.input.onwind_area, index_col=0).loc[lambda s: s.available_area > 0.]
-    onwind_res=pd.DataFrame(0,index=n.snapshots,columns=onwind_area.index)
-    onwind_data = (pd.read_excel(snakemake.input.onwind_profiles,
-                                skiprows=[1], sheet_name='Wind power profiles')
-                                .rename(columns={'supply area\'s name': 't'}).set_index('t')
-                                .resample('1h').mean())
-    onwind_data = remove_leap_day(onwind_data)
-    cnt=0
-    for y in n.investment_periods:    
-        onwind_res.loc[y] = (onwind_data.loc[str(weather_years[cnt])]
-                            .reindex(columns=onwind_area.index)
-                            .clip(lower=0., upper=1.)).values     
-        cnt+=1 
-
-    n.add("Carrier", name="solar")
-    solar_area = pd.read_csv(snakemake.input.solar_area, index_col=0).loc[lambda s: s.available_area > 0.]
-    solar_res=pd.DataFrame(0,index=n.snapshots,columns=solar_area.index)
-    solar_data = (pd.read_excel(snakemake.input.solar_profiles,
-                                skiprows=[1], sheet_name='PV profiles')
-                                .rename(columns={'supply area\'s name': 't'}).set_index('t')
-                                .resample('1h').mean())
-    solar_data = remove_leap_day(solar_data)
-
-    cnt=0
-    for y in n.investment_periods:    
-        solar_res.loc[y] = (solar_data.loc[str(weather_years[cnt])]
-                            .reindex(columns=solar_area.index)
-                            .clip(lower=0., upper=1.)).values     
-        cnt+=1 
+    vre_area, vre_resource = add_renewables_profiles(n,['onwind','solar'])
 
     # Aggregate REIPPPP plants per region
     # Add existing conventional generators that are active
@@ -360,13 +359,7 @@ def attach_wind_and_solar(n, costs):
         capital_cost=vre_gens[vre_gens['carrier']==carrier].groupby(['Grouping','bus']).mean()['capital_cost']
         marginal_cost=vre_gens[vre_gens['carrier']==carrier].groupby(['Grouping','bus']).mean()['marginal_cost']
 
-        if carrier=='solar':
-            resource_base=solar_res
-        elif carrier=='onwind':
-            resource_base=onwind_res        
-
         for group in p_nom.index.levels[0]:
-            #resource=resource_base.reindex(resource_base.columns+" "+group+"_"+carrier,axis=1)
             n.madd("Generator", p_nom[group].index, suffix=" "+group+"_"+carrier,
                 bus=p_nom[group].index,
                 carrier=carrier,
@@ -376,12 +369,12 @@ def attach_wind_and_solar(n, costs):
                 p_nom_extendable=False,
                 marginal_cost=marginal_cost[group].values,
                 capital_cost=capital_cost[group].values,
-                p_max_pu=resource_base[p_nom[group].index].values)        
+                p_max_pu=vre_resource[carrier][p_nom[group].index].values)        
 
-
+    active_area = vre_area[carrier].loc[lambda s: s.available_area > 0.]
     for y in n.investment_periods:
-        n.madd("Generator", onwind_area.index, suffix=" onwind_"+str(y),
-            bus=onwind_area.index,
+        n.madd("Generator", active_area.index, suffix=" onwind_"+str(y),
+            bus=active_area.index,
             carrier="onwind",
             build_year=y,
             lifetime=20,
@@ -389,21 +382,7 @@ def attach_wind_and_solar(n, costs):
             marginal_cost=costs[y].at['onwind', 'marginal_cost'],
             capital_cost=costs[y].at['onwind', 'capital_cost'],
             efficiency=costs[y].at['onwind', 'efficiency'],
-            p_max_pu=onwind_res)
-
-
-    ## Solar PV
-    for y in n.investment_periods:
-        n.madd("Generator", solar_area.index, suffix=" solar_"+str(y),
-            bus=solar_area.index,
-            carrier="solar",
-            build_year=y,
-            lifetime=25,
-            p_nom_extendable=True,
-            marginal_cost=costs[y].at['solar', 'marginal_cost'],
-            capital_cost=costs[y].at['solar', 'capital_cost'],
-            efficiency=costs[y].at['solar', 'efficiency'],
-            p_max_pu=solar_res)
+            p_max_pu=vre_resource[carrier][active_area.index])
 
 # # Generators
 def attach_existing_generators(n, costs):
