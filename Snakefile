@@ -83,14 +83,28 @@ rule base_network:
     resources: mem_mb=1000
     script: "scripts/base_network.py"
 
+rule build_renewable_profiles:
+    input:
+        base_network="networks/base_{regions}_{opts}.nc",
+        profiles='data/bundle/renewable_profiles.xlsx',
+        onwind_area='resources/area_wind_{regions}_{resarea}.csv',
+        solar_area='resources/area_solar_{regions}_{resarea}.csv',
+    output: profiles="resources/renewable_profiles_{regions}_{resarea}_{opts}.nc",
+    log: "logs/build_renewable_profile_{regions}_{resarea}_{opts}.log",
+    benchmark: "benchmarks/build_renewable_profiles_{regions}_{resarea}_{opts}",
+    threads: 1
+    resources: mem_mb=5000
+    script: "scripts/build_renewable_profiles.py"
+
+
 rule add_electricity:
     input:
         base_network='networks/base_{regions}_{opts}.nc',
         supply_regions='data/supply_regions/supply_regions_{regions}.shp',
         load='data/bundle/SystemEnergy2009_13.csv',
-        vre_profiles='data/bundle/variable_renewables_profiles.xlsx',
         onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         solar_area='resources/area_solar_{regions}_{resarea}.csv',
+        profiles="resources/renewable_profiles_{regions}_{resarea}_{opts}.nc",
         model_file="data/model_file.xlsx",
         existing_generators_eaf="data/Eskom EAF data.xlsx",
         hydro_inflow="resources/hydro_inflow.csv",

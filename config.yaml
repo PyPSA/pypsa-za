@@ -35,7 +35,7 @@ years: [2040]
 base_demand_year: 2012
 base_weather_years: 
   solar: [2012]
-  onwind: [2012]
+  onwind: [2012,2013]
   CSP: [2021]
   hydro: [2021]
   biomass: [2021]
