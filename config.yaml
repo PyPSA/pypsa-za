@@ -33,7 +33,12 @@ crs:
 
 years: [2040]
 base_demand_year: 2012
-base_weather_years: [2012]
+base_weather_years: 
+  solar: [2012]
+  onwind: [2012]
+  CSP: [2021]
+  hydro: [2021]
+  biomass: [2021]
 historical_year: "2012"
 
 electricity:
@@ -77,6 +82,7 @@ electricity:
 
   
   extendable_carriers:
+    Renewables: ['onwind',solar]
     Generator: [CCGT, OCGT, coal, nuclear]
     StorageUnit: [battery] 
     #Store: [battery]
