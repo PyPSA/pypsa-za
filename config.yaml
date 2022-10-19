@@ -39,6 +39,7 @@ base_weather_years:
   CSP: [2021]
   hydro: [2021]
   biomass: [2021]
+  imports: [2021]
 historical_year: "2012"
 
 electricity:
@@ -190,8 +191,9 @@ costs:
     #offwind: 0.015 
     #PV: 0.01
     #Wind: 0.015
-  USD_to_EUR: 0.7532
-  EUR_to_ZAR: 15.63
+  USD_to_ZAR: 18.24
+  EUR_to_ZAR: 17.83
+
   load_shedding: 100000 #R100/kWh
   fill_values:
     FOM: 0
@@ -222,9 +224,9 @@ solving:
   tmpdir: /tmp
   options:
     clip_p_max_pu: 1.e-2
-    load_shedding: true
+    load_shedding: false
     noisy_costs: true
-    skip_iterations: False
+    skip_iterations: false
     min_iterations: 1
     max_iterations: 10
     formulation: kirchhoff
@@ -278,7 +280,7 @@ plotting:
     "run of river": "#4adbc8"
     "solar": "#f9d002"
     "solar PV": "#f9d002"
-    "solar thermal": "#ffef60"
+    "CSP": "#ffef60"
     "biomass": "#0c6013"
     "solid biomass": "#06540d"
     "biogas": "#23932d"
@@ -291,7 +293,7 @@ plotting:
     "nuclear": "#ff9000"
     "coal": "#707070"
     "lignite": "#9e5a01"
-    "oil": "#262626"
+    "diesel": "#262626"
     "H2": "#ea048a"
     "hydrogen storage": "#ea048a"
     "battery": "#b8ea04"
@@ -306,6 +308,7 @@ plotting:
     "DC-DC": "#8a1caf"
     "DC link": "#8a1caf"
     "load_shedding": "#FF0000"
+    "Load": "#FF0000"
   nice_names:
     OCGT: "Open-Cycle Gas"
     CCGT: "Combined-Cycle Gas"

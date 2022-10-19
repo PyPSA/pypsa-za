@@ -25,9 +25,8 @@ if __name__ == '__main__':
 
     n = pypsa.Network(snakemake.input.base_network)
 
-    resource={}
     carrier_iter=0
-    for carrier in ['solar','onwind','CSP','hydro','biomass']:
+    for carrier in ['solar','onwind','CSP','biomass','hydro','imports']:
         n.add("Carrier", name=carrier)
         weather_years=snakemake.config['base_weather_years'][carrier]
         for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
@@ -38,27 +37,36 @@ if __name__ == '__main__':
                                     .resample('1h').mean())
         pu_data  = remove_leap_day(pu_data)
         cnt=0
-        resource_carrier=pd.DataFrame(0,index=n.snapshots.levels[1],columns=n.buses.index)
+        if carrier in ['solar','onwind']:
+            resource_carrier=pd.DataFrame(0,index=n.snapshots.levels[1],columns=n.buses.index)
+        else:
+            resource_carrier=pd.DataFrame(0,index=n.snapshots.levels[1],columns=['ESKOM DATA'])
         # if no data exists for a bus region, use the default RSA hourly data (from Eskom)
-        for bus in n.buses.index:
-            if bus not in pu_data.columns:
-                pu_data[bus]=pu_data['RSA']
-        pu_data=pu_data[n.buses.index]
+        pu_data=pu_data[resource_carrier.columns]
         for y in n.investment_periods:    
             resource_carrier.loc[str(y)] = (pu_data.loc[str(weather_years[cnt])]
                                         .clip(lower=0., upper=1.)).values     
             cnt+=1
         resource_carrier['carrier']=carrier
-
+        
         if carrier_iter == 0:
             resource = resource_carrier
             carrier_iter=1
         else:
             resource= pd.concat([resource,resource_carrier])
-
-    resource.index = pd.MultiIndex.from_arrays([resource.carrier,resource.index])
-    resource.drop('carrier',axis=1,inplace=True)
-
-    resource.to_xarray().to_netcdf(snakemake.output.profiles)
+        
+        if carrier=='onwind':
+            resource.index = pd.MultiIndex.from_arrays([resource.carrier,resource.index])
+            resource.drop('carrier',axis=1,inplace=True)
+            resource.to_xarray().to_netcdf(snakemake.output.wind_solar_profiles)
+            carrier_iter=0
     
+        if carrier=='imports':
+            resource.index = pd.MultiIndex.from_arrays([resource.carrier,resource.index])
+            resource.drop('carrier',axis=1,inplace=True)
+            resource.to_xarray().to_netcdf(snakemake.output.other_re_profiles)
+            carrier_iter=0
+
+
+
     
