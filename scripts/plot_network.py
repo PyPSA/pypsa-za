@@ -282,11 +282,11 @@ def plot_total_cost_bar(n, opts, ax=None):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('plot_network', **{'costs':'za_original',
+        snakemake = mock_snakemake('plot_network', **{'costs':'ambitions',
                             'regions':'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC',
+                            'opts':'Co2L',
                             'attr':'p_nom',
                             'ext':'pdf'})                                 
     configure_logging(snakemake)

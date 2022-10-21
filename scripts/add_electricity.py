@@ -180,7 +180,7 @@ def add_generator_availability(n,config_avail):
     # New plants without existing data take best performing of Eskom fleet
     for carrier in ['coal', 'OCGT', 'CCGT', 'nuclear']:
         reference_data = eskom_data.loc[config_avail['new_unit_ref'][carrier]]
-        reference_data = reference_data.loc[reference_data.index.year.isin(config_avail['years'])]
+        reference_data = reference_data.loc[reference_data.index.year.isin(config_avail['reference_years'])]
         base_eaf=(reference_data['EAF %']/100).groupby(reference_data['EAF %'].index.month).mean()* config_avail['new_unit_modifier'][carrier]
         for gen_ext in n.generators[(n.generators.carrier==carrier) & (n.generators.p_nom_extendable)].index:
             eaf_profiles[gen_ext]=1
@@ -194,7 +194,7 @@ def add_generator_availability(n,config_avail):
 def add_min_stable_levels(n,generators,config_min_stable):
     # Existing generators
     for gen in generators.index: 
-        if generators.loc[gen,'min_stable']!=np.nan:
+        if generators.loc[gen,'min_stable']!=0:
             try:
                 n.generators_t.p_min_pu[gen] = n.generators_t.p_max_pu[gen] * generators.loc[gen,'min_stable']   
                 n.generators_t.p_max_pu[gen][n.generators_t.p_max_pu[gen]<generators.loc[gen,'min_stable']] = generators.loc[gen,'min_stable']   
@@ -206,7 +206,7 @@ def add_min_stable_levels(n,generators,config_min_stable):
     for carrier in ['coal', 'OCGT', 'CCGT', 'nuclear']:
         for gen_ext in n.generators[(n.generators.carrier==carrier) & (~n.generators.index.isin(generators.index))].index:
             n.generators_t.p_min_pu[gen_ext] = n.generators_t.p_max_pu[gen_ext]*config_min_stable[carrier]
-            n.generators_t.p_max_pu[gen_ext][n.generators_t.p_min_pu[gen_ext]<config_min_stable[carrier]] = config_min_stable[carrier]
+            #n.generators_t.p_max_pu[gen_ext][n.generators_t.p_min_pu[gen_ext]<config_min_stable[carrier]] = config_min_stable[carrier]
     n.generators_t.p_min_pu=n.generators_t.p_min_pu.fillna(0)
 
  ## Attach components
@@ -603,8 +603,8 @@ if __name__ == "__main__":
     attach_wind_and_solar(n, costs, wind_solar_profiles)
     attach_extendable_generators(n, costs, wind_solar_profiles)
     attach_storage(n, costs)
-    #if snakemake.config['electricity']['generator_availability']['implement_availability']==True:
-    #    add_generator_availability(n,snakemake.config['electricity']['generator_availability'])
-    #    add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])       
+    if snakemake.config['electricity']['generator_availability']['implement_availability']==True:
+        add_generator_availability(n,snakemake.config['electricity']['generator_availability'])
+        add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])       
     add_nice_carrier_names(n, snakemake.config)
     n.export_to_netcdf(snakemake.output[0])

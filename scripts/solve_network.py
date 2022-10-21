@@ -145,7 +145,7 @@ def prepare_network(n, solve_opts):
     return n
 
 
-def add_CCL_constraints(n, config):
+def add_CCL_constraints(n, sns, config):
     agg_p_nom_limits = config["electricity"].get("agg_p_nom_limits")
 
     try:
@@ -186,7 +186,7 @@ def add_CCL_constraints(n, config):
         )
 
 
-def add_EQ_constraints(n, o, scaling=1e-1):
+def add_EQ_constraints(n, sns, o, scaling=1e-1):
     float_regex = "[0-9]*\.?[0-9]+"
     level = float(re.findall(float_regex, o)[0])
     if o[-1] == "c":
@@ -229,7 +229,7 @@ def add_EQ_constraints(n, o, scaling=1e-1):
     define_constraints(n, lhs, ">=", rhs, "equity", "min")
 
 
-def add_BAU_constraints(n, config):
+def add_BAU_constraints(n, sns, config):
     mincaps = pd.Series(config["electricity"]["BAU_mincapacities"])
     lhs = (
         linexpr((1, get_var(n, "Generator", "p_nom")))
@@ -239,7 +239,7 @@ def add_BAU_constraints(n, config):
     define_constraints(n, lhs, ">=", mincaps[lhs.index], "Carrier", "bau_mincaps")
 
 
-def add_SAFE_constraints(n, config):
+def add_SAFE_constraints(n, sns, config):
     peakdemand = (
         1.0 + config["electricity"]["SAFE_reservemargin"]
     ) * n.loads_t.p_set.sum(axis=1).max()
@@ -253,7 +253,7 @@ def add_SAFE_constraints(n, config):
     define_constraints(n, lhs, ">=", rhs, "Safe", "mintotalcap")
 
 
-def add_operational_reserve_margin_constraint(n, config):
+def add_operational_reserve_margin_constraint(n, sns, config):
 
     reserve_config = config["electricity"]["operational_reserve"]
     EPSILON_LOAD = reserve_config["epsilon_load"]
@@ -290,7 +290,7 @@ def add_operational_reserve_margin_constraint(n, config):
     define_constraints(n, lhs, ">=", rhs, "Reserve margin")
 
 
-def update_capacity_constraint(n):
+def update_capacity_constraint(n,sns):
     gen_i = n.generators.index
     ext_i = n.generators.query("p_nom_extendable").index
     fix_i = n.generators.query("not p_nom_extendable").index
@@ -328,7 +328,7 @@ def add_operational_reserve_margin(n, sns, config):
     update_capacity_constraint(n)
 
 
-def add_battery_constraints(n):
+def add_battery_constraints(n,sns):
     nodes = n.buses.index[n.buses.carrier == "battery"]
     if nodes.empty or ("Link", "p_nom") not in n.variables.index:
         return
@@ -342,6 +342,38 @@ def add_battery_constraints(n):
     )
     define_constraints(n, lhs, "=", 0, "Link", "charger_ratio")
 
+def min_capacity_factor(n,sns):
+    for y in n.investment_periods:
+        for carrier in snakemake.config["electricity"]["min_capacity_factor"]:
+            # only apply to extendable generators for now
+            cf = snakemake.config["electricity"]["min_capacity_factor"][carrier]
+            for tech in n.generators[(n.generators.p_nom_extendable==True) & (n.generators.carrier==carrier)].index:
+                tech_p_nom=get_var(n, 'Generator', 'p_nom')[tech]
+                tech_p_nom=get_var(n, 'Generator', 'p_nom')[tech]
+                tech_p=get_var(n, 'Generator', 'p')[tech].loc[y]
+                lhs = linexpr((1,tech_p)).sum()+linexpr((-cf*8760,tech_p_nom))
+                define_constraints(n, lhs, '>=',0, 'Generators', tech+'_y_'+str(y)+'_min_CF')
+
+# Reserve requirement of 1GW for fast acting reserves from PHS or battery, and 2.2GW of total reserves
+def reserves(n, sns):
+    ocgt_link_efficiency=n.links.efficiency['ocgt']
+    ocgt_p_nom = n.links.p_nom['ocgt']*ocgt_link_efficiency
+    phs_p_nom = n.links.p_nom['phs_d']
+    bat_1h_p_nom = n.storage_units.p_nom['battery_1h']
+    bat_4h_p_nom = n.storage_units.p_nom['battery_4h']
+    phs_p=get_var(n, 'Link', 'p')['phs_d']
+    ocgt_p=get_var(n, 'Link', 'p')['ocgt']
+    bat_1h_p=get_var(n, 'StorageUnit', 'p_dispatch')['battery_1h']
+    bat_4h_p=get_var(n, 'StorageUnit', 'p_dispatch')['battery_4h']
+
+    reserve=phs_p_nom+bat_1h_p_nom+bat_4h_p_nom-1000 
+    lhs = linexpr((1,phs_p)) + linexpr((1,bat_1h_p)) + linexpr((1,bat_4h_p))
+    define_constraints(n, lhs, '<=',reserve, 'Links', 'fast_reserve')
+
+    tot_reserve=ocgt_p_nom+phs_p_nom+bat_1h_p_nom+bat_4h_p_nom-2200
+    lhs += linexpr((ocgt_link_efficiency,ocgt_p))
+    define_constraints(n, lhs, '<=',tot_reserve, 'Links', 'total_reserve')
+
 
 def extra_functionality(n, snapshots):
     """
@@ -352,19 +384,19 @@ def extra_functionality(n, snapshots):
     opts = n.opts
     config = n.config
     if "BAU" in opts and n.generators.p_nom_extendable.any():
-        add_BAU_constraints(n, config)
+        add_BAU_constraints(n, snapshots, config)
     if "SAFE" in opts and n.generators.p_nom_extendable.any():
-        add_SAFE_constraints(n, config)
+        add_SAFE_constraints(n, snapshots, config)
     if "CCL" in opts and n.generators.p_nom_extendable.any():
-        add_CCL_constraints(n, config)
+        add_CCL_constraints(n, snapshots,config)
     reserve = config["electricity"].get("operational_reserve", {})
     if reserve.get("activate"):
         add_operational_reserve_margin(n, snapshots, config)
     for o in opts:
         if "EQ" in o:
-            add_EQ_constraints(n, o)
-    add_battery_constraints(n)
-
+            add_EQ_constraints(n, snapshots, o)
+    add_battery_constraints(n,snapshots)
+    min_capacity_factor(n,snapshots)
 
 def solve_network(n, config, opts="", **kwargs):
     solver_options = config["solving"]["solver"].copy()
@@ -415,7 +447,7 @@ if __name__ == "__main__":
                             'regions':'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC-3H',
+                            'opts':'LC',
                             'attr':'p_nom'})
     configure_logging(snakemake)
 

@@ -45,12 +45,12 @@ historical_year: "2012"
 electricity:
   demand: 428.e+6     # 344TWh 2030, 428TWh 2040, 522TWh 2050
                       # IRP_Update_Assumptions_1904.pdf
-  co2limit: 10.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
+  co2limit: 50.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
   csp: false
   renewable_carriers: [solar, onwind, offwind-ac, offwind-dc, hydro]
   
   generator_availability: 
-    implement_availability: False
+    implement_availability: True
     reference_years: [2017,2018,2019,2020,2021]
     new_unit_ref:
       coal: 'Lethabo'
@@ -66,14 +66,18 @@ electricity:
       coal: 1
       OCGT: 1
       CCGT: 1
-      nuclear: 1.1
+      nuclear: 1
   
   min_stable_levels:
-    coal: 0.5 # Applied to coal fleet that is operational at the time
+    coal: 0.3 # Applied to coal fleet that is operational at the time
     OCGT: 0
     CCGT: 0
-    nuclear: 0 
-    
+    nuclear: 0.5
+
+  min_capacity_factor:
+    CCGT: 0.5
+    nuclear: 0.7
+
   eskom_generation_data: 
     reference_years: [2021]
     cahorra_bassa: True
@@ -113,11 +117,12 @@ electricity:
   
   SAFE_reservemargin: 0.1
 
-  operational_reserve: # like https://genxproject.github.io/GenX/dev/core/#Reserves
-    activate: false
-    epsilon_load: 0.02 # share of total load
-    epsilon_vres: 0.02 # share of total renewable supply
-    contingency: 0 # fixed capacity in MW
+  reserves:
+    reserve_margin: # like https://genxproject.github.io/GenX/dev/core/#Reserves
+      activate: false
+      epsilon_load: 0.02 # share of total load
+      epsilon_vres: 0.02 # share of total renewable supply
+      contingency: 0 # fixed capacity in MW
 
   max_hours:
     battery: 3
@@ -226,7 +231,7 @@ solving:
     clip_p_max_pu: 1.e-2
     load_shedding: false
     noisy_costs: true
-    skip_iterations: false
+    skip_iterations: true
     min_iterations: 1
     max_iterations: 10
     formulation: kirchhoff

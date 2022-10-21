@@ -38,7 +38,7 @@ def base_network():
         snapshots = snapshots.append(period) 
     n.set_snapshots(pd.MultiIndex.from_arrays([snapshots.year, snapshots]))
     n.investment_periods=snakemake.config['years']
-    if len(snakemake.config['years'])>=1:
+    if len(snakemake.config['years'])>1:
         n.investment_period_weightings["years"] = list(np.diff(snakemake.config['years'])) + [5]
         T = 0
         for period, nyears in n.investment_period_weightings.years.items():
@@ -46,6 +46,9 @@ def base_network():
             n.investment_period_weightings.at[period, "objective"] = sum(discounts)
             T += nyears
         n.investment_period_weightings
+    else:
+        n.investment_period_weightings["years"] = [1]
+        n.investment_period_weightings["objective"] = [1]
 
     n.import_components_from_dataframe(buses, 'Bus')
 
