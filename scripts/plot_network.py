@@ -190,7 +190,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
     for t in techs:
         handles.append(plt.Line2D([0], [0], color=tech_colors[t], marker='o', markersize=8, linewidth=0))
         labels.append(opts['nice_names'].get(t, t))
-    l3 = ax.legend(handles, labels, loc="lower left",  bbox_to_anchor=(0.6, -0.15), # bbox_to_anchor=(0.72, -0.05),
+    l3 = ax.legend(handles, labels, loc="lower left",  bbox_to_anchor=(0.6, -0.3), # bbox_to_anchor=(0.72, -0.05),
                 handletextpad=0., columnspacing=0.5, ncol=2, title='Technology')
     return fig
 
@@ -282,14 +282,19 @@ def plot_total_cost_bar(n, opts, ax=None):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('plot_network', **{'costs':'ambitions',
+        snakemake = mock_snakemake('plot_network', **{'model_file':'za-updated',
                             'regions':'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'Co2L',
+                            'opts':'LC',
                             'attr':'p_nom',
                             'ext':'pdf'})                                 
     configure_logging(snakemake)
+
+    model_setup = (pd.read_excel(snakemake.input.model_file, 
+                                sheet_name='model_setup',
+                                index_col=[0])
+                                .loc[snakemake.wildcards.model_file])
 
     set_plot_style()
 
@@ -300,7 +305,7 @@ if __name__ == "__main__":
     config_years = [2035]
 
     n = load_network_for_plots(
-        snakemake.input.network, snakemake.input.tech_costs, config
+        snakemake.input.network, snakemake.input.model_file, config, model_setup.costs
     )
     scenario_opts = wildcards.opts.split('-')
 

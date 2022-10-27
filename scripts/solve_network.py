@@ -375,6 +375,36 @@ def reserves(n, sns):
     define_constraints(n, lhs, '<=',tot_reserve, 'Links', 'total_reserve')
 
 
+def add_local_max_capacity_constraint(n,snapshots):
+
+    c, attr = 'Generator', 'p_nom'
+    res = ['onwind', 'solar']
+    ext_i = n.df(c)[(n.df(c)["carrier"].isin(res))
+                    & (n.df(c)["p_nom_extendable"])].index
+    time_valid = snapshots.levels[0]
+
+    active_i = pd.concat([get_active_assets(n,c,inv_p,snapshots).rename(inv_p)
+                          for inv_p in time_valid], axis=1).astype(int)
+
+    ext_and_active = active_i.T[active_i.index.intersection(ext_i)]
+
+    if ext_and_active.empty: return
+
+    cap_vars = get_var(n, c, attr)[ext_and_active.columns]
+
+    lhs = (linexpr((ext_and_active, cap_vars)).T
+           .groupby([n.df(c).carrier, n.df(c).country]).sum(**agg_group_kwargs).T)
+
+    p_nom_max_w = n.df(c).p_nom_max.div(n.df(c).weight).loc[ext_and_active.columns]
+    p_nom_max_t = expand_series(p_nom_max_w, time_valid).T
+
+    rhs = (p_nom_max_t.mul(ext_and_active)
+           .groupby([n.df(c).carrier, n.df(c).country], axis=1)
+           .max(**agg_group_kwargs))
+
+    define_constraints(n, lhs, "<=", rhs, 'GlobalConstraint', 'res_limit')
+
+
 def extra_functionality(n, snapshots):
     """
     Collects supplementary constraints which will be passed to ``pypsa.linopf.network_lopf``.

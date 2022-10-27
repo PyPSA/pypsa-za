@@ -292,13 +292,17 @@ if __name__ == "__main__":
                             'attr':'p_nom'})
     configure_logging(snakemake)
 
-    opts = snakemake.wildcards.opts.split("-")
+    model_setup = (pd.read_excel(snakemake.input.model_file, 
+                                sheet_name='model_setup',
+                                index_col=[0])
+                                .loc[snakemake.wildcards.model_file])
 
+    opts = snakemake.wildcards.opts.split("-")
     n = pypsa.Network(snakemake.input[0])
     Nyears = n.snapshot_weightings.objective.sum() / 8760.0
     costs = load_costs(
-        snakemake.input.tech_costs,
-        snakemake.wildcards.costs,
+        snakemake.input.model_file,
+        model_setup.costs,
         snakemake.config["costs"],
         snakemake.config["electricity"],
         snakemake.config["years"],
