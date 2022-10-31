@@ -309,10 +309,16 @@ def add_partial_decommissioning(n,generators):
     for tech in n.generators[n.generators.p_nom_extendable==False].index:
         for y in n.investment_periods:
             if y >= generators.decomdate_50[tech]:
-                n.generators_t.p_max_pu.loc[y,tech]*=0.5
-                if generators.loc[tech,'min_stable']!=0:
-                    n.generators_t.p_min_pu.loc[y,tech]*=0.5
+                if tech in n.generators_t.p_max_pu.columns:
+                    n.generators_t.p_max_pu.loc[y,tech]*=0.5
+                else:
+                    n.generators_t.p_max_pu.loc[y,tech]=0.5*n.generators.p_max_pu.loc[tech]
 
+                if (generators.loc[tech,'min_stable']!=0) & (tech in n.generators_t.p_min_pu.columns):
+                    n.generators_t.p_min_pu.loc[y,tech]*=0.5
+                elif (generators.loc[tech,'min_stable']!=0) & (tech not in n.generators_t.p_min_pu.columns):
+                    n.generators_t.p_min_pu.loc[y,tech]=0.5*n.generators.p_min_pu.loc[tech]
+                    
  ## Attach components
 # ### Load
 
@@ -325,7 +331,7 @@ def attach_load(n):
 
     demand=pd.Series(0,index=n.snapshots)
     base_demand = (snakemake.config['electricity']['demand'] *
-              normed(load.loc[str(snakemake.config['base_demand_year'])]))
+              normed(load.loc[str(snakemake.config['years']['reference_demand_year'])]))
     base_demand = remove_leap_day(base_demand)
     
     # if isinstance(n.snapshots, pd.MultiIndex):
@@ -402,7 +408,7 @@ def attach_wind_and_solar(n, costs,wind_solar_profiles, model_setup):
     gens['marginal_cost'] = gens.pop(g_f['vom'])
     gens['capital_cost'] = 1e3*gens.pop(g_f['fom'])
     gens = gens.rename(columns={g_f[f]: f for f in {'p_nom', 'name', 'carrier', 'x', 'y','build_year','decomdate_100'}})
-    gens['build_year'] = pd.to_datetime(gens['build_year'].fillna('{}-01-01'.format(snakemake.config['years'][0])).values).year 
+    gens['build_year'] = pd.to_datetime(gens['build_year'].fillna('{}-01-01'.format(n.investment_periods[0])).values).year 
     gens['decomdate_100'] = pd.to_datetime(gens['decomdate_100'].replace({'beyond 2050': '2051-01-01'}).values).year
     gens['lifetime'] = gens['decomdate_100'] - gens['build_year']
     gens = gens[gens.lifetime>0].drop(['decomdate_100','Status',
@@ -486,7 +492,7 @@ def attach_existing_generators(n, costs, other_re_profiles, model_setup):
             .rename(columns={ps_f[f]: f for f in {'PHS_efficiency','PHS_max_hours'}})
             .rename(columns={csp_f[f]: f for f in {'CSP_max_hours'}}))
 
-    gens['build_year'] = pd.to_datetime(gens['build_year'].fillna('{}-01-01'.format(snakemake.config['years'][0])).values).year 
+    gens['build_year'] = pd.to_datetime(gens['build_year'].fillna('{}-01-01'.format(n.investment_periods[0])).values).year 
     gens['decomdate_50'] = pd.to_datetime(gens['decomdate_50'].replace({'beyond 2050': '2051-01-01'}).values).year
     gens['decomdate_100'] = pd.to_datetime(gens['decomdate_100'].replace({'beyond 2050': '2051-01-01'}).values).year
     gens['lifetime'] = gens['decomdate_100'] - gens['build_year']
@@ -579,29 +585,46 @@ def attach_existing_generators(n, costs, other_re_profiles, model_setup):
             #inflow=inflow_t.loc[:, hydro.index]) #TODO add in
             )
 
-    _add_missing_carriers_from_costs(n, costs[snakemake.config['years'][0]], gens.carrier.unique())
+    _add_missing_carriers_from_costs(n, costs[n.investment_periods[0]], gens.carrier.unique())
 
     return gens
 
 def attach_extendable_generators(n, costs, other_re_profiles):
     elec_opts = snakemake.config['electricity']
     carriers = elec_opts['extendable_carriers']['Generator']
-    buses = elec_opts['buses'][snakemake.wildcards.regions]
+    if snakemake.wildcards.regions=='RSA':
+        buses = dict(zip(carriers,['RSA']*len(carriers)))
+    elif snakemake.wildcards.regions=='27-supply':
+        buses = elec_opts['buses']['27-supply']
+    else:
+        buses = elec_opts['buses']['9_10-supply']
 
-    _add_missing_carriers_from_costs(n, costs[snakemake.config['years'][0]], carriers)
+    _add_missing_carriers_from_costs(n, costs[n.investment_periods[0]], carriers)
 
-    for y in snakemake.config['years']: 
+    for y in n.investment_periods: 
         for carrier in carriers:
             buses_i = buses.get(carrier, n.buses.index)
-            n.madd("Generator", buses_i, suffix=" " + carrier + "_"+str(y),
-                bus=buses_i,
-                p_nom_extendable=True,
-                carrier=carrier,
-                build_year=y,
-                lifetime=costs[y].at[carrier, 'lifetime'],
-                capital_cost=costs[y].at[carrier, 'capital_cost'],
-                marginal_cost=costs[y].at[carrier, 'marginal_cost'],
-                efficiency=costs[y].at[carrier, 'efficiency'])
+            if buses_i=='RSA':
+                n.add("Generator", buses_i + " " + carrier + "_"+str(y),
+                    bus=buses_i,
+                    p_nom_extendable=True,
+                    carrier=carrier,
+                    build_year=y,
+                    lifetime=costs[y].at[carrier, 'lifetime'],
+                    capital_cost=costs[y].at[carrier, 'capital_cost'],
+                    marginal_cost=costs[y].at[carrier, 'marginal_cost'],
+                    efficiency=costs[y].at[carrier, 'efficiency'])
+            else:
+                n.madd("Generator", buses_i, suffix=" " + carrier + "_"+str(y),
+                    bus=buses_i,
+                    p_nom_extendable=True,
+                    carrier=carrier,
+                    build_year=y,
+                    lifetime=costs[y].at[carrier, 'lifetime'],
+                    capital_cost=costs[y].at[carrier, 'capital_cost'],
+                    marginal_cost=costs[y].at[carrier, 'marginal_cost'],
+                    efficiency=costs[y].at[carrier, 'efficiency'])
+
 
 def attach_storage(n, costs):
     elec_opts = snakemake.config['electricity']
@@ -609,9 +632,9 @@ def attach_storage(n, costs):
     max_hours = elec_opts['max_hours']
     buses = elec_opts['buses']
 
-    _add_missing_carriers_from_costs(n, costs[snakemake.config['years'][0]], carriers)
+    _add_missing_carriers_from_costs(n, costs[n.investment_periods[0]], carriers)
 
-    for y in snakemake.config['years']:
+    for y in n.investment_periods:
         for carrier in carriers:
             buses_i = buses.get(carrier, n.buses.index)
             n.madd("StorageUnit", buses_i, " " + carrier + "_" + str(y),
@@ -675,10 +698,10 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', **{'model_file':'za-original',
-                            'regions':'RSA',#'27-supply',
+                            'regions':'27-supply',#'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'Co2L',#-30SEG',
+                            'opts':'Co2L-50p',#-30SEG',
                             'attr':'p_nom'})
 
     model_setup = (pd.read_excel(snakemake.input.model_file, 
@@ -693,7 +716,7 @@ if __name__ == "__main__":
         model_setup.costs,
         snakemake.config["costs"],
         snakemake.config["electricity"],
-        snakemake.config["years"],
+        snakemake.config["years"]["simulation"],
     )
 
     wind_solar_profiles = xr.open_dataset(snakemake.input.wind_solar_profiles).to_dataframe()

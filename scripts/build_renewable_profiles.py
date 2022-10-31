@@ -28,7 +28,7 @@ if __name__ == '__main__':
     carrier_iter=0
     for carrier in ['solar','onwind','CSP','biomass','hydro','imports']:
         n.add("Carrier", name=carrier)
-        weather_years=snakemake.config['base_weather_years'][carrier]
+        weather_years=snakemake.config['years']['reference_weather_years'][carrier]
         for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
             weather_years+=weather_years
    

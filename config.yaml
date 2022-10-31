@@ -7,7 +7,7 @@ logging:
 scenario:
   resarea: [redz, corridors]
   regions: ['RSA','9-supply','27-supply'] # Resolution 1-node, 9 provinces, 27 Eskom supply areas 
-  model_file: [original, ambitions] 
+  model_file: [za-original, ambitions] 
   opts: [LC, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
   ll: ['copt']
 
@@ -74,7 +74,7 @@ electricity:
   extendable_carriers:
     Renewables: ['onwind', solar]
     Generator: [CCGT, OCGT, coal, nuclear]
-    StorageUnit: [battery_1h, battery_4h] 
+    StorageUnit: [battery] 
     #Store: [battery]
     #Link: []
 
@@ -105,8 +105,7 @@ electricity:
       contingency: 0 # fixed capacity in MW
 
   max_hours:
-    battery_1h: 1
-    battery_4h: 4
+    battery: 3
     H2: 10
 
 respotentials:
@@ -201,7 +200,11 @@ costs:
     particulate: 11.3e+3
 
 tsam_clustering:
+  normed: true
   extremePeriodMethod: 'None'
+  rescaleClusterPeriods: False
+  hoursPerPeriod: 24
+  clusterMethod: 'hierarchical'
 
 solving:
   tmpdir: /tmp

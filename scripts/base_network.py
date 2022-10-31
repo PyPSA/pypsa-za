@@ -26,7 +26,7 @@ def base_network():
 
     # Buses from regions
     snapshots = pd.DatetimeIndex([])
-    for y in snakemake.config['years']:
+    for y in snakemake.config['years']['simulation']:
         if (round(y/4,0)-y/4)==0:
             year_len=8784
         else:
@@ -37,9 +37,9 @@ def base_network():
         period = period[~((period.month == 2) & (period.day == 29))] # exclude Feb 29 for leap years
         snapshots = snapshots.append(period) 
     n.set_snapshots(pd.MultiIndex.from_arrays([snapshots.year, snapshots]))
-    n.investment_periods=snakemake.config['years']
+    n.investment_periods=snakemake.config['years']['simulation']
     if len(snakemake.config['years'])>1:
-        n.investment_period_weightings["years"] = list(np.diff(snakemake.config['years'])) + [5]
+        n.investment_period_weightings["years"] = list(np.diff(snakemake.config['years']['simulation'])) + [5]
         T = 0
         for period, nyears in n.investment_period_weightings.years.items():
             discounts = [(1 / (1 + snakemake.config['costs']['discountrate']) ** t) for t in range(T, T + nyears)]

@@ -214,9 +214,11 @@ def average_every_nhours(n, offset):
                 pnl[k] = resampled
     return m
 
-def apply_time_segmentation(n, segments, config):
 
-    n = cluster_snapshots(n, normed=False, noTypicalPeriods=30)
+
+def apply_time_aggregation(n, periods, config):
+
+    n = cluster_snapshots(n, normed=False, noTypicalPeriods=int(periods))
         # n, 
         #             normed=config['normed'], 
         #             noTypicalPeriods=segments, 
@@ -228,53 +230,6 @@ def apply_time_segmentation(n, segments, config):
         #             predefClusterOrder=None)
     return n
 
-# def apply_time_segmentation(n, segments, solver_name):
-#     logger.info(f"Aggregating time series to {segments} segments.")
-#     try:
-#         import tsam.timeseriesaggregation as tsam
-#     except:
-#         raise ModuleNotFoundError(
-#             "Optional dependency 'tsam' not found." "Install via 'pip install tsam'"
-#         )
-
-#     p_max_pu_norm = n.generators_t.p_max_pu.max()
-#     p_max_pu = n.generators_t.p_max_pu / p_max_pu_norm
-
-#     load_norm = n.loads_t.p_set.max()
-#     load = n.loads_t.p_set / load_norm
-
-#     inflow_norm = n.storage_units_t.inflow.max()
-#     inflow = n.storage_units_t.inflow / inflow_norm
-
-#     raw = pd.concat([p_max_pu, load, inflow], axis=1, sort=False)
-
-#     agg = tsam.TimeSeriesAggregation(
-#         raw,
-#         hoursPerPeriod=len(raw),
-#         noTypicalPeriods=1,
-#         noSegments=int(segments),
-#         segmentation=True,
-#         solver=solver_name,
-#     )
-
-#     segmented = agg.createTypicalPeriods()
-
-#     weightings = segmented.index.get_level_values("Segment Duration")
-#     offsets = np.insert(np.cumsum(weightings[:-1]), 0, 0)
-#     snapshots = [n.snapshots[0] + pd.Timedelta(f"{offset}h") for offset in offsets]
-
-#     n.set_snapshots(pd.DatetimeIndex(snapshots, name="name"))
-#     n.snapshot_weightings = pd.Series(
-#         weightings, index=snapshots, name="weightings", dtype="float64"
-#     )
-
-#     segmented.index = snapshots
-#     n.generators_t.p_max_pu = segmented[n.generators_t.p_max_pu.columns] * p_max_pu_norm
-#     n.loads_t.p_set = segmented[n.loads_t.p_set.columns] * load_norm
-#     n.storage_units_t.inflow = segmented[n.storage_units_t.inflow.columns] * inflow_norm
-
-#     return n
-
 def set_line_nom_max(n, s_nom_max_set=np.inf, p_nom_max_set=np.inf):
     n.lines.s_nom_max.clip(upper=s_nom_max_set, inplace=True)
     n.links.p_nom_max.clip(upper=p_nom_max_set, inplace=True)
@@ -284,12 +239,11 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('prepare_network', 
-                            **{'costs':'za_original',
-                            'regions':'27-supply',
+                            **{'model_file':'za-updated',
+                            'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC',
-                            'attr':'p_nom'})
+                            'opts':'Co2L-50p'})
     configure_logging(snakemake)
 
     model_setup = (pd.read_excel(snakemake.input.model_file, 
@@ -305,7 +259,7 @@ if __name__ == "__main__":
         model_setup.costs,
         snakemake.config["costs"],
         snakemake.config["electricity"],
-        snakemake.config["years"],
+        snakemake.config["years"]["simulation"],
     )
 
     #add_wind_and_solar_limits(n) #TODO fix with custom constraint so looks at max capacity at a bus
@@ -318,9 +272,9 @@ if __name__ == "__main__":
             break
 
     for o in opts:
-        m = re.match(r"^\d+seg$", o, re.IGNORECASE)
+        m = re.match(r"^\d+p$", o, re.IGNORECASE)
         if m is not None:
-            n = apply_time_segmentation(n, m.group(0)[:-3],snakemake.config["tsam_clustering"])
+            n = apply_time_aggregation(n, m.group(0)[:-1],snakemake.config["tsam_clustering"])
             break
 
     for o in opts:
