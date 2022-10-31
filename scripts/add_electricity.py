@@ -273,9 +273,10 @@ def add_generator_availability(n,generators,config_avail):
 
     # New plants without existing data take best performing of Eskom fleet
     for carrier in ['coal', 'OCGT', 'CCGT', 'nuclear']:
-        reference_data = eskom_data.loc[config_avail['new_unit_ref'][carrier]]
-        reference_data = reference_data.loc[reference_data.index.year.isin(config_avail['reference_years'])]
-        base_eaf=(reference_data['EAF %']/100).groupby(reference_data['EAF %'].index.month).mean()* config_avail['new_unit_modifier'][carrier]
+        # 0 - Reference station, 1 - reference year, 2 - multiplier
+        reference_data = eskom_data.loc[config_avail['new_unit_ref'][carrier][0]]
+        reference_data = reference_data.loc[reference_data.index.year.isin(config_avail['new_unit_ref'][carrier][1])]
+        base_eaf=(reference_data['EAF %']/100).groupby(reference_data['EAF %'].index.month).mean()* config_avail['new_unit_ref'][carrier][2]
         for gen_ext in n.generators[(n.generators.carrier==carrier) & (n.generators.p_nom_extendable)].index:
             eaf_profiles[gen_ext]=1
             for y in n.investment_periods:
@@ -697,11 +698,11 @@ def add_nice_carrier_names(n, config):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('add_electricity', **{'model_file':'za-original',
+        snakemake = mock_snakemake('add_electricity', **{'model_file':'IRP-2019',
                             'regions':'27-supply',#'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'Co2L-50p',#-30SEG',
+                            'opts':'LC',#-30SEG',
                             'attr':'p_nom'})
 
     model_setup = (pd.read_excel(snakemake.input.model_file, 
@@ -731,7 +732,7 @@ if __name__ == "__main__":
     attach_storage(n, costs)
     if snakemake.config['electricity']['generator_availability']['implement_availability']==True:
         add_generator_availability(n,gens,snakemake.config['electricity']['generator_availability'])
-        #add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])    
+        add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])    
     add_partial_decommissioning(n,gens)   
     add_nice_carrier_names(n, snakemake.config)
     n.export_to_netcdf(snakemake.output[0])

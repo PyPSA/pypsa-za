@@ -69,6 +69,47 @@ from temporal_clustering import prepare_timeseries_tsam, tsam_clustering, cluste
 idx = pd.IndexSlice
 logger = logging.getLogger(__name__)
 
+def calc_new_built_constraints(n, model_setup):
+    build_constraints = (pd.read_excel(snakemake.input.model_file, 
+                                sheet_name='new_build',
+                                index_col=[0,1,2])).loc[model_setup['new_build']]
+
+    max_build = build_constraints.loc['max_installed_limit'].fillna(100000)
+    min_build = build_constraints.loc['min_installed_limit']
+         
+    return max_build, min_build
+
+def add_global_annual_build_limits(n,model_setup):
+    logger.info("Setting annual new build limits as specified in model_file.xlsx")
+    build_constraints = (pd.read_excel(snakemake.input.model_file, 
+                                sheet_name='new_build',
+                                index_col=[0,1,2])).loc[model_setup['new_build']]
+
+    max_build = build_constraints.loc['max_installed_limit'].fillna(100000)
+    min_build = build_constraints.loc['min_installed_limit']
+    
+    carriers = [c for c in n.generators[n.generators.p_nom_extendable].carrier.unique() if c in max_build.index]
+    for y in n.investment_periods:
+        names = ["max_period_limit_" + s + "_" + str(y) for s in carriers]
+        n.madd("GlobalConstraint",
+            names,
+            carrier_attribute=carriers,
+            sense="<=",
+            investment_period = y,
+            type="tech_capacity_expansion_limit",
+            constant=max_build.loc[carriers,y].values)
+
+    carriers = [c for c in n.generators[n.generators.p_nom_extendable].carrier.unique() if c in min_build.index]
+    for y in n.investment_periods:
+        names = ["min_period_limit_" + s + "_" + str(y) for s in carriers]
+        n.madd("GlobalConstraint",
+            names,
+            carrier_attribute=carriers,
+            sense=">=",
+            investment_period = y,
+            type="tech_capacity_expansion_limit",
+            constant=min_build.loc[carriers,y].values)
+
 def add_wind_and_solar_limits(n):
     capacity_per_sqm = snakemake.config['respotentials']['capacity_per_sqm']
     onwind_area = pd.read_csv(snakemake.input.onwind_area, index_col=0).loc[lambda s: s.available_area > 0.]['available_area']
@@ -97,6 +138,15 @@ def add_wind_and_solar_limits(n):
               sense="<=",
               type="tech_capacity_expansion_limit",
               constant=max_cap)
+
+
+    n.add("GlobalConstraint",
+            "TechLimit_total_solar",
+            carrier_attribute='solar',
+            sense="<=",
+            investment_period = n.investment_periods[0],
+            type="tech_capacity_expansion_limit",
+            constant=1000)
 
 def add_co2limit(n):
     n.add("GlobalConstraint", "CO2Limit",
@@ -215,19 +265,71 @@ def average_every_nhours(n, offset):
     return m
 
 
+def apply_tsam_segments(n, segments, config):
+    
+    logger.info(f"Aggregating time series to {segments} segments.")
+    try:
+        import tsam.timeseriesaggregation as tsam
+    except:
+        raise ModuleNotFoundError(
+            "Optional dependency 'tsam' not found." "Install via 'pip install tsam'"
+        )
+    for y in n.investment_periods:
+        p_max_pu_norm = n.generators_t.p_max_pu.loc[y].max()
+        p_max_pu = n.generators_t.p_max_pu.loc[y] / p_max_pu_norm
 
-def apply_time_aggregation(n, periods, config):
+        p_min_pu_norm = n.generators_t.p_min_pu.loc[y].max()
+        p_min_pu = n.generators_t.p_min_pu.loc[y] / p_min_pu_norm
 
+        load_norm = n.loads_t.p_set.loc[y].max()
+        load = n.loads_t.p_set.loc[y] / load_norm
+
+        inflow_norm = n.storage_units_t.inflow.loc[y].max()
+        inflow = n.storage_units_t.inflow.loc[y] / inflow_norm
+
+        raw = pd.concat([p_max_pu, load, inflow], axis=1, sort=False)
+        n_snapshots = n.snapshots.get_level_values(1)
+        raw=raw.fillna(0)
+        agg = tsam.TimeSeriesAggregation(
+            raw,
+            hoursPerPeriod=len(raw),
+            noTypicalPeriods=1,
+            noSegments=int(segments),
+            segmentation=True,
+            solver=config['solver'],
+        )
+
+        segmented = agg.createTypicalPeriods()
+
+        weightings = segmented.index.get_level_values("Segment Duration")
+        offsets = np.insert(np.cumsum(weightings[:-1]), 0, 0)
+        
+        start_snapshot = n.snapshots[n.snapshots.get_level_values(1).year.isin([y])].get_level_values(1)[0]
+        snapshots = [start_snapshot  + pd.Timedelta(f"{offset}h") for offset in offsets]
+        if y == n.investment_periods[0]:
+            stacked_snapshots = pd.DatetimeIndex(snapshots)
+            stacked_weightings = pd.Series(weightings, index=snapshots, name="weightings", dtype="float64")
+            stacked_segmented = segmented
+        else:
+            stacked_snapshots = stacked_snapshots.union(pd.DatetimeIndex(snapshots))
+            stacked_weightings = pd.concat([stacked_weightings, 
+                pd.Series(weightings, index=snapshots, name="weightings", dtype="float64")])
+            stacked_segmented = pd.concat([stacked_segmented,segmented])
+    
+    snapshots = pd.MultiIndex.from_arrays([stacked_snapshots.year, stacked_snapshots])
+    stacked_segmented.index = snapshots
+    stacked_weightings.index = snapshots
+    n.set_snapshots(snapshots)
+    n.snapshot_weightings = stacked_weightings
+    n.generators_t.p_max_pu = stacked_segmented[n.generators_t.p_max_pu.columns] * p_max_pu_norm
+    n.generators_t.p_min_pu = stacked_segmented[n.generators_t.p_min_pu.columns] * p_min_pu_norm
+    n.loads_t.p_set = stacked_segmented[n.loads_t.p_set.columns] * load_norm
+    n.storage_units_t.inflow = stacked_segmented[n.storage_units_t.inflow.columns] * inflow_norm
+
+    return n
+
+def apply_tsam_periods(n, periods, config):
     n = cluster_snapshots(n, normed=False, noTypicalPeriods=int(periods))
-        # n, 
-        #             normed=config['normed'], 
-        #             noTypicalPeriods=segments, 
-        #             extremePeriodMethod = config['extremePeriodMethod'],
-        #             rescaleClusterPeriods= config['rescaleClusterPeriods'], 
-        #             hoursPerPeriod=int(config['hoursPerPeriod']),
-        #             clusterMethod=config['clusterMethod'],
-        #             solver='cbc',
-        #             predefClusterOrder=None)
     return n
 
 def set_line_nom_max(n, s_nom_max_set=np.inf, p_nom_max_set=np.inf):
@@ -239,11 +341,11 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('prepare_network', 
-                            **{'model_file':'za-updated',
+                            **{'model_file':'IRP-2019',
                             'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'Co2L-50p'})
+                            'opts':'LC'})
     configure_logging(snakemake)
 
     model_setup = (pd.read_excel(snakemake.input.model_file, 
@@ -262,6 +364,7 @@ if __name__ == "__main__":
         snakemake.config["years"]["simulation"],
     )
 
+    add_global_annual_build_limits(n, model_setup)
     #add_wind_and_solar_limits(n) #TODO fix with custom constraint so looks at max capacity at a bus
     set_line_s_max_pu(n)
 
@@ -272,9 +375,15 @@ if __name__ == "__main__":
             break
 
     for o in opts:
-        m = re.match(r"^\d+p$", o, re.IGNORECASE)
+        m = re.match(r"^\d+PER$", o, re.IGNORECASE)
         if m is not None:
-            n = apply_time_aggregation(n, m.group(0)[:-1],snakemake.config["tsam_clustering"])
+            n = apply_tsam_periods(n, m.group(0)[:-3],snakemake.config["tsam_clustering"])
+            break
+
+    for o in opts:
+        m = re.match(r"^\d+SEG$", o, re.IGNORECASE)
+        if m is not None:
+            n = apply_tsam_segments(n, m.group(0)[:-3],snakemake.config["tsam_clustering"])
             break
 
     for o in opts:

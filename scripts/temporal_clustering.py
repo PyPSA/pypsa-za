@@ -19,7 +19,6 @@ def prepare_timeseries_tsam(network, normed=False):
     p_max_pu = network.generators_t.p_max_pu 
     load = network.loads_t.p_set
     inflow = network.storage_units_t.inflow 
-    years=network.snapshots.get_level_values(0).unique()
     p_max_pu_max = network.generators_t.p_max_pu.groupby(level=0).max() 
     load_max = network.loads_t.p_set.groupby(level=0).max() 
     inflow_max = network.storage_units_t.inflow.groupby(level=0).max() 
@@ -42,13 +41,14 @@ def prepare_timeseries_tsam(network, normed=False):
 
 
 def cluster_snapshots(network, normed=False, noTypicalPeriods=30, extremePeriodMethod = 'None',
-                      rescaleClusterPeriods=False, hoursPerPeriod=24, clusterMethod='hierarchical',
+                      rescaleClusterPeriods=False, hoursPerPeriod=48, clusterMethod='hierarchical',
                       solver='cbc',predefClusterOrder=None):
     # Function modified from code by Lisa Zeyen under https://github.com/lisazeyen/learning_curve
 
     timeseries_df, timeseries_df_max=prepare_timeseries_tsam(network,True)
     new_snapshots={}
     map_snapshots_to_periods={}
+
 
     for y in network.investment_periods:
         new_snapshots[y], map_snapshots_to_periods[y] = tsam_clustering(timeseries_df.loc[y], timeseries_df_max.loc[y,:], 
@@ -109,3 +109,5 @@ def tsam_clustering(timeseries_df,  timeseries_df_max, noTypicalPeriods=30, extr
     map_snapshots_to_periods["first_hour_RepresentativeDay"] = map_snapshots_to_periods["PeriodNum"].map(first_hour.reset_index().set_index(["PeriodNum"])["timestep"].to_dict())
 
     return new_snapshots, map_snapshots_to_periods
+
+

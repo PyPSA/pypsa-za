@@ -449,6 +449,7 @@ def solve_network(n, config, opts="", **kwargs):
             solver_options=solver_options,
             multi_investment_periods=multi_investment_periods,
             extra_functionality=extra_functionality,
+            keep_references=True,
             **kwargs
         )
     else:
@@ -461,6 +462,7 @@ def solve_network(n, config, opts="", **kwargs):
             max_iterations=max_iterations,
             multi_investment_periods=multi_investment_periods,
             extra_functionality=extra_functionality,
+            keep_references=True,
             **kwargs
         )
 
@@ -473,8 +475,8 @@ if __name__ == "__main__":
 
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('solve_network', **{'costs':'ambitions',
-                            'regions':'27-supply',
+        snakemake = mock_snakemake('solve_network', **{'model_file':'IRP-2019',
+                            'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC',
@@ -503,5 +505,4 @@ if __name__ == "__main__":
             solver_logfile=snakemake.log.solver,
         )
         n.export_to_netcdf(snakemake.output[0])
-
     logger.info("Maximum memory usage: {}".format(mem.mem_usage))

@@ -15,12 +15,9 @@ data:
   resarea:
     redz: REDZ_DEA_Unpublished_Draft_2015
     corridors: Power_corridors
-  # supply_regions:
-  #   shapes: data/supply_regions_new/RSA_single.shp
-  #   centroids: 'data/supply_regions_new/centroid_RSA_single.shp' 
 
 years: 
-  simulation: [2040]
+  simulation: [2025,2030,2035,2040]
   reference_demand_year: 2012  # should be a single year
   reference_weather_years: 
     # reference years used for solar PV and wind profiles - can be single or multiple years
@@ -51,25 +48,25 @@ electricity:
   renewable_carriers: [solar, onwind, offwind-ac, offwind-dc, hydro]
   
   generator_availability: 
-    implement_availability: false
+    implement_availability: true
     reference_years: [2017, 2018, 2019, 2020, 2021] #if multiple years specified an average is used
     new_unit_ref: 
     # base new generator performance on an existing Eskom generator
     # in the format [generator,ref year/s, rescale e.g 10% higher]
-      coal: ['Lethabo', 2017, 1]
-      OCGT: ['Ankerlig', 2017, 1]
-      CCGT: ['Ankerlig', 2017, 1]
-      nuclear: ['Koeberg', 2017, 1.1]
+      coal: ['Lethabo', [2017], 1]
+      OCGT: ['Ankerlig', [2017], 1]
+      CCGT: ['Ankerlig', [2017], 1]
+      nuclear: ['Koeberg', [2017], 1.1]
 
   min_stable_levels:
-    coal: 0 # Applied to whole fleet that is operational at the time
+    coal: 0.3 # Applied to whole fleet that is operational at the time
     OCGT: 0 
     CCGT: 0
     nuclear: 0.5
 
   min_capacity_factor:
-    CCGT: 0
-    nuclear: 0
+    CCGT: 0.5
+    nuclear: 0.5
   
   extendable_carriers:
     Renewables: ['onwind', solar]
@@ -77,6 +74,7 @@ electricity:
     StorageUnit: [battery] 
     #Store: [battery]
     #Link: []
+
 
   buses:
     9_10-supply: 
@@ -205,6 +203,7 @@ tsam_clustering:
   rescaleClusterPeriods: False
   hoursPerPeriod: 24
   clusterMethod: 'hierarchical'
+  solver: 'xpress'
 
 solving:
   tmpdir: /tmp
