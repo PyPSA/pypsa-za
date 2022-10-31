@@ -15,9 +15,22 @@ data:
   resarea:
     redz: REDZ_DEA_Unpublished_Draft_2015
     corridors: Power_corridors
-  supply_regions:
-    shapes: data/supply_regions_new/RSA_single.shp
-    centroids: 'data/supply_regions_new/centroid_RSA_single.shp' 
+  # supply_regions:
+  #   shapes: data/supply_regions_new/RSA_single.shp
+  #   centroids: 'data/supply_regions_new/centroid_RSA_single.shp' 
+
+years: 
+  simulation: [2040]
+  reference_demand_year: 2012  # should be a single year
+  reference_weather_years: 
+    # reference years used for solar PV and wind profiles - can be single or multiple years
+    solar: [2012] 
+    onwind: [2012,2013]
+    # reference years from actual Eskom data published at https://www.eskom.co.za/dataportal/
+    CSP: [2021] 
+    hydro: [2021]
+    biomass: [2021]
+    imports: [2021]
 
 enable:
   build_land_use: false
@@ -30,19 +43,8 @@ crs:
   distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
 
-years: [2040]
-base_demand_year: 2012
-base_weather_years: 
-  solar: [2012]
-  onwind: [2012,2013]
-  CSP: [2021]
-  hydro: [2021]
-  biomass: [2021]
-  imports: [2021]
-historical_year: "2012"
-
 electricity:
-  demand: 428.e+6     # 344TWh 2030, 428TWh 2040, 522TWh 2050
+  demand: 428.e+6     # annual demand in base_year
                       # IRP_Update_Assumptions_1904.pdf
   co2limit: 10.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
   csp: false
@@ -50,23 +52,15 @@ electricity:
   
   generator_availability: 
     implement_availability: false
-    reference_years: [2017,2018,2019,2020,2021]
-    new_unit_ref:
-      coal: 'Lethabo'
-      OCGT: 'Ankerlig'
-      CCGT: 'Ankerlig'
-      nuclear: 'Koeberg'
-    new_unit_year:
-      coal: 2017
-      OCGT: 2017
-      CCGT: 2017
-      nuclear: 2017
-    new_unit_modifier: # increase availability of existing plant for new units
-      coal: 1
-      OCGT: 1
-      CCGT: 1
-      nuclear: 1.1
-  
+    reference_years: [2017, 2018, 2019, 2020, 2021] #if multiple years specified an average is used
+    new_unit_ref: 
+    # base new generator performance on an existing Eskom generator
+    # in the format [generator,ref year/s, rescale e.g 10% higher]
+      coal: ['Lethabo', 2017, 1]
+      OCGT: ['Ankerlig', 2017, 1]
+      CCGT: ['Ankerlig', 2017, 1]
+      nuclear: ['Koeberg', 2017, 1.1]
+
   min_stable_levels:
     coal: 0 # Applied to whole fleet that is operational at the time
     OCGT: 0 
@@ -76,45 +70,27 @@ electricity:
   min_capacity_factor:
     CCGT: 0
     nuclear: 0
-
-  eskom_generation_data: 
-    reference_years: [2021]
-    cahorra_bassa: True
-    hydro: True
-    biomass: True
-    phs: True
-
   
   extendable_carriers:
-    Renewables: ['onwind',solar]
+    Renewables: ['onwind', solar]
     Generator: [CCGT, OCGT, coal, nuclear]
-    StorageUnit: [battery] 
+    StorageUnit: [battery_1h, battery_4h] 
     #Store: [battery]
     #Link: []
 
-
   buses:
-    RSA:
-      OCGT: [RSA]
-      CCGT: [RSA]
-      coal: [RSA]
-      nuclear: [RSA]
-    9-supply: 
+    9_10-supply: 
       OCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE] # Saldana Bay, Richards Bay, Coega
       CCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE]
       coal: [GAUTENG, LIMPOPO] # JOhannesburg, Waterberg
-      nuclear: [EASTERN CAPE, WESTERN CAPE] # Thyspunt, Koeberg      
-    10-supply: 
-      OCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE] # Saldana Bay, Richards Bay, Coega
-      CCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE]
-      coal: [GAUTENG, LIMPOPO] # JOhannesburg, Waterberg
-      nuclear: [EASTERN CAPE, WESTERN CAPE] # Thyspunt, Koeberg      
+      nuclear: [EASTERN CAPE, WESTERN CAPE] # Thyspunt, Koeberg
+      imports: [LIMPOPO]         
     27-supply:
       OCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
       CCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH]
       coal: [JOHANNESBURG, WATERBERG]
       nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
-  
+      imports: [POLOKWANE]
   BAU_mincapacities:
     nuclear: 10000
     coal: 10000
@@ -129,12 +105,14 @@ electricity:
       contingency: 0 # fixed capacity in MW
 
   max_hours:
-    battery: 3
+    battery_1h: 1
+    battery_4h: 4
     H2: 10
 
 respotentials:
   # Gives us ball-park the available areas the IWES study reports
   landusetype_percent:
+  # grid codes
     wind:
       - [[7, 8, 9, 41], 80]
       # - [[5, 6], 50]
@@ -148,21 +126,21 @@ respotentials:
     onwind: 5   # half of 10 (IWES)
     solar: 16.5 # half of 33 (IWES)
 
-
 hydro_inflow:
-  source: eskom actuals
   disable: true
-  countries: [ZA, MZ]
-  cutout: za-mz-2012
+  source: eskom #or calculate runoff using atlite
+  countries: [ZA, MZ] # only applicable to atlite
+  cutout: za-mz-2012 # only applicable to atlite
 
 lines:
-  v_nom: 380.
-  #type: 'Al/St 240/40 4-bundle 380.0'
+  v_nom: 400. #changed from 380kV from PyPSA-EUR to 400kV for South Africa
+  #type: 'Al/St 240/40 4-bundle 400.0' 
 #lines:
   types:
     220.: "Al/St 240/40 2-bundle 220.0"
     300.: "Al/St 240/40 3-bundle 300.0"
     380.: "Al/St 240/40 4-bundle 380.0"
+    400.: "Al/St 240/40 4-bundle 400.0"
   dc_type: "DC_custom_linetype"
   s_max_pu: 0.7
   s_nom_factor: 0.7
@@ -185,6 +163,7 @@ augmented_line_connection:
   new_line_type: ["HVAC", "HVDC"]  # Expanded lines can be either ["HVAC"] or ["HVDC"] or both ["HVAC", "HVDC"]
   min_expansion: 1  # [MW] New created line expands by float/int input
   min_DC_length: 600  # [km] Minimum line length of DC line
+
 
 costs:
   # costs come from data/technology_costs.xlsx
@@ -222,11 +201,7 @@ costs:
     particulate: 11.3e+3
 
 tsam_clustering:
-  normed: true
   extremePeriodMethod: 'None'
-  rescaleClusterPeriods: False
-  hoursPerPeriod: 24
-  clusterMethod: 'hierarchical'
 
 solving:
   tmpdir: /tmp

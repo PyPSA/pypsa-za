@@ -1,4 +1,96 @@
+# SPDX-FileCopyrightText: : 2017-2022 The PyPSA-EUR Authors, The PyPSA-Earth Authors, The PyPSA-ZA Authors
+# SPDX-License-Identifier: MIT
+
 # coding: utf-8
+
+"""
+Adds electrical generators, load and existing hydro storage units to a base network.
+
+Relevant Settings
+-----------------
+
+.. code:: yaml
+
+    costs:
+        year:
+        USD_to_ZAR:
+        EUR_to_ZAR:
+        marginal_cost:
+        dicountrate:
+        emission_prices:
+        load_shedding:
+
+    electricity:
+        max_hours:
+        marginal_cost:
+        capital_cost:
+        conventional_carriers:
+        co2limit:
+        extendable_carriers:
+        include_renewable_capacities_from_OPSD:
+        estimate_renewable_capacities_from_capacity_stats:
+
+    load:
+        scale:
+        ssp:
+        weather_year:
+        prediction_year:
+        region_load:
+
+    renewable:
+        hydro:
+            carriers:
+            hydro_max_hours:
+            hydro_capital_cost:
+
+    lines:
+        length_factor:
+
+.. seealso::
+    Documentation of the configuration file ``config.yaml`` at :ref:`costs_cf`,
+    :ref:`electricity_cf`, :ref:`load_cf`, :ref:`renewable_cf`, :ref:`lines_cf`
+
+Inputs
+------
+
+- ``data/costs.csv``: The database of cost assumptions for all included technologies for specific years from various sources; e.g. discount rate, lifetime, investment (CAPEX), fixed operation and maintenance (FOM), variable operation and maintenance (VOM), fuel costs, efficiency, carbon-dioxide intensity.
+- ``data/bundle/hydro_capacities.csv``: Hydropower plant store/discharge power capacities, energy storage capacity, and average hourly inflow by country.  Not currently used!
+
+    .. image:: ../img/hydrocapacities.png
+        :scale: 34 %
+
+- ``data/geth2015_hydro_capacities.csv``: alternative to capacities above; not currently used!
+- ``resources/ssp2-2.6/2030/era5_2013/Africa.nc`` Hourly country load profiles produced by GEGIS
+- ``resources/regions_onshore.geojson``: confer :ref:`busregions`
+- ``resources/gadm_shapes.geojson``: confer :ref:`shapes`
+- ``resources/powerplants.csv``: confer :ref:`powerplants`
+- ``resources/profile_{}.nc``: all technologies in ``config["renewables"].keys()``, confer :ref:`renewableprofiles`.
+- ``networks/base.nc``: confer :ref:`base`
+
+Outputs
+-------
+
+- ``networks/elec.nc``:
+
+    .. image:: ../img/elec.png
+            :scale: 33 %
+
+Description
+-----------
+
+The rule :mod:`add_electricity` ties all the different data inputs from the preceding rules together into a detailed PyPSA network that is stored in ``networks/elec.nc``. It includes:
+
+- today's transmission topology and transfer capacities (in future, optionally including lines which are under construction according to the config settings ``lines: under_construction`` and ``links: under_construction``),
+- today's thermal and hydro power generation capacities (for the technologies listed in the config setting ``electricity: conventional_carriers``), and
+- today's load time-series (upsampled in a top-down approach according to population and gross domestic product)
+
+It further adds extendable ``generators`` with **zero** capacity for
+
+- photovoltaic, onshore and AC- as well as DC-connected offshore wind installations with today's locational, hourly wind and solar capacity factors (but **no** current capacities),
+- additional open- and combined-cycle gas turbines (if ``OCGT`` and/or ``CCGT`` is listed in the config setting ``electricity: extendable_carriers``)
+"""
+
+
 from email import generator
 import logging
 import os
