@@ -131,11 +131,11 @@ rule build_renewable_profiles:
         #offshore_shapes="resources/" + RDIR + "offshore_shapes.geojson",
         cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
     output:
-        profile="resources/profile_{technology}.nc",
+        profile="resources/profile_{technology}_{regions}.nc",
     log:
-        "logs/build_renewable_profile_{technology}.log",
+        "logs/build_renewable_profile_{technology}_{regions}.log",
     benchmark:
-        "benchmarks/build_renewable_profiles_{technology}"
+        "benchmarks/build_renewable_profiles_{technology}_{regions}"
     threads: ATLITE_NPROCESSES
     resources:
         mem_mb=ATLITE_NPROCESSES * 5000,
