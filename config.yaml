@@ -137,7 +137,7 @@ atlite:
     # use 'base' to determine geographical bounds and time span from config
     # base:
       # module: era5
-    RSA-2013-era5:
+    RSA-2013-era5_9-supply:
       module: era5 # in priority order
       x: [16, 33]
       y: [-33., -21]
@@ -157,7 +157,7 @@ atlite:
 
 renewable:
   onwind:
-    cutout: RSA-2013-era5
+    cutout: RSA-2013-era5_9-supply
     resource:
       method: wind
       turbine: Vestas_V112_3MW
@@ -218,7 +218,7 @@ renewable:
   #  potential: simple # or conservative
   #  clip_p_max_pu: 1.e-2
   solar:
-    cutout: RSA-2013-era5
+    cutout: RSA-2013-era5_9-supply
     resource:
       method: pv
       panel: CSi
@@ -240,7 +240,7 @@ renewable:
     potential: simple # or conservative
     clip_p_max_pu: 1.e-2
   hydro:
-    cutout: RSA-2013-era5
+    cutout: RSA-2013-era5_9-supply
     carriers: [ror, PHS, hydro]
     PHS_max_hours: 6
     hydro_max_hours: "energy_capacity_totals_by_country" # one of energy_capacity_totals_by_country, estimate_by_large_installations or a float
