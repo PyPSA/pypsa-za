@@ -30,9 +30,10 @@ years:
     imports: [2021]
 
 enable:
+  build_natura_raster: True
   build_land_use: false
   build_population: false
-  build_topology: True
+  build_topology: false
 
 # definition of the Coordinate Reference Systems
 crs:
@@ -122,6 +123,30 @@ respotentials:
   capacity_per_sqm:
     onwind: 5   # half of 10 (IWES)
     solar: 16.5 # half of 33 (IWES)
+
+atlite:
+  nprocesses: 4
+  cutouts:
+    # use 'base' to determine geographical bounds and time span from config
+    # base:
+      # module: era5
+    RSA-2013-era5:
+      module: era5 # in priority order
+      x: [-12., 35.]
+      y: [33., 72]
+      dx: 0.3
+      dy: 0.3
+      time: ['2013', '2013']
+    #RSA-2013-sarah:
+    #  module: [sarah, era5] # in priority order
+    #  x: [-12., 45.]
+    #  y: [33., 65]
+    #  dx: 0.2
+    #  dy: 0.2
+    #  time: ['2013', '2013']
+    #  sarah_interpolate: false
+    #  sarah_dir:
+    #  features: [influx, temperature]
 
 hydro_inflow:
   disable: true
