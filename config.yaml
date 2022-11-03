@@ -32,7 +32,7 @@ years:
 enable:
   build_land_use: false
   build_population: false
-  build_topology: True
+  build_topology: false
   build_cutout: True
 
 snapshots:
@@ -139,15 +139,15 @@ atlite:
       # module: era5
     RSA-2013-era5:
       module: era5 # in priority order
-      x: [-12., 35.]
-      y: [33., 72]
+      x: [16, 33]
+      y: [-33., -21]
       dx: 0.3
       dy: 0.3
       time: ['2013', '2013']
     RSA-2013-sarah:
       module: [sarah, era5] # in priority order
-      x: [-12., 45.]
-      y: [33., 65]
+      x: [16, 33]
+      y: [-33.,-21]
       dx: 0.2
       dy: 0.2
       time: ['2013', '2013']
