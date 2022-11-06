@@ -88,7 +88,9 @@ def add_global_annual_build_limits(n,model_setup):
     max_build = build_constraints.loc['max_installed_limit'].fillna(100000)
     min_build = build_constraints.loc['min_installed_limit']
     
-    carriers = [c for c in n.generators[n.generators.p_nom_extendable].carrier.unique() if c in max_build.index]
+    gen_carriers = [c for c in n.generators[n.generators.p_nom_extendable].carrier.unique() if c in max_build.index]
+    st_carriers = [c for c in n.storage_units[n.storage_units.p_nom_extendable].carrier.unique() if c in max_build.index]
+    carriers = gen_carriers + st_carriers
     for y in n.investment_periods:
         names = ["max_period_limit_" + s + "_" + str(y) for s in carriers]
         n.madd("GlobalConstraint",
@@ -265,7 +267,7 @@ def average_every_nhours(n, offset):
     return m
 
 
-def apply_tsam_segments(n, segments, config):
+def apply_time_segmentation(n, segments, config):
     
     logger.info(f"Aggregating time series to {segments} segments.")
     try:
@@ -341,9 +343,9 @@ def apply_tsam_segments(n, segments, config):
 
     return n
 
-def apply_tsam_periods(n, periods, config):
-    n = cluster_snapshots(n, normed=False, noTypicalPeriods=int(periods))
-    return n
+# def apply_tsam_periods(n, periods, config):
+#     n = cluster_snapshots(n, normed=False, noTypicalPeriods=int(periods))
+#     return n
 
 def set_line_nom_max(n, s_nom_max_set=np.inf, p_nom_max_set=np.inf):
     n.lines.s_nom_max.clip(upper=s_nom_max_set, inplace=True)
@@ -387,16 +389,16 @@ if __name__ == "__main__":
             n = average_every_nhours(n, m.group(0))
             break
 
-    for o in opts:
-        m = re.match(r"^\d+PER$", o, re.IGNORECASE)
-        if m is not None:
-            n = apply_tsam_periods(n, m.group(0)[:-3],snakemake.config["tsam_clustering"])
-            break
+    # for o in opts:
+    #     m = re.match(r"^\d+PER$", o, re.IGNORECASE)
+    #     if m is not None:
+    #         n = apply_time_segmentation(n, m.group(0)[:-3],snakemake.config["tsam_clustering"])
+    #         break
 
     for o in opts:
         m = re.match(r"^\d+SEG$", o, re.IGNORECASE)
         if m is not None:
-            n = apply_tsam_segments(n, m.group(0)[:-3],snakemake.config["tsam_clustering"])
+            n = apply_time_segmentation(n, m.group(0)[:-3],snakemake.config["tsam_clustering"])
             break
 
     for o in opts:

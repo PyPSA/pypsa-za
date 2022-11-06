@@ -179,9 +179,9 @@ def load_costs(model_file, cost_scenario, config, elec_config, config_years):
     if len(missing_year) > 0:
         for i in missing_year: 
             cost_data.insert(0,i,np.nan) # add columns of missing year to dataframe
-        cost_data_tmp = cost_data[cost_data.columns.difference(['unit', 'source'])].sort_index(axis=1)
+        cost_data_tmp = cost_data.drop('unit',axis=1).sort_index(axis=1)
         cost_data_tmp = cost_data_tmp.interpolate(axis=1)
-        cost_data = pd.concat([cost_data_tmp, cost_data[['unit','source']]],ignore_index=False,axis=1)
+        cost_data = pd.concat([cost_data_tmp, cost_data['unit']],ignore_index=False,axis=1)
 
     # correct units to MW and ZAR
     cost_data.loc[cost_data.unit.str.contains("/kW")==True, config_years] *= 1e3
@@ -306,8 +306,8 @@ def add_min_stable_levels(n,generators,config_min_stable):
 
 
 def add_partial_decommissioning(n,generators):
-    # Only considered for existing generators - partial decomissioning of capacity
-    for tech in n.generators[n.generators.p_nom_extendable==False].index:
+    # Only considered for existing conventional - partial decomissioning of capacity
+    for tech in generators.index: #n.generators[n.generators.p_nom_extendable==False]
         for y in n.investment_periods:
             if y >= generators.decomdate_50[tech]:
                 if tech in n.generators_t.p_max_pu.columns:
@@ -323,24 +323,23 @@ def add_partial_decommissioning(n,generators):
  ## Attach components
 # ### Load
 
-def attach_load(n):
+def attach_load(n, annual_demand):
     load = pd.read_csv(snakemake.input.load)
+    
+    annual_demand = annual_demand.drop('unit')*1e6
+
     load = load.set_index(
         pd.to_datetime(load['SETTLEMENT_DATE'] + ' ' +
                        load['PERIOD'].astype(str) + ':00')
         .rename('t'))['SYSTEMENERGY']
 
     demand=pd.Series(0,index=n.snapshots)
-    base_demand = (snakemake.config['electricity']['demand'] *
-              normed(load.loc[str(snakemake.config['years']['reference_demand_year'])]))
-    base_demand = remove_leap_day(base_demand)
+    
+    profile_demand = normed(remove_leap_day(load.loc[str(snakemake.config['years']['reference_demand_year'])]))
     
     # if isinstance(n.snapshots, pd.MultiIndex):
     for y in n.investment_periods:
-            demand.loc[y]=base_demand.values #TODO add annual growth in demand
-    # else:
-    #     demand = base_demand
-    demand.index=n.snapshots
+            demand.loc[y]=profile_demand.values*annual_demand[y]
     
     n.madd("Load", n.buses.index,
            bus=n.buses.index,
@@ -443,9 +442,8 @@ def attach_wind_and_solar(n, costs,wind_solar_profiles, model_setup):
                 carrier=carrier,
                 build_year=n.investment_periods[0],
                 lifetime=plant_data.loc[group,'lifetime'],
-                p_nom_max = plant_data.loc[group,'p_nom'],
-                p_nom_min = plant_data.loc[group,'p_nom'],
-                p_nom_extendable=True,
+                p_nom = plant_data.loc[group,'p_nom'],
+                p_nom_extendable=False,
                 capital_cost=annual_cost,
                 p_max_pu=wind_solar_profiles.loc[carrier][plant_data.loc[group].index].values,
                 )
@@ -555,9 +553,8 @@ def attach_existing_generators(n, costs, other_re_profiles, model_setup):
                 carrier=carrier,
                 build_year=n.investment_periods[0],
                 lifetime=plant_data.loc[group,'lifetime'],
-                p_nom_max = plant_data.loc[group,'p_nom'],
-                p_nom_min = plant_data.loc[group,'p_nom'],
-                p_nom_extendable=True,
+                p_nom = plant_data.loc[group,'p_nom'],
+                p_nom_extendable=False,
                 capital_cost=annual_cost,
                 p_max_pu=eskom_data.values,
                 # purchase all power from existing IPPs despite higher marginal costs of early plants
@@ -699,7 +696,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', **{'model_file':'IRP-2019',
-                            'regions':'27-supply',#'27-supply',
+                            'regions':'RSA',#'27-supply',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC',#-30SEG',
@@ -709,6 +706,11 @@ if __name__ == "__main__":
                                 sheet_name='model_setup',
                                 index_col=[0])
                                 .loc[snakemake.wildcards.model_file])
+
+    projections = (pd.read_excel(snakemake.input.model_file, 
+                            sheet_name='projected_parameters',
+                            index_col=[0,1])
+                            .loc[model_setup['projected_parameters']])
 
     opts = snakemake.wildcards.opts.split('-')
     n = pypsa.Network(snakemake.input.base_network)
@@ -723,7 +725,7 @@ if __name__ == "__main__":
     wind_solar_profiles = xr.open_dataset(snakemake.input.wind_solar_profiles).to_dataframe()
     other_re_profiles = xr.open_dataset(snakemake.input.other_re_profiles).to_dataframe()
     
-    attach_load(n)
+    attach_load(n, projections.loc['annual_demand',:])
     if snakemake.wildcards.regions!='RSA':
         update_transmission_costs(n, costs)
     gens = attach_existing_generators(n, costs, other_re_profiles, model_setup)

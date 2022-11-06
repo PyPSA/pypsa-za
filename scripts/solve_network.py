@@ -89,6 +89,20 @@ from pypsa.linopf import (
     linexpr,
     network_lopf,
 )
+
+from pypsa.descriptors import (
+    Dict,
+    additional_linkports,
+    expand_series,
+    get_active_assets,
+    get_activity_mask,
+    get_bounds_pu,
+    get_extendable_i,
+    get_non_extendable_i,
+    nominal_attrs,
+)
+
+
 from vresutils.benchmark import memory_logger
 
 logger = logging.getLogger(__name__)
@@ -117,6 +131,7 @@ def prepare_network(n, solve_opts):
             bus=buses_i,
             carrier="load_shedding",
             build_year=n.investment_periods[0],
+            lifetime=100,
             #sign=1e-3,  # Adjust sign to measure p and p_nom in kW instead of MW
             marginal_cost=1e5,#load_shedding,
             p_nom=1e6,  # MW
@@ -375,6 +390,74 @@ def reserves(n, sns):
     define_constraints(n, lhs, '<=',tot_reserve, 'Links', 'total_reserve')
 
 
+def define_storage_global_constraints(n, sns):
+    """
+    Defines global constraints for the optimization. Possible types are.
+
+    4. tech_capacity_expansion_limit - linopf only considers generation - so add in storage
+        Use this to se a limit for the summed capacitiy of a carrier (e.g.
+        'onwind') for each investment period at choosen nodes. This limit
+        could e.g. represent land resource/ building restrictions for a
+        technology in a certain region. Currently, only the
+        capacities of extendable generators have to be below the set limit.
+    """
+
+    if n._multi_invest:
+        period_weighting = n.investment_period_weightings["years"]
+        weightings = n.snapshot_weightings.mul(period_weighting, level=0, axis=0).loc[
+            sns
+        ]
+    else:
+        weightings = n.snapshot_weightings.loc[sns]
+
+    def get_period(n, glc, sns):
+        period = slice(None)
+        if n._multi_invest and not np.isnan(glc["investment_period"]):
+            period = int(glc["investment_period"])
+            if period not in sns.unique("period"):
+                logger.warning(
+                    "Optimized snapshots do not contain the investment "
+                    f"period required for global constraint `{glc.name}`."
+                )
+        return period
+
+
+    # (4) tech_capacity_expansion_limit
+    # TODO: Generalize to carrier capacity expansion limit (i.e. also for stores etc.)
+    #substr = lambda s: re.sub(r"[\[\]\(\)]", "", s)
+    glcs = n.global_constraints.query("type == " '"tech_capacity_expansion_limit"')
+    c, attr = "StorageUnit", "p_nom"
+
+    for name, glc in glcs.iterrows():
+        period = get_period(n, glc, sns)
+        car = glc["carrier_attribute"]
+        bus = str(glc.get("bus", ""))  # in pypsa buses are always strings
+        ext_i = n.df(c).query("carrier == @car and p_nom_extendable").index
+        if bus:
+            ext_i = n.df(c).loc[ext_i].query("bus == @bus").index
+        ext_i = ext_i[get_activity_mask(n, c, sns)[ext_i].loc[period].any()]
+
+        if ext_i.empty:
+            continue
+
+        cap_vars = get_var(n, c, attr)[ext_i]
+
+        lhs = join_exprs(linexpr((1, cap_vars)))
+        rhs = glc.constant
+        sense = glc.sense
+
+        define_constraints(
+            n,
+            lhs,
+            sense,
+            rhs,
+            "GlobalConstraint",
+            "mu",
+            axes=pd.Index([name]),
+            spec=name,
+        )
+
+
 def add_local_max_capacity_constraint(n,snapshots):
 
     c, attr = 'Generator', 'p_nom'
@@ -427,6 +510,7 @@ def extra_functionality(n, snapshots):
             add_EQ_constraints(n, snapshots, o)
     add_battery_constraints(n,snapshots)
     min_capacity_factor(n,snapshots)
+    define_storage_global_constraints(n, snapshots)
 
 def solve_network(n, config, opts="", **kwargs):
     solver_options = config["solving"]["solver"].copy()
@@ -449,7 +533,6 @@ def solve_network(n, config, opts="", **kwargs):
             solver_options=solver_options,
             multi_investment_periods=multi_investment_periods,
             extra_functionality=extra_functionality,
-            keep_references=True,
             **kwargs
         )
     else:
@@ -462,7 +545,6 @@ def solve_network(n, config, opts="", **kwargs):
             max_iterations=max_iterations,
             multi_investment_periods=multi_investment_periods,
             extra_functionality=extra_functionality,
-            keep_references=True,
             **kwargs
         )
 
@@ -476,10 +558,10 @@ if __name__ == "__main__":
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('solve_network', **{'model_file':'IRP-2019',
-                            'regions':'10-supply',
+                            'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC-1200SEG',
+                            'opts':'LC',
                             'attr':'p_nom'})
     configure_logging(snakemake)
 
@@ -503,6 +585,7 @@ if __name__ == "__main__":
             opts=opts,
             solver_dir=tmpdir,
             solver_logfile=snakemake.log.solver,
+            #keep_references=True, only for debugging when needed
         )
         n.export_to_netcdf(snakemake.output[0])
     logger.info("Maximum memory usage: {}".format(mem.mem_usage))

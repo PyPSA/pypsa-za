@@ -16,6 +16,11 @@ if 'snakemake' not in globals():
                         'opts':'LC'})
 
 
+if snakemake.wildcards.regions == 'RSA':    # Solve available area in 10 or 27 supply regions and then sum to RSA to save memory
+    RSA_flag=True
+    snakemake.wildcards.regions='10-supply'
+    snakemake.input.supply_regions = "data/supply_regions/supply_regions_10-supply.shp"              
+
 area_crs = snakemake.config["crs"]["area_crs"]
 
 # Translate the landuse file into a raster of percentages of available area
@@ -65,4 +70,11 @@ with rasterio.open(snakemake.input.landuse) as src, rasterio.open(snakemake.outp
     stats['area'] = regions.to_crs(area_crs).area/1e6 # albert equal area has area in m^2
     stats['available_area'] = stats['area_ratio'] * stats['area']
 
-    stats.set_index(regions.name).to_csv(snakemake.output.area)
+    if RSA_flag==True:
+        area_data = stats.sum()
+        area_output = pd.DataFrame(stats.sum(),columns=['RSA']).T
+        area_output.loc['area_ratio'] = area_output['available_area']/area_output['area']
+        area_output.to_csv(snakemake.output.area)
+    else:
+        stats.set_index(regions.name).to_csv(snakemake.output.area)
+
