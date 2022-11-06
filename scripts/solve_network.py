@@ -476,10 +476,10 @@ if __name__ == "__main__":
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('solve_network', **{'model_file':'IRP-2019',
-                            'regions':'RSA',
+                            'regions':'10-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC',
+                            'opts':'LC-1200SEG',
                             'attr':'p_nom'})
     configure_logging(snakemake)
 

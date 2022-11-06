@@ -41,7 +41,7 @@ def prepare_timeseries_tsam(network, normed=False):
 
 
 def cluster_snapshots(network, normed=False, noTypicalPeriods=30, extremePeriodMethod = 'None',
-                      rescaleClusterPeriods=False, hoursPerPeriod=48, clusterMethod='hierarchical',
+                      rescaleClusterPeriods=False, hoursPerPeriod=24, clusterMethod='hierarchical',
                       solver='cbc',predefClusterOrder=None):
     # Function modified from code by Lisa Zeyen under https://github.com/lisazeyen/learning_curve
 

@@ -25,7 +25,7 @@ if config['enable']['build_land_use']:
         output: "resources/landuse_without_protected_conservation.tiff"
         benchmark: "benchmarks/landuse_remove_protected_and_conservation_areas"
         threads: 1
-        resources: mem_mb=10000
+        resources: mem_mb=20000
         script: "scripts/build_landuse_remove_protected_and_conservation_areas.py"
 
     rule build_landuse_map_to_tech_and_supply_region:
@@ -38,7 +38,7 @@ if config['enable']['build_land_use']:
             area = "resources/area_{tech}_{regions}_{resarea}.csv"
         benchmark: "benchmarks/build_landuse_map_to_tech_and_supply_region/{tech}_{regions}_{resarea}"
         threads: 1
-        resources: mem_mb=10000
+        resources: mem_mb=50000
         script: "scripts/build_landuse_map_to_tech_and_supply_region.py"
 
 if config['enable']['build_population']: 

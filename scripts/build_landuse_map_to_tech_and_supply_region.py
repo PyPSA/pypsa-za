@@ -5,6 +5,17 @@ import rasterio, rasterio.features, rasterio.mask
 import rasterstats
 import shapely.geometry
 
+
+if 'snakemake' not in globals():
+    from _helpers import mock_snakemake
+    snakemake = mock_snakemake('build_landuse_map_to_tech_and_supply_region', **{'model_file':'IRP-2019',
+                        'tech':'wind',
+                        'regions':'RSA',#'27-supply',
+                        'resarea':'redz',
+                        'll':'copt',
+                        'opts':'LC'})
+
+
 area_crs = snakemake.config["crs"]["area_crs"]
 
 # Translate the landuse file into a raster of percentages of available area

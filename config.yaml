@@ -17,7 +17,7 @@ data:
     corridors: Power_corridors
 
 years: 
-  simulation: [2025,2030,2035,2040]
+  simulation: [2025, 2030]
   reference_demand_year: 2012  # should be a single year
   reference_weather_years: 
     # reference years used for solar PV and wind profiles - can be single or multiple years
@@ -30,8 +30,8 @@ years:
     imports: [2021]
 
 enable:
-  build_land_use: false
-  build_population: false
+  build_land_use: true
+  build_population: true
   build_topology: True
 
 # definition of the Coordinate Reference Systems

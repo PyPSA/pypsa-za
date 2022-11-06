@@ -274,22 +274,25 @@ def apply_tsam_segments(n, segments, config):
         raise ModuleNotFoundError(
             "Optional dependency 'tsam' not found." "Install via 'pip install tsam'"
         )
-    for y in n.investment_periods:
-        p_max_pu_norm = n.generators_t.p_max_pu.loc[y].max()
-        p_max_pu = n.generators_t.p_max_pu.loc[y] / p_max_pu_norm
 
-        p_min_pu_norm = n.generators_t.p_min_pu.loc[y].max()
-        p_min_pu = n.generators_t.p_min_pu.loc[y] / p_min_pu_norm
+    fillna_default={'min':0,'max':1}
+    for y in n.investment_periods:
+        p_pu={}
+        p_pu_norm={}
+        for i in ['min','max']:
+            p_pu[i] = n.generators_t['p_'+i+'_pu'].loc[y]
+            p_pu[i].columns += '_'+i
+            p_pu_norm[i] = p_pu[i].max()
+            p_pu[i] = (p_pu[i]/p_pu_norm[i]).fillna(fillna_default[i])     
 
         load_norm = n.loads_t.p_set.loc[y].max()
         load = n.loads_t.p_set.loc[y] / load_norm
 
         inflow_norm = n.storage_units_t.inflow.loc[y].max()
-        inflow = n.storage_units_t.inflow.loc[y] / inflow_norm
+        inflow = (n.storage_units_t.inflow.loc[y] / inflow_norm).fillna(0)
 
-        raw = pd.concat([p_max_pu, load, inflow], axis=1, sort=False)
-        n_snapshots = n.snapshots.get_level_values(1)
-        raw=raw.fillna(0)
+        raw = pd.concat([p_pu['max'], p_pu['min'], load, inflow], axis=1, sort=False)
+
         agg = tsam.TimeSeriesAggregation(
             raw,
             hoursPerPeriod=len(raw),
@@ -306,6 +309,12 @@ def apply_tsam_segments(n, segments, config):
         
         start_snapshot = n.snapshots[n.snapshots.get_level_values(1).year.isin([y])].get_level_values(1)[0]
         snapshots = [start_snapshot  + pd.Timedelta(f"{offset}h") for offset in offsets]
+        
+        segmented[p_pu['max'].columns]*=p_pu_norm['max']
+        segmented[p_pu['min'].columns]*=p_pu_norm['min']
+        segmented[load.columns]*=load_norm
+        segmented[inflow.columns]*=inflow_norm
+
         if y == n.investment_periods[0]:
             stacked_snapshots = pd.DatetimeIndex(snapshots)
             stacked_weightings = pd.Series(weightings, index=snapshots, name="weightings", dtype="float64")
@@ -315,16 +324,20 @@ def apply_tsam_segments(n, segments, config):
             stacked_weightings = pd.concat([stacked_weightings, 
                 pd.Series(weightings, index=snapshots, name="weightings", dtype="float64")])
             stacked_segmented = pd.concat([stacked_segmented,segmented])
-    
+        logger.info(f"Segmentation complete for period: {y}")
     snapshots = pd.MultiIndex.from_arrays([stacked_snapshots.year, stacked_snapshots])
     stacked_segmented.index = snapshots
     stacked_weightings.index = snapshots
     n.set_snapshots(snapshots)
     n.snapshot_weightings = stacked_weightings
-    n.generators_t.p_max_pu = stacked_segmented[n.generators_t.p_max_pu.columns] * p_max_pu_norm
-    n.generators_t.p_min_pu = stacked_segmented[n.generators_t.p_min_pu.columns] * p_min_pu_norm
-    n.loads_t.p_set = stacked_segmented[n.loads_t.p_set.columns] * load_norm
-    n.storage_units_t.inflow = stacked_segmented[n.storage_units_t.inflow.columns] * inflow_norm
+
+    for i in ['min','max']:
+        seg_data = stacked_segmented[n.generators_t['p_'+i+'_pu'].columns+'_'+i].fillna(fillna_default[i])
+        seg_data.columns = n.generators_t['p_'+i+'_pu'].columns
+        n.generators_t['p_'+i+'_pu'] = seg_data
+
+    n.loads_t.p_set = stacked_segmented[n.loads_t.p_set.columns]
+    n.storage_units_t.inflow = stacked_segmented[n.storage_units_t.inflow.columns] 
 
     return n
 
@@ -342,10 +355,10 @@ if __name__ == "__main__":
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('prepare_network', 
                             **{'model_file':'IRP-2019',
-                            'regions':'RSA',
+                            'regions':'10-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC'})
+                            'opts':'LC-1200SEG'})
     configure_logging(snakemake)
 
     model_setup = (pd.read_excel(snakemake.input.model_file, 
