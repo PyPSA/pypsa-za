@@ -4,6 +4,8 @@ from os.path import normpath, exists, isdir
 
 localrules: all, base_network, add_electricity, plot_network, scenario_comparison # , extract_summaries, add_sectors
 
+ATLITE_NPROCESSES = config["atlite"].get("nprocesses", 4)
+
 wildcard_constraints:
     resarea="[a-zA-Z0-9]+",
     model_file="[-a-zA-Z0-9]+",
@@ -51,6 +53,23 @@ if config['enable']['build_population']:
         resources: mem_mb=1000
         script: "scripts/build_population.py"
 
+if config['enable']['build_cutout']:
+    rule build_cutout:
+        input:
+            regions_onshore="resources/offshore_shapes_{regions}.geojson",
+            #regions_offshore="resources/" + RDIR + "regions_offshore.geojson",
+        output:
+            "cutouts/{cutout}_{regions}.nc",
+        log:
+            "logs/build_cutout/{cutout}_{regions}.log",
+        benchmark:
+            "benchmarks/build_cutout_{cutout}_{regions}"
+        threads: ATLITE_NPROCESSES
+        resources:
+            mem_mb=ATLITE_NPROCESSES * 1000,
+        script:
+            "scripts/build_cutout.py"
+
 if not config['hydro_inflow']['disable']:
     rule build_inflow_per_country:
         input: EIA_hydro_gen="data/EIA_hydro_generation_2011_2014.csv"
@@ -83,21 +102,47 @@ rule base_network:
     resources: mem_mb=1000
     script: "scripts/base_network.py"
 
+#rule build_renewable_profiles:
+#    input:
+#        base_network="networks/base_{regions}_{opts}.nc",
+#        regions = 'resources/area_wind_{regions}_{resarea}.csv'#onwind_area='resources/area_wind_{regions}_{resarea}.csv',
+#        cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
+#    output: 
+#        profile = "resources/profile_{technology}_{regions}_{resarea}_{opts}.nc",
+#    log: "logs/build_renewable_profile_{technology}_{regions}_{resarea}_{opts}.log",
+#    benchmark: "benchmarks/build_renewable_profiles_{regions}_{resarea}_{opts}",
+#    threads: ATLITE_NPROCESSES
+#    resources: 
+#        mem_mb=ATLITE_NPROCESSES*5000,
+#    wildcard_constraints:
+#        technology="(?!hydro).*",  # Any technology other than hydro
+#    script: "scripts/build_renewable_profiles.py"
+
 rule build_renewable_profiles:
     input:
         base_network="networks/base_{regions}_{opts}.nc",
-        profiles='data/bundle/renewable_profiles.xlsx',
-        onwind_area='resources/area_wind_{regions}_{resarea}.csv',
-        solar_area='resources/area_solar_{regions}_{resarea}.csv',
-    output: 
-        wind_solar_profiles="resources/wind_solar_profiles_{regions}_{resarea}_{opts}.nc",
-        other_re_profiles="resources/other_re_profiles_{regions}_{resarea}_{opts}.nc",
-    log: "logs/build_renewable_profile_{regions}_{resarea}_{opts}.log",
-    benchmark: "benchmarks/build_renewable_profiles_{regions}_{resarea}_{opts}",
-    threads: 1
-    resources: mem_mb=5000
-    script: "scripts/build_renewable_profiles.py"
-
+        regions = 'resources/offshore_shapes_{regions}.geojson',
+        natura=lambda w: (
+            "resources/landuse_without_protected_conservation.tiff"
+            if config["renewable"][w.technology]["natura"]
+            else []
+        ),
+        #country_shapes="resources/" + RDIR + "country_shapes.geojson",
+        #offshore_shapes="resources/" + RDIR + "offshore_shapes.geojson",
+        cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
+    output:
+        profile="resources/profile_{technology}_{regions}.nc",
+    log:
+        "logs/build_renewable_profile_{technology}_{regions}.log",
+    benchmark:
+        "benchmarks/build_renewable_profiles_{technology}_{regions}"
+    threads: ATLITE_NPROCESSES
+    resources:
+        mem_mb=ATLITE_NPROCESSES * 5000,
+    wildcard_constraints:
+        technology="(?!hydro).*",  # Any technology other than hydro
+    script:
+        "scripts/build_renewable_profiles.py"
 
 rule add_electricity:
     input:
