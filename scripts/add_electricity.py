@@ -252,6 +252,11 @@ def load_costs(model_file, cost_scenario, config, elec_config, config_years):
             overwrites = pd.Series(overwrites)
             costs[y].loc[overwrites.index, attr] = overwrites
 
+
+
+
+            
+
     return costs
 
 def add_generator_availability(n,generators,config_avail):
@@ -386,7 +391,7 @@ def update_transmission_costs(n, costs, length_factor=1.0, simple_hvdc_costs=Fal
 
 
 # ### Generators - TODO Update from pypa-eur
-def attach_wind_and_solar(n, costs,wind_solar_profiles, model_setup):
+def attach_wind_and_solar(n, costs,input_profiles,wind_solar_profiles, carriers, model_setup):
     g_f, ps_f, csp_f = map_generator_parameters() 
     input_files={'onwind_area': snakemake.input.onwind_area,
                  'solar_area': snakemake.input.solar_area}
@@ -429,7 +434,10 @@ def attach_wind_and_solar(n, costs,wind_solar_profiles, model_setup):
     gens.loc[gens.bus.isnull(), "bus"] = pos[gens.bus.isnull()].map(lambda p: regions.distance(p).idxmin())
 
     # Aggregate REIPPPP bid window generators at each bus #TODO use capacity weighted average for lifetime, costs 
-    for carrier in ['solar','onwind']:
+    for carrier in carriers:
+        if carrier == "hydro":
+            continue    
+    #for carrier in ['solar','onwind']:
         plant_data = gens.loc[gens['carrier']==carrier,['Grouping','bus','p_nom']].groupby(['Grouping','bus']).sum()
         for param in ['lifetime','capital_cost','marginal_cost']:
             plant_data[param]=gens.loc[gens['carrier']==carrier,['Grouping','bus',param]].groupby(['Grouping','bus']).mean()
@@ -452,17 +460,34 @@ def attach_wind_and_solar(n, costs,wind_solar_profiles, model_setup):
 
         # Add new generators
         active_area = pd.read_csv(input_files[carrier+'_area'], index_col=0).loc[lambda s: s.available_area > 0.]
+        #for y in n.investment_periods:
+        #    n.madd("Generator", active_area.index, suffix=" "+carrier+"_"+str(y),
+        #        bus=active_area.index,
+        #        carrier=carrier,
+        #        build_year=y,
+        #        lifetime=costs[y].at[carrier,'lifetime'],
+        #        p_nom_extendable=True,
+        #        marginal_cost=costs[y].at[carrier, 'marginal_cost'],
+        #        capital_cost=costs[y].at[carrier, 'capital_cost'],
+        #        efficiency=costs[y].at[carrier, 'efficiency'],
+        #        p_max_pu=wind_solar_profiles.loc[carrier][active_area.index].values)
+        with xr.open_dataset(getattr(input_profiles, "profile_" + carrier)) as ds:
+            if ds.indexes["bus"].empty:
+                continue
+
         for y in n.investment_periods:
-            n.madd("Generator", active_area.index, suffix=" "+carrier+"_"+str(y),
-                bus=active_area.index,
+            n.madd("Generator", ds.indexes["bus"], suffix=" "+carrier+"_"+str(y),
+                bus=ds.indexes["bus"],
                 carrier=carrier,
                 build_year=y,
                 lifetime=costs[y].at[carrier,'lifetime'],
                 p_nom_extendable=True,
+                p_nom_max=ds["p_nom_max"].to_pandas(),
+                weight=ds["weight"].to_pandas(),
                 marginal_cost=costs[y].at[carrier, 'marginal_cost'],
                 capital_cost=costs[y].at[carrier, 'capital_cost'],
                 efficiency=costs[y].at[carrier, 'efficiency'],
-                p_max_pu=wind_solar_profiles.loc[carrier][active_area.index].values)
+                p_max_pu=ds["profile"].transpose("time", "bus").to_pandas())
 
 # # Generators
 def attach_existing_generators(n, costs, other_re_profiles, model_setup):
@@ -699,7 +724,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', **{'model_file':'IRP-2019',
-                            'regions':'27-supply',#'27-supply',
+                            'regions':'9-supply', #'27-supply',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC',#-30SEG',
@@ -722,12 +747,14 @@ if __name__ == "__main__":
 
     wind_solar_profiles = xr.open_dataset(snakemake.input.wind_solar_profiles).to_dataframe()
     other_re_profiles = xr.open_dataset(snakemake.input.other_re_profiles).to_dataframe()
+    renewable_carriers = snakemake.config["renewable"]
     
     attach_load(n)
     if snakemake.wildcards.regions!='RSA':
         update_transmission_costs(n, costs)
     gens = attach_existing_generators(n, costs, other_re_profiles, model_setup)
-    attach_wind_and_solar(n, costs, wind_solar_profiles, model_setup)
+    attach_wind_and_solar(n, costs, snakemake.input ,wind_solar_profiles, renewable_carriers, model_setup)
+    #attach_wind_and_solar(n, costs, wind_solar_profiles, model_setup)
     attach_extendable_generators(n, costs, wind_solar_profiles)
     attach_storage(n, costs)
     if snakemake.config['electricity']['generator_availability']['implement_availability']==True:
