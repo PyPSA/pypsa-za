@@ -337,6 +337,9 @@ if __name__ == "__main__":
         min_p_max_pu = config["clip_p_max_pu"]
         ds["profile"] = ds["profile"].where(ds["profile"] >= min_p_max_pu, 0)
 
+    ds["profile"].transpose("time", "bus").to_pandas()
+
+
     ds.to_netcdf(snakemake.output.profile)
 
     n = pypsa.Network(snakemake.input.base_network)

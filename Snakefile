@@ -132,12 +132,12 @@ rule build_renewable_profiles:
         #offshore_shapes="resources/" + RDIR + "offshore_shapes.geojson",
         cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
     output:
-        profile="resources/profile_{technology}_{regions}.nc",
-        other_re_profiles="resources/other_re_profiles_{technology}_{regions}.nc"
+        profile="resources/profile_{technology}_{regions}_{opts}.nc",
+        other_re_profiles="resources/other_re_profiles_{technology}_{regions}_{opts}.nc"
     log:
-        "logs/build_renewable_profile_{technology}_{regions}.log",
+        "logs/build_renewable_profile_{technology}_{regions}_{opts}.log",
     benchmark:
-        "benchmarks/build_renewable_profiles_{technology}_{regions}"
+        "benchmarks/build_renewable_profiles_{technology}_{regions}_{opts}"
     threads: ATLITE_NPROCESSES
     resources:
         mem_mb=ATLITE_NPROCESSES * 5000,
@@ -149,7 +149,7 @@ rule build_renewable_profiles:
 rule add_electricity:
     input:
         **{
-            f"profile_{tech}_9-supply": "resources/" + f"profile_{tech}_9-supply.nc"
+            f"profile_{tech}"+"_{regions}_{resarea}_{opts}": f"resources/profile_{tech}_"+ "{regions}_{opts}.nc"
             for tech in config["renewable"]
         },
         base_network='networks/base_{regions}_{opts}.nc',

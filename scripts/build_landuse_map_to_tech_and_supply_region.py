@@ -20,6 +20,8 @@ if snakemake.wildcards.regions == 'RSA':    # Solve available area in 10 or 27 s
     RSA_flag=True
     snakemake.wildcards.regions='10-supply'
     snakemake.input.supply_regions = "data/supply_regions/supply_regions_10-supply.shp"              
+else:
+    RSA_flag=False
 
 area_crs = snakemake.config["crs"]["area_crs"]
 
