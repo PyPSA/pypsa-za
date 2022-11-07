@@ -385,10 +385,10 @@ def update_transmission_costs(n, costs, length_factor=1.0, simple_hvdc_costs=Fal
 
 
 # ### Generators - TODO Update from pypa-eur
-def attach_wind_and_solar(n, costs,wind_solar_profiles, model_setup):
+def attach_wind_and_solar(n, costs,input_profiles, carriers, model_setup):
     g_f, ps_f, csp_f = map_generator_parameters() 
-    input_files={'onwind_area': snakemake.input.onwind_area,
-                 'solar_area': snakemake.input.solar_area}
+    #input_files={'onwind_area': snakemake.input.onwind_area,
+    #             'solar_area': snakemake.input.solar_area}
 
     # Aggregate existing REIPPPP plants per region
     eskom_gens = pd.read_excel(snakemake.input.model_file, 
@@ -428,39 +428,60 @@ def attach_wind_and_solar(n, costs,wind_solar_profiles, model_setup):
     gens.loc[gens.bus.isnull(), "bus"] = pos[gens.bus.isnull()].map(lambda p: regions.distance(p).idxmin())
 
     # Aggregate REIPPPP bid window generators at each bus #TODO use capacity weighted average for lifetime, costs 
+    #for carrier in carriers:
+    #    if carrier == "hydro":
+    #        continue    
     for carrier in ['solar','onwind']:
         plant_data = gens.loc[gens['carrier']==carrier,['Grouping','bus','p_nom']].groupby(['Grouping','bus']).sum()
         for param in ['lifetime','capital_cost','marginal_cost']:
             plant_data[param]=gens.loc[gens['carrier']==carrier,['Grouping','bus',param]].groupby(['Grouping','bus']).mean()
 
-        for group in plant_data.index.levels[0]:
-            # convert PPA price into an annualised cost -> i.e. take or pay. This forces the model to use the more expensive energy from REIPPPP
-            capacity_factor = (wind_solar_profiles.loc[carrier][plant_data.loc[group].index]).mean()
-            annual_cost = capacity_factor * 8760 * plant_data.loc[group,'marginal_cost']
-            n.madd("Generator", plant_data.loc[group].index, suffix=" "+group+"_"+carrier,
-                bus=plant_data.loc[group].index,
-                carrier=carrier,
-                build_year=n.investment_periods[0],
-                lifetime=plant_data.loc[group,'lifetime'],
-                p_nom = plant_data.loc[group,'p_nom'],
-                p_nom_extendable=False,
-                capital_cost=annual_cost,
-                p_max_pu=wind_solar_profiles.loc[carrier][plant_data.loc[group].index].values,
-                )
+        weather_years=snakemake.config['years']['reference_weather_years'][carrier]
+        for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
+            weather_years+=weather_years
 
+        with xr.open_dataset(getattr(input_profiles, "profile_" + carrier + "_9-supply")) as ds:
+            if ds.indexes["bus"].empty:
+                continue
+            cnt=0
+            resource_carrier=pd.DataFrame(0,index=n.snapshots.levels[1],columns=n.buses.index) 
+           
+            for y in n.investment_periods: 
+                new_ = ds["profile"].transpose("time", "bus").to_pandas()
+                resource_carrier.loc[str(y)] = (new_.loc[str(weather_years[cnt])].clip(lower=0., upper=1.)).values     
+                cnt+=1
+            resource_carrier['carrier']=carrier
+
+            for group in plant_data.index.levels[0]:
+                # convert PPA price into an annualised cost -> i.e. take or pay. This forces the model to use the more expensive energy from REIPPPP
+                capacity_factor = resource_carrier.loc[str(y)].mean() #(wind_solar_profiles.loc[carrier][plant_data.loc[group].index]).mean()
+                annual_cost = capacity_factor * 8760 * plant_data.loc[group,'marginal_cost']
+                n.madd("Generator", plant_data.loc[group].index, suffix=" "+group+"_"+carrier,
+                    bus=plant_data.loc[group].index,
+                    carrier=carrier,
+                    build_year=n.investment_periods[0],
+                    lifetime=plant_data.loc[group,'lifetime'],
+                    p_nom_max = plant_data.loc[group,'p_nom'],
+                    p_nom_min = plant_data.loc[group,'p_nom'],
+                    p_nom_extendable=True,
+                    capital_cost=annual_cost,
+                    #p_max_pu=wind_solar_profiles.loc[carrier][plant_data.loc[group].index].values,
+                    p_max_pu=resource_carrier.loc[str(y)],
+                    )
         # Add new generators
-        active_area = pd.read_csv(input_files[carrier+'_area'], index_col=0).loc[lambda s: s.available_area > 0.]
-        for y in n.investment_periods:
-            n.madd("Generator", active_area.index, suffix=" "+carrier+"_"+str(y),
-                bus=active_area.index,
-                carrier=carrier,
-                build_year=y,
-                lifetime=costs[y].at[carrier,'lifetime'],
-                p_nom_extendable=True,
-                marginal_cost=costs[y].at[carrier, 'marginal_cost'],
-                capital_cost=costs[y].at[carrier, 'capital_cost'],
-                efficiency=costs[y].at[carrier, 'efficiency'],
-                p_max_pu=wind_solar_profiles.loc[carrier][active_area.index].values)
+            for y in n.investment_periods:
+                n.madd("Generator", ds.indexes["bus"], suffix=" "+carrier+"_"+str(y),
+                    bus=ds.indexes["bus"],
+                    carrier=carrier,
+                    build_year=y,
+                    lifetime=costs[y].at[carrier,'lifetime'],
+                    p_nom_extendable=True,
+                    p_nom_max=ds["p_nom_max"].to_pandas(),
+                    weight=ds["weight"].to_pandas(),
+                    marginal_cost=costs[y].at[carrier, 'marginal_cost'],
+                    capital_cost=costs[y].at[carrier, 'capital_cost'],
+                    efficiency=costs[y].at[carrier, 'efficiency'],
+                    p_max_pu=resource_carrier.loc[str(y)])
 
 # # Generators
 def attach_existing_generators(n, costs, other_re_profiles, model_setup):
@@ -587,7 +608,7 @@ def attach_existing_generators(n, costs, other_re_profiles, model_setup):
 
     return gens
 
-def attach_extendable_generators(n, costs, other_re_profiles):
+def attach_extendable_generators(n, costs):
     elec_opts = snakemake.config['electricity']
     carriers = elec_opts['extendable_carriers']['Generator']
     if snakemake.wildcards.regions=='RSA':
@@ -695,8 +716,8 @@ def add_nice_carrier_names(n, config):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('add_electricity', **{'model_file':'IRP-2019',
-                            'regions':'RSA',#'27-supply',
+        snakemake = mock_snakemake('add_electricity', **{'model_file':'za-original',
+                            'regions':'9-supply', #'27-supply',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC',#-30SEG',
@@ -722,15 +743,16 @@ if __name__ == "__main__":
         snakemake.config["years"]["simulation"],
     )
 
-    wind_solar_profiles = xr.open_dataset(snakemake.input.wind_solar_profiles).to_dataframe()
+    #wind_solar_profiles = xr.open_dataset(snakemake.input.wind_solar_profiles).to_dataframe()
     other_re_profiles = xr.open_dataset(snakemake.input.other_re_profiles).to_dataframe()
+    renewable_carriers = snakemake.config["renewable"]
     
     attach_load(n, projections.loc['annual_demand',:])
     if snakemake.wildcards.regions!='RSA':
         update_transmission_costs(n, costs)
     gens = attach_existing_generators(n, costs, other_re_profiles, model_setup)
-    attach_wind_and_solar(n, costs, wind_solar_profiles, model_setup)
-    attach_extendable_generators(n, costs, wind_solar_profiles)
+    attach_wind_and_solar(n, costs, snakemake.input, renewable_carriers, model_setup)
+    attach_extendable_generators(n, costs)
     attach_storage(n, costs)
     if snakemake.config['electricity']['generator_availability']['implement_availability']==True:
         add_generator_availability(n,gens,snakemake.config['electricity']['generator_availability'])

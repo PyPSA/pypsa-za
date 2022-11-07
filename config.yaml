@@ -21,8 +21,8 @@ years:
   reference_demand_year: 2012  # should be a single year
   reference_weather_years: 
     # reference years used for solar PV and wind profiles - can be single or multiple years
-    solar: [2012] 
-    onwind: [2012,2013]
+    solar: [2013] 
+    onwind: [2013]
     # reference years from actual Eskom data published at https://www.eskom.co.za/dataportal/
     CSP: [2021] 
     hydro: [2021]
