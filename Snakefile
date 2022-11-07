@@ -127,11 +127,13 @@ rule build_renewable_profiles:
             if config["renewable"][w.technology]["natura"]
             else []
         ),
+        profiles='data/bundle/renewable_profiles.xlsx',
         #country_shapes="resources/" + RDIR + "country_shapes.geojson",
         #offshore_shapes="resources/" + RDIR + "offshore_shapes.geojson",
         cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
     output:
         profile="resources/profile_{technology}_{regions}.nc",
+        other_re_profiles="resources/other_re_profiles_{technology}_{regions}.nc"
     log:
         "logs/build_renewable_profile_{technology}_{regions}.log",
     benchmark:
@@ -146,13 +148,17 @@ rule build_renewable_profiles:
 
 rule add_electricity:
     input:
+        **{
+            f"profile_{tech}_9-supply": "resources/" + f"profile_{tech}_9-supply.nc"
+            for tech in config["renewable"]
+        },
         base_network='networks/base_{regions}_{opts}.nc',
         supply_regions='data/supply_regions/supply_regions_{regions}.shp',
         load='data/bundle/SystemEnergy2009_13.csv',
         onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         solar_area='resources/area_solar_{regions}_{resarea}.csv',
         wind_solar_profiles="resources/wind_solar_profiles_{regions}_{resarea}_{opts}.nc",
-        other_re_profiles="resources/other_re_profiles_{regions}_{resarea}_{opts}.nc",
+        other_re_profiles="resources/other_re_profiles_onwind_{regions}.nc",
         model_file="data/model_file.xlsx",
         existing_generators_eaf="data/Eskom EAF data.xlsx",
     output: "networks/elec_{model_file}_{regions}_{resarea}_{opts}.nc",
