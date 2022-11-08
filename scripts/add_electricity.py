@@ -451,9 +451,6 @@ def attach_wind_and_solar(n, costs,input_profiles, carriers, model_setup):
     gens.loc[gens.bus.isnull(), "bus"] = pos[gens.bus.isnull()].map(lambda p: regions.distance(p).idxmin())
 
     # Aggregate REIPPPP bid window generators at each bus #TODO use capacity weighted average for lifetime, costs 
-    #for carrier in carriers:
-    #    if carrier == "hydro":
-    #        continue    
     for carrier in ['solar','onwind']:
         plant_data = gens.loc[gens['carrier']==carrier,['Grouping','bus','p_nom']].groupby(['Grouping','bus']).sum()
         for param in ['lifetime','capital_cost','marginal_cost']:
@@ -473,12 +470,8 @@ def attach_wind_and_solar(n, costs,input_profiles, carriers, model_setup):
                 new_ = ds["profile"].transpose("time", "bus").to_pandas()
                 resource_carrier.loc[str(y)] = (new_.loc[str(weather_years[cnt])].clip(lower=0., upper=1.)).values     
                 cnt+=1
-            #resource_carrier['carrier']=carrier
             resource_carrier.index = n.snapshots
             for group in plant_data.index.levels[0]:
-                # convert PPA price into an annualised cost -> i.e. take or pay. This forces the model to use the more expensive energy from REIPPPP
-                capacity_factor = resource_carrier.mean() #(wind_solar_profiles.loc[carrier][plant_data.loc[group].index]).mean()
-                annual_cost = capacity_factor * 8760 * plant_data.loc[group,'marginal_cost']
                 n.madd("Generator", plant_data.loc[group].index, suffix=" "+group+"_"+carrier,
                     bus=plant_data.loc[group].index,
                     carrier=carrier,
@@ -486,7 +479,6 @@ def attach_wind_and_solar(n, costs,input_profiles, carriers, model_setup):
                     lifetime=plant_data.loc[group,'lifetime'],
                     p_nom = plant_data.loc[group,'p_nom'],
                     p_nom_extendable=False,
-                    #capital_cost=annual_cost,
                     marginal_cost = plant_data.loc[group,'marginal_cost'],
                     p_max_pu=resource_carrier[plant_data.loc[group].index],
                     p_min_pu=resource_carrier[plant_data.loc[group].index],
@@ -500,7 +492,7 @@ def attach_wind_and_solar(n, costs,input_profiles, carriers, model_setup):
                     build_year=y,
                     lifetime=costs[y].at[carrier,'lifetime'],
                     p_nom_extendable=True,
-                    #p_nom_max=ds["p_nom_max"].to_pandas(), This is taken care of later as an imposed constraint
+                    p_nom_max=ds["p_nom_max"].to_pandas(), # For multiple years a further constraint is applied in prepare_network.py
                     weight=ds["weight"].to_pandas(),
                     marginal_cost=costs[y].at[carrier, 'marginal_cost'],
                     capital_cost=costs[y].at[carrier, 'capital_cost'],
