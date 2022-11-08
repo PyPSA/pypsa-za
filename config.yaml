@@ -30,10 +30,12 @@ years:
     imports: [2021]
 
 enable:
-  build_land_use: true
-  build_population: true
-  build_topology: true
+  build_land_use: false
+  build_population: false
+  build_topology: false
+  build_renewable_profiles: true
   build_cutout: true
+  
 
 snapshots:
   start: "2013-01-01"

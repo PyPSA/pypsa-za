@@ -52,30 +52,38 @@ def base_network():
 
     n.import_components_from_dataframe(buses, 'Bus')
 
-    if 'T' in snakemake.wildcards.opts.split('-'):
-        n.import_components_from_dataframe(
-            (lines
-             .drop('num_parallel', axis=1)
-             .rename(columns={'capacity': 'p_nom_min'})
-             .assign(p_nom_extendable=True, p_min_pu=-1)),
-            "Link"
-        )
-    elif 'FL' in snakemake.wildcards.opts.split('-'):
-        n.import_components_from_dataframe(
-            (lines
-             .loc[lines.num_parallel > 0.1]
-             .drop('capacity', axis=1)
-             .assign(s_nom_extendable=False, type=line_type)),
-            "Line"
-        )
-    else:
-        n.import_components_from_dataframe(
-            (lines
-             .rename(columns={'capacity': 's_nom_min'})
-             .assign(s_nom_extendable=True, type=line_type,
-                     num_parallel=lambda df: df.num_parallel.clip(lower=0.5))),
-            "Line"
-        )
+    n.import_components_from_dataframe(
+        (lines
+            .rename(columns={'capacity': 's_nom_min'})
+            .assign(s_nom_extendable=True, type=line_type,
+                    num_parallel=lambda df: df.num_parallel.clip(lower=0.5))),
+        "Line"
+    )
+
+    # if 'T' in snakemake.wildcards.opts.split('-'):
+    #     n.import_components_from_dataframe(
+    #         (lines
+    #          .drop('num_parallel', axis=1)
+    #          .rename(columns={'capacity': 'p_nom_min'})
+    #          .assign(p_nom_extendable=True, p_min_pu=-1)),
+    #         "Link"
+    #     )
+    # elif 'FL' in snakemake.wildcards.opts.split('-'):
+    #     n.import_components_from_dataframe(
+    #         (lines
+    #          .loc[lines.num_parallel > 0.1]
+    #          .drop('capacity', axis=1)
+    #          .assign(s_nom_extendable=False, type=line_type)),
+    #         "Line"
+    #     )
+    # else:
+    #     n.import_components_from_dataframe(
+    #         (lines
+    #          .rename(columns={'capacity': 's_nom_min'})
+    #          .assign(s_nom_extendable=True, type=line_type,
+    #                  num_parallel=lambda df: df.num_parallel.clip(lower=0.5))),
+    #         "Line"
+    #     )
 
     return n
 

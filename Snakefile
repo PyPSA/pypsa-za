@@ -102,49 +102,35 @@ rule base_network:
     resources: mem_mb=1000
     script: "scripts/base_network.py"
 
-#rule build_renewable_profiles:
-#    input:
-#        base_network="networks/base_{regions}_{opts}.nc",
-#        regions = 'resources/area_wind_{regions}_{resarea}.csv'#onwind_area='resources/area_wind_{regions}_{resarea}.csv',
-#        cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
-#    output: 
-#        profile = "resources/profile_{technology}_{regions}_{resarea}_{opts}.nc",
-#    log: "logs/build_renewable_profile_{technology}_{regions}_{resarea}_{opts}.log",
-#    benchmark: "benchmarks/build_renewable_profiles_{regions}_{resarea}_{opts}",
-#    threads: ATLITE_NPROCESSES
-#    resources: 
-#        mem_mb=ATLITE_NPROCESSES*5000,
-#    wildcard_constraints:
-#        technology="(?!hydro).*",  # Any technology other than hydro
-#    script: "scripts/build_renewable_profiles.py"
 
-rule build_renewable_profiles:
-    input:
-        base_network="networks/base_{regions}_{opts}.nc",
-        regions = 'resources/offshore_shapes_{regions}.geojson',
-        natura=lambda w: (
-            "resources/landuse_without_protected_conservation.tiff"
-            if config["renewable"][w.technology]["natura"]
-            else []
-        ),
-        profiles='data/bundle/renewable_profiles.xlsx',
-        #country_shapes="resources/" + RDIR + "country_shapes.geojson",
-        #offshore_shapes="resources/" + RDIR + "offshore_shapes.geojson",
-        cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
-    output:
-        profile="resources/profile_{technology}_{regions}_{opts}.nc",
-        other_re_profiles="resources/other_re_profiles_{technology}_{regions}_{opts}.nc"
-    log:
-        "logs/build_renewable_profile_{technology}_{regions}_{opts}.log",
-    benchmark:
-        "benchmarks/build_renewable_profiles_{technology}_{regions}_{opts}"
-    threads: ATLITE_NPROCESSES
-    resources:
-        mem_mb=ATLITE_NPROCESSES * 5000,
-    wildcard_constraints:
-        technology="(?!hydro).*",  # Any technology other than hydro
-    script:
-        "scripts/build_renewable_profiles.py"
+if config['enable']['build_renewable_profiles']: 
+    rule build_renewable_profiles:
+        input:
+            base_network="networks/base_{regions}_{opts}.nc",
+            regions = 'resources/offshore_shapes_{regions}.geojson',
+            natura=lambda w: (
+                "resources/landuse_without_protected_conservation.tiff"
+                if config["renewable"][w.technology]["natura"]
+                else []
+            ),
+            profiles='data/bundle/renewable_profiles.xlsx',
+            #country_shapes="resources/" + RDIR + "country_shapes.geojson",
+            #offshore_shapes="resources/" + RDIR + "offshore_shapes.geojson",
+            cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
+        output:
+            profile="resources/profile_{technology}_{regions}_{opts}.nc",
+            other_re_profiles="resources/other_re_profiles_{technology}_{regions}_{opts}.nc"
+        log:
+            "logs/build_renewable_profile_{technology}_{regions}_{opts}.log",
+        benchmark:
+            "benchmarks/build_renewable_profiles_{technology}_{regions}_{opts}"
+        threads: ATLITE_NPROCESSES
+        resources:
+            mem_mb=ATLITE_NPROCESSES * 5000,
+        wildcard_constraints:
+            technology="(?!hydro).*",  # Any technology other than hydro
+        script:
+            "scripts/build_renewable_profiles.py"
 
 rule add_electricity:
     input:
@@ -157,7 +143,7 @@ rule add_electricity:
         load='data/bundle/SystemEnergy2009_13.csv',
         onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         solar_area='resources/area_solar_{regions}_{resarea}.csv',
-        wind_solar_profiles="resources/wind_solar_profiles_{regions}_{resarea}_{opts}.nc",
+        #wind_solar_profiles="resources/wind_solar_profiles_{regions}_{resarea}_{opts}.nc",
         other_re_profiles="resources/other_re_profiles_onwind_{regions}.nc",
         model_file="data/model_file.xlsx",
         existing_generators_eaf="data/Eskom EAF data.xlsx",
