@@ -57,7 +57,6 @@ if config['enable']['build_cutout']:
     rule build_cutout:
         input:
             regions_onshore="resources/offshore_shapes_{regions}.geojson",
-            #regions_offshore="resources/" + RDIR + "regions_offshore.geojson",
         output:
             "cutouts/{cutout}_{regions}.nc",
         log:
@@ -87,7 +86,8 @@ if config['enable']['build_topology']:
             num_lines='data/num_lines.xlsx',
         output:
             buses='resources/buses_{regions}.csv',
-            lines='resources/lines_{regions}.csv'
+            lines='resources/lines_{regions}.csv',
+            regions = 'resources/onshore_shapes_{regions}.geojson'
         threads: 1
         script: "scripts/build_topology.py"
 
@@ -96,8 +96,8 @@ rule base_network:
         buses='resources/buses_{regions}.csv',
         lines='resources/lines_{regions}.csv',
         population='resources/population_{regions}.csv'
-    output: "networks/base_{regions}_{opts}.nc"
-    benchmark: "benchmarks/base_network_{regions}_{opts}"
+    output: "networks/base_{regions}.nc"
+    benchmark: "benchmarks/base_network_{regions}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/base_network.py"
@@ -106,24 +106,22 @@ rule base_network:
 if config['enable']['build_renewable_profiles']: 
     rule build_renewable_profiles:
         input:
-            base_network="networks/base_{regions}_{opts}.nc",
-            regions = 'resources/offshore_shapes_{regions}.geojson',
+            base_network="networks/base_{regions}.nc",
+            regions = 'resources/onshore_shapes_{regions}.geojson',
             natura=lambda w: (
                 "resources/landuse_without_protected_conservation.tiff"
                 if config["renewable"][w.technology]["natura"]
                 else []
             ),
             profiles='data/bundle/renewable_profiles.xlsx',
-            #country_shapes="resources/" + RDIR + "country_shapes.geojson",
-            #offshore_shapes="resources/" + RDIR + "offshore_shapes.geojson",
             cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
         output:
-            profile="resources/profile_{technology}_{regions}_{opts}.nc",
-            other_re_profiles="resources/other_re_profiles_{technology}_{regions}_{opts}.nc"
+            profile="resources/profile_{technology}_{regions}.nc",
+            other_re_profiles="resources/other_re_profiles_{technology}_{regions}.nc"
         log:
-            "logs/build_renewable_profile_{technology}_{regions}_{opts}.log",
+            "logs/build_renewable_profile_{technology}_{regions}.log",
         benchmark:
-            "benchmarks/build_renewable_profiles_{technology}_{regions}_{opts}"
+            "benchmarks/build_renewable_profiles_{technology}_{regions}"
         threads: ATLITE_NPROCESSES
         resources:
             mem_mb=ATLITE_NPROCESSES * 5000,
@@ -138,12 +136,11 @@ rule add_electricity:
             f"profile_{tech}"+"_{regions}_{resarea}_{opts}": f"resources/profile_{tech}_"+ "{regions}_{opts}.nc"
             for tech in config["renewable"]
         },
-        base_network='networks/base_{regions}_{opts}.nc',
+        base_network='networks/base_{regions}.nc',
         supply_regions='data/supply_regions/supply_regions_{regions}.shp',
         load='data/bundle/SystemEnergy2009_13.csv',
         onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         solar_area='resources/area_solar_{regions}_{resarea}.csv',
-        #wind_solar_profiles="resources/wind_solar_profiles_{regions}_{resarea}_{opts}.nc",
         other_re_profiles="resources/other_re_profiles_onwind_{regions}.nc",
         model_file="data/model_file.xlsx",
         existing_generators_eaf="data/Eskom EAF data.xlsx",

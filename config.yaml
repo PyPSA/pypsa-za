@@ -32,7 +32,7 @@ years:
 enable:
   build_land_use: false
   build_population: false
-  build_topology: false
+  build_topology: true
   build_renewable_profiles: true
   build_cutout: true
   
@@ -139,7 +139,7 @@ atlite:
     # use 'base' to determine geographical bounds and time span from config
     # base:
       # module: era5
-    RSA-2013-era5_9-supply:
+    RSA-2013-era5:
       module: era5 # in priority order
       x: [16, 33]
       y: [-33., -21]
