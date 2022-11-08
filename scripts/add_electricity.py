@@ -345,6 +345,29 @@ def attach_load(n, annual_demand):
            bus=n.buses.index,
            p_set=pdbcast(demand, normed(n.buses.population)))
 
+
+### Generate pu profiles for other_re based on Eskom data
+def generate_eskom_profiles(n,config_carriers,ref_years):
+    other_re_carriers= [c for c in config_carriers if c not in ['solar','onwind']] + ['imports']
+    eskom_data = (pd.read_csv(snakemake.input.eskom_profiles,skiprows=[1], 
+                                index_col=0,parse_dates=True)
+                                .resample('1h').mean())
+    eskom_data  = remove_leap_day(eskom_data)
+    other_re_profiles=pd.DataFrame(0,index=n.snapshots,columns=other_re_carriers)
+    
+    for carrier in other_re_carriers:
+        weather_years=ref_years[carrier]
+        for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
+            weather_years+=weather_years
+        
+        cnt=0
+        # Use the default RSA hourly data (from Eskom) and extend to multiple weather years
+        for y in n.investment_periods:    
+            other_re_profiles.loc[y,carrier] = (eskom_data.loc[str(weather_years[cnt]),carrier]
+                                        .clip(lower=0., upper=1.)).values     
+            cnt+=1
+    return other_re_profiles
+
 ### Set line costs
 
 def update_transmission_costs(n, costs, length_factor=1.0, simple_hvdc_costs=False):
@@ -461,12 +484,12 @@ def attach_wind_and_solar(n, costs,input_profiles, carriers, model_setup):
                     carrier=carrier,
                     build_year=n.investment_periods[0],
                     lifetime=plant_data.loc[group,'lifetime'],
-                    p_nom_max = plant_data.loc[group,'p_nom'],
-                    p_nom_min = plant_data.loc[group,'p_nom'],
-                    p_nom_extendable=True,
-                    capital_cost=annual_cost,
-                    #p_max_pu=wind_solar_profiles.loc[carrier][plant_data.loc[group].index].values,
+                    p_nom = plant_data.loc[group,'p_nom'],
+                    p_nom_extendable=False,
+                    #capital_cost=annual_cost,
+                    marginal_cost = plant_data.loc[group,'marginal_cost'],
                     p_max_pu=resource_carrier[plant_data.loc[group].index],
+                    p_min_pu=resource_carrier[plant_data.loc[group].index],
                     )
         # Add new generators
             for y in n.investment_periods:
@@ -559,13 +582,14 @@ def attach_existing_generators(n, costs, other_re_profiles, model_setup):
         )  
  
     for carrier in ['CSP','biomass']:
+        n.add("Carrier", name=carrier)
         plant_data = gens.loc[gens['carrier']==carrier,['Grouping','bus','p_nom']].groupby(['Grouping','bus']).sum()
         for param in ['lifetime','capital_cost','marginal_cost']:
             plant_data[param]=gens.loc[gens['carrier']==carrier,['Grouping','bus',param]].groupby(['Grouping','bus']).mean()
 
         for group in plant_data.index.levels[0]:
             # Duplicate Aggregate Eskom Data across the regions
-            eskom_data = pd.concat([other_re_profiles.loc[carrier]] * (len(plant_data.loc[group].index)), axis=1, ignore_index=True)
+            eskom_data = pd.concat([other_re_profiles[carrier]] * (len(plant_data.loc[group].index)), axis=1, ignore_index=True)
             eskom_data.columns = plant_data.loc[group].index
             capacity_factor = (eskom_data[plant_data.loc[group].index]).mean()[0]
             annual_cost = capacity_factor * 8760 * plant_data.loc[group,'marginal_cost']
@@ -584,10 +608,10 @@ def attach_existing_generators(n, costs, other_re_profiles, model_setup):
 
     # ## HYDRO and PHS    
     # # Cohora Bassa imports to South Africa - based on Actual Eskom data from 2017-2022
-    n.generators_t.p_max_pu['CahoraBassa'] = other_re_profiles.loc['imports'].values
+    n.generators_t.p_max_pu['CahoraBassa'] = other_re_profiles['imports'].values
     # Hydro power generation - based on actual Eskom data from 2017-2022
     for tech in n.generators[n.generators.carrier=='hydro'].index:
-        n.generators_t.p_max_pu[tech] = other_re_profiles.loc['hydro'].values
+        n.generators_t.p_max_pu[tech] = other_re_profiles['hydro'].values
     
     # PHS
     phs = gens[gens.carrier=='PHS']
@@ -719,7 +743,7 @@ if __name__ == "__main__":
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', 
                         **{'model_file':'IRP-2019',
-                            'regions':'9-supply',
+                            'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
                             'attr':'p_nom'})
@@ -745,7 +769,9 @@ if __name__ == "__main__":
     )
 
     #wind_solar_profiles = xr.open_dataset(snakemake.input.wind_solar_profiles).to_dataframe()
-    other_re_profiles = xr.open_dataset(snakemake.input.other_re_profiles).to_dataframe()
+    other_re_profiles = generate_eskom_profiles(n,
+                        snakemake.config['electricity']['renewable_carriers'],
+                        snakemake.config['years']['reference_weather_years'])
     renewable_carriers = snakemake.config["renewable"]
     
     attach_load(n, projections.loc['annual_demand',:])

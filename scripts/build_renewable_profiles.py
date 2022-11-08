@@ -338,38 +338,3 @@ if __name__ == "__main__":
 
 
     ds.to_netcdf(snakemake.output.profile)
-
-    n = pypsa.Network(snakemake.input.base_network)
-
-    carrier_iter=0
-    for carrier in ['CSP','biomass','hydro','imports']:
-        n.add("Carrier", name=carrier)
-        weather_years=snakemake.config['years']['reference_weather_years'][carrier]
-        for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
-            weather_years+=weather_years
-   
-        pu_data = (pd.read_excel(snakemake.input.profiles,skiprows=[1], 
-                                    sheet_name=carrier,index_col=0,parse_dates=True)
-                                    .resample('1h').mean())
-        pu_data  = remove_leap_day(pu_data)
-        cnt=0
-        resource_carrier=pd.DataFrame(0,index=n.snapshots.levels[1],columns=['ESKOM DATA'])
-        # if no data exists for a bus region, use the default RSA hourly data (from Eskom)
-
-        for y in n.investment_periods:    
-            resource_carrier.loc[str(y)] = (pu_data.loc[str(weather_years[cnt])]
-                                        .clip(lower=0., upper=1.)).values     
-            cnt+=1
-        resource_carrier['carrier']=carrier
-        
-        if carrier_iter == 0:
-            resource = resource_carrier
-            carrier_iter=1
-        else:
-            resource= pd.concat([resource,resource_carrier])
-        
-        if carrier=='imports':
-            resource.index = pd.MultiIndex.from_arrays([resource.carrier,resource.index])
-            resource.drop('carrier',axis=1,inplace=True)
-            resource.to_xarray().to_netcdf(snakemake.output.other_re_profiles)
-            carrier_iter=0

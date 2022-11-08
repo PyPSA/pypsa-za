@@ -53,7 +53,7 @@ electricity:
                       # IRP_Update_Assumptions_1904.pdf
   co2limit: 10.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
   csp: false
-  renewable_carriers: [solar, onwind, offwind-ac, offwind-dc, hydro]
+  renewable_carriers: [solar, onwind, CSP, biomass, hydro]
   
   generator_availability: 
     implement_availability: true
