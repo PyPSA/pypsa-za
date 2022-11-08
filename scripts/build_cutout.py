@@ -23,7 +23,8 @@ Relevant Settings
     :ref:`atlite_cf`
 Inputs
 ------
-*None*
+- ``data/supply_regions.supply_regions_RSA.shp``: The shapefile for South Africa
+
 Outputs
 -------
 - ``cutouts/{cutout}``: weather data from either the `ERA5 <https://www.ecmwf.int/en/forecasts/datasets/reanalysis-datasets/era5>`_
@@ -72,6 +73,7 @@ A **SARAH-2 cutout** can be used to amend the fields ``temperature``, ``influx_t
         :scale: 40 %
 Description
 -----------
+This code has been modified for PyPSA-ZA to build a cutout for South Africa based on the shapefile specified 
 """
 
 import logging
@@ -99,9 +101,8 @@ if __name__ == "__main__":
 
     if {"x", "y", "bounds"}.isdisjoint(cutout_params):
         # Determine the bounds from bus regions with a buffer of two grid cells
-        onshore = gpd.read_file(snakemake.input.regions_onshore)
-        #offshore = gpd.read_file(snakemake.input.regions_offshore)
-        regions = pd.concat([onshore]) #, offshore])
+        onshore = gpd.read_file(snakemake.input.regions.onshore)
+        regions = pd.concat([onshore])
         d = max(cutout_params.get("dx", 0.25), cutout_params.get("dy", 0.25)) * 2
         cutout_params["bounds"] = regions.total_bounds + [-d, -d, d, d]
     elif {"x", "y"}.issubset(cutout_params):

@@ -34,7 +34,7 @@ enable:
   build_population: false
   build_topology: true
   build_renewable_profiles: true
-  build_cutout: true
+  build_cutout: false
   
 
 snapshots:
@@ -159,7 +159,7 @@ atlite:
 
 renewable:
   onwind:
-    cutout: RSA-2013-era5_9-supply
+    cutout: RSA-2013-era5
     resource:
       method: wind
       turbine: Vestas_V112_3MW
@@ -220,7 +220,7 @@ renewable:
   #  potential: simple # or conservative
   #  clip_p_max_pu: 1.e-2
   solar:
-    cutout: RSA-2013-era5_9-supply
+    cutout: RSA-2013-era5
     resource:
       method: pv
       panel: CSi
@@ -242,7 +242,7 @@ renewable:
     potential: simple # or conservative
     clip_p_max_pu: 1.e-2
   hydro:
-    cutout: RSA-2013-era5_9-supply
+    cutout: RSA-2013-era5
     carriers: [ror, PHS, hydro]
     PHS_max_hours: 6
     hydro_max_hours: "energy_capacity_totals_by_country" # one of energy_capacity_totals_by_country, estimate_by_large_installations or a float

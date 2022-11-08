@@ -56,13 +56,13 @@ if config['enable']['build_population']:
 if config['enable']['build_cutout']:
     rule build_cutout:
         input:
-            regions_onshore="resources/offshore_shapes_{regions}.geojson",
+            regions_onshore='data/supply_regions/supply_regions_RSA.shp',
         output:
-            "cutouts/{cutout}_{regions}.nc",
+            "cutouts/{cutout}.nc",
         log:
-            "logs/build_cutout/{cutout}_{regions}.log",
+            "logs/build_cutout/{cutout}.log",
         benchmark:
-            "benchmarks/build_cutout_{cutout}_{regions}"
+            "benchmarks/build_cutout_{cutout}"
         threads: ATLITE_NPROCESSES
         resources:
             mem_mb=ATLITE_NPROCESSES * 1000,
@@ -116,12 +116,12 @@ if config['enable']['build_renewable_profiles']:
             profiles='data/bundle/renewable_profiles.xlsx',
             cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
         output:
-            profile="resources/profile_{technology}_{regions}.nc",
-            other_re_profiles="resources/other_re_profiles_{technology}_{regions}.nc"
+            profile="resources/profile_{technology}_{regions}_{resarea}.nc",
+            other_re_profiles="resources/other_re_profiles_{technology}_{regions}_{resarea}.nc"
         log:
-            "logs/build_renewable_profile_{technology}_{regions}.log",
+            "logs/build_renewable_profile_{technology}_{regions}_{resarea}.log",
         benchmark:
-            "benchmarks/build_renewable_profiles_{technology}_{regions}"
+            "benchmarks/build_renewable_profiles_{technology}_{regions}_{resarea}"
         threads: ATLITE_NPROCESSES
         resources:
             mem_mb=ATLITE_NPROCESSES * 5000,
@@ -133,8 +133,8 @@ if config['enable']['build_renewable_profiles']:
 rule add_electricity:
     input:
         **{
-            f"profile_{tech}"+"_{regions}_{resarea}_{opts}": f"resources/profile_{tech}_"+ "{regions}_{opts}.nc"
-            for tech in config["renewable"]
+            f"profile_{tech}": f"resources/profile_{tech}_"+ "{regions}_{resarea}.nc"
+            for tech in ['onwind','solar']#config["renewable"]
         },
         base_network='networks/base_{regions}.nc',
         supply_regions='data/supply_regions/supply_regions_{regions}.shp',
@@ -144,8 +144,8 @@ rule add_electricity:
         other_re_profiles="resources/other_re_profiles_onwind_{regions}.nc",
         model_file="data/model_file.xlsx",
         existing_generators_eaf="data/Eskom EAF data.xlsx",
-    output: "networks/elec_{model_file}_{regions}_{resarea}_{opts}.nc",
-    benchmark: "benchmarks/add_electricity/elec_{model_file}_{regions}_{resarea}_{opts}"
+    output: "networks/elec_{model_file}_{regions}_{resarea}.nc",
+    benchmark: "benchmarks/add_electricity/elec_{model_file}_{regions}_{resarea}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/add_electricity.py"
@@ -161,7 +161,7 @@ rule add_electricity:
 
 rule prepare_network:
     input:
-        network="networks/elec_{model_file}_{regions}_{resarea}_{opts}.nc",
+        network="networks/elec_{model_file}_{regions}_{resarea}.nc",
         model_file="data/model_file.xlsx",
         onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         solar_area='resources/area_solar_{regions}_{resarea}.csv',

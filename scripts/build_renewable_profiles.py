@@ -167,8 +167,7 @@ if __name__ == "__main__":
         #snakemake = mock_snakemake("build_renewable_profiles", technology="onwind")
         snakemake = mock_snakemake('build_renewable_profiles',technology='onwind', 
                     **{'regions':'9-supply',
-                    'resarea':'redz',
-                    'opts':'LC'})
+                    'resarea':'redz'})
     configure_logging(snakemake)
     pgb.streams.wrap_stderr()
 
@@ -336,8 +335,6 @@ if __name__ == "__main__":
     if "clip_p_max_pu" in config:
         min_p_max_pu = config["clip_p_max_pu"]
         ds["profile"] = ds["profile"].where(ds["profile"] >= min_p_max_pu, 0)
-
-    ds["profile"].transpose("time", "bus").to_pandas()
 
 
     ds.to_netcdf(snakemake.output.profile)

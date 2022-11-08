@@ -440,7 +440,7 @@ def attach_wind_and_solar(n, costs,input_profiles, carriers, model_setup):
         for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
             weather_years+=weather_years
 
-        with xr.open_dataset(getattr(input_profiles, "profile_" + carrier + "_9-supply")) as ds:
+        with xr.open_dataset(getattr(input_profiles, "profile_" + carrier)) as ds:
             if ds.indexes["bus"].empty:
                 continue
             cnt=0
@@ -716,11 +716,11 @@ def add_nice_carrier_names(n, config):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('add_electricity', **{'model_file':'za-original',
-                            'regions':'9-supply', #'27-supply',
+        snakemake = mock_snakemake('add_electricity', 
+                        **{'model_file':'IRP-2019',
+                            'regions':'9-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC',#-30SEG',
                             'attr':'p_nom'})
 
     model_setup = (pd.read_excel(snakemake.input.model_file, 
@@ -733,7 +733,7 @@ if __name__ == "__main__":
                             index_col=[0,1])
                             .loc[model_setup['projected_parameters']])
 
-    opts = snakemake.wildcards.opts.split('-')
+    #opts = snakemake.wildcards.opts.split('-')
     n = pypsa.Network(snakemake.input.base_network)
     costs = load_costs(
         snakemake.input.model_file,
