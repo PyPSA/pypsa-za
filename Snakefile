@@ -86,7 +86,8 @@ if config['enable']['build_topology']:
             num_lines='data/num_lines.xlsx',
         output:
             buses='resources/buses_{regions}.csv',
-            lines='resources/lines_{regions}.csv'
+            lines='resources/lines_{regions}.csv',
+            regions = 'resources/onshore_shapes_{regions}.geojson'
         threads: 1
         script: "scripts/build_topology.py"
 
@@ -106,15 +107,13 @@ if config['enable']['build_renewable_profiles']:
     rule build_renewable_profiles:
         input:
             base_network="networks/base_{regions}.nc",
-            regions = 'resources/offshore_shapes_{regions}.geojson',
+            regions = 'resources/onshore_shapes_{regions}.geojson',
             natura=lambda w: (
                 "resources/landuse_without_protected_conservation.tiff"
                 if config["renewable"][w.technology]["natura"]
                 else []
             ),
             profiles='data/bundle/renewable_profiles.xlsx',
-            #country_shapes="resources/" + RDIR + "country_shapes.geojson",
-            #offshore_shapes="resources/" + RDIR + "offshore_shapes.geojson",
             cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
         output:
             profile="resources/profile_{technology}_{regions}_{resarea}.nc",

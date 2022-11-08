@@ -32,7 +32,7 @@ years:
 enable:
   build_land_use: false
   build_population: false
-  build_topology: false
+  build_topology: true
   build_renewable_profiles: true
   build_cutout: false
   

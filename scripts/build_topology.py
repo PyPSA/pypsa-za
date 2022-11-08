@@ -8,6 +8,23 @@ from operator import attrgetter
 import pypsa
 from vresutils.costdata import annuity
 from vresutils.shapes import haversine
+import os
+
+def save_to_geojson(df, fn):
+    if os.path.exists(fn):
+        os.unlink(fn)  # remove file if it exists
+    if not isinstance(df, gpd.GeoDataFrame):
+        df = gpd.GeoDataFrame(dict(geometry=df))
+
+    # save file if the GeoDataFrame is non-empty
+    if df.shape[0] > 0:
+        df = df.reset_index()
+        schema = {**gpd.io.file.infer_schema(df), "geometry": "Unknown"}
+        df.to_file(fn, driver="GeoJSON", schema=schema)
+    else:
+        # create empty file to avoid issues with snakemake
+        with open(fn, "w") as fp:
+            pass
 
 def build_topology():
     ## Read in regions and calculate population per region
@@ -40,6 +57,12 @@ def build_topology():
              )
              .drop('geometry', axis=1))
 
+    onshore_buses = (regions
+            .assign(
+                x=centroids.map(attrgetter('x')),
+                y=centroids.map(attrgetter('y')),
+            ))
+
     if snakemake.wildcards.regions=='RSA':
         lines=pd.DataFrame(index=[],columns=['name','bus0','bus1','length','num_parallel'])
     else:
@@ -59,7 +82,7 @@ def build_topology():
 
         lines['num_parallel'] = line_config['s_nom_factor'] * lines['num_parallel'].fillna(lines.pop('num_parallel_i'))
 
-    return buses, lines
+    return buses, lines, onshore_buses
 
 if __name__ == "__main__":
     if 'snakemake' not in globals():
@@ -72,7 +95,7 @@ if __name__ == "__main__":
                             'attr':'p_nom'})
 
 
-    buses, lines = build_topology()
-
+    buses, lines, onshore_buses = build_topology()
     buses.to_csv(snakemake.output.buses)
     lines.to_csv(snakemake.output.lines)
+    save_to_geojson(onshore_buses,snakemake.output.regions)
