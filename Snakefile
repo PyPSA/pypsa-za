@@ -135,7 +135,7 @@ rule add_electricity:
     input:
         **{
             f"profile_{tech}": f"resources/profile_{tech}_"+ "{regions}_{resarea}.nc"
-            for tech in ['onwind','solar']#config["renewable"]
+            for tech in config["renewable"]
         },
         base_network='networks/base_{regions}.nc',
         supply_regions='data/supply_regions/supply_regions_{regions}.shp',

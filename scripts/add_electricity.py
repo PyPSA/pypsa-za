@@ -450,11 +450,11 @@ def attach_wind_and_solar(n, costs,input_profiles, carriers, model_setup):
                 new_ = ds["profile"].transpose("time", "bus").to_pandas()
                 resource_carrier.loc[str(y)] = (new_.loc[str(weather_years[cnt])].clip(lower=0., upper=1.)).values     
                 cnt+=1
-            resource_carrier['carrier']=carrier
-
+            #resource_carrier['carrier']=carrier
+            resource_carrier.index = n.snapshots
             for group in plant_data.index.levels[0]:
                 # convert PPA price into an annualised cost -> i.e. take or pay. This forces the model to use the more expensive energy from REIPPPP
-                capacity_factor = resource_carrier.loc[str(y)].mean() #(wind_solar_profiles.loc[carrier][plant_data.loc[group].index]).mean()
+                capacity_factor = resource_carrier.mean() #(wind_solar_profiles.loc[carrier][plant_data.loc[group].index]).mean()
                 annual_cost = capacity_factor * 8760 * plant_data.loc[group,'marginal_cost']
                 n.madd("Generator", plant_data.loc[group].index, suffix=" "+group+"_"+carrier,
                     bus=plant_data.loc[group].index,
@@ -466,22 +466,23 @@ def attach_wind_and_solar(n, costs,input_profiles, carriers, model_setup):
                     p_nom_extendable=True,
                     capital_cost=annual_cost,
                     #p_max_pu=wind_solar_profiles.loc[carrier][plant_data.loc[group].index].values,
-                    p_max_pu=resource_carrier.loc[str(y)],
+                    p_max_pu=resource_carrier[plant_data.loc[group].index],
                     )
         # Add new generators
             for y in n.investment_periods:
+                #TODO add check here to exclude buses where p_nom_max = 0 
                 n.madd("Generator", ds.indexes["bus"], suffix=" "+carrier+"_"+str(y),
                     bus=ds.indexes["bus"],
                     carrier=carrier,
                     build_year=y,
                     lifetime=costs[y].at[carrier,'lifetime'],
                     p_nom_extendable=True,
-                    p_nom_max=ds["p_nom_max"].to_pandas(),
+                    #p_nom_max=ds["p_nom_max"].to_pandas(), This is taken care of later as an imposed constraint
                     weight=ds["weight"].to_pandas(),
                     marginal_cost=costs[y].at[carrier, 'marginal_cost'],
                     capital_cost=costs[y].at[carrier, 'capital_cost'],
                     efficiency=costs[y].at[carrier, 'efficiency'],
-                    p_max_pu=resource_carrier.loc[str(y)])
+                    p_max_pu=resource_carrier[ds.indexes["bus"]])
 
 # # Generators
 def attach_existing_generators(n, costs, other_re_profiles, model_setup):

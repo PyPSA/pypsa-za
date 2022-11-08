@@ -226,7 +226,7 @@ renewable:
       panel: CSi
       orientation:
         slope: 35.
-        azimuth: 180.
+        azimuth: 0.
     capacity_per_sqkm: 1.7 # ScholzPhd Tab 4.3.1: 170 MW/km^2 and assuming 1% of the area can be used for solar PV panels
     # Correction factor determined by comparing uncorrected area-weighted full-load hours to those
     # published in Supplementary Data to
@@ -241,12 +241,12 @@ renewable:
     excluder_resolution: 100
     potential: simple # or conservative
     clip_p_max_pu: 1.e-2
-  hydro:
-    cutout: RSA-2013-era5
-    carriers: [ror, PHS, hydro]
-    PHS_max_hours: 6
-    hydro_max_hours: "energy_capacity_totals_by_country" # one of energy_capacity_totals_by_country, estimate_by_large_installations or a float
-    clip_min_inflow: 1.0
+  # hydro:
+  #   cutout: RSA-2013-era5
+  #   carriers: [ror, PHS, hydro]
+  #   PHS_max_hours: 6
+  #   hydro_max_hours: "energy_capacity_totals_by_country" # one of energy_capacity_totals_by_country, estimate_by_large_installations or a float
+  #   clip_min_inflow: 1.0
 
 hydro_inflow:
   disable: true
