@@ -650,4 +650,13 @@ def pdbcast(v, h):
     return pd.DataFrame(v.values.reshape((-1, 1)) * h.values,
                         index=v.index, columns=h.index)
 
+def clean_pu_profiles(n):
+    pu_index = n.generators_t.p_max_pu.columns.intersection(n.generators_t.p_min_pu.columns)
+    for carrier in n.generators_t.p_min_pu.columns:
+        if carrier in pu_index:
+            error_loc=n.generators_t.p_min_pu[carrier][n.generators_t.p_min_pu[carrier]>n.generators_t.p_max_pu[carrier]].index
+            n.generators_t.p_min_pu.loc[error_loc,carrier]=n.generators_t.p_max_pu.loc[error_loc,carrier]-0.001
+        else:
+            error_loc=n.generators_t.p_min_pu[carrier][n.generators_t.p_min_pu[carrier]>n.generators.p_max_pu[carrier]].index
+            n.generators_t.p_min_pu.loc[error_loc,carrier]=n.generators.p_max_pu.loc[carrier]-0.001
 

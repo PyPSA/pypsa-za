@@ -103,7 +103,7 @@ rule base_network:
     script: "scripts/base_network.py"
 
 
-if config['enable']['build_renewable_profiles']: 
+if config['enable']['build_renewable_profiles'] & ~config['enable']['use_eskom_wind_solar']: 
     rule build_renewable_profiles:
         input:
             base_network="networks/base_{regions}.nc",

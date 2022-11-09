@@ -64,7 +64,6 @@ import pypsa
 from pypsa.linopt import get_var, write_objective, define_constraints, linexpr
 from _helpers import configure_logging
 from add_electricity import load_costs, update_transmission_costs
-from temporal_clustering import prepare_timeseries_tsam, tsam_clustering, cluster_snapshots
 
 idx = pd.IndexSlice
 logger = logging.getLogger(__name__)
