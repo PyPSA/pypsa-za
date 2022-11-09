@@ -30,6 +30,7 @@ years:
     imports: [2021]
 
 enable:
+  build_natura_raster: True
   build_land_use: false
   build_population: false
   build_topology: true

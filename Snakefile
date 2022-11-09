@@ -30,28 +30,43 @@ if config['enable']['build_land_use']:
         resources: mem_mb=20000
         script: "scripts/build_landuse_remove_protected_and_conservation_areas.py"
 
-    rule build_landuse_map_to_tech_and_supply_region:
+if config["enable"]["build_natura_raster"]:
+    rule build_natura_raster:
         input:
-            landuse = "resources/landuse_without_protected_conservation.tiff",
-            supply_regions = "data/supply_regions/supply_regions_{regions}.shp",
-            resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
+            protected_areas = "data/bundle/SAPAD_OR_2017_Q2/SAPAD_OR_2017_Q2.shp",
+            conservation_areas = "data/bundle/SACAD_OR_2017_Q2/SACAD_OR_2017_Q2.shp",
+            cutouts=expand("cutouts/{cutouts}.nc", **config["atlite"]),
         output:
-            raster = "resources/raster_{tech}_percent_{regions}_{resarea}.tiff",
-            area = "resources/area_{tech}_{regions}_{resarea}.csv"
-        benchmark: "benchmarks/build_landuse_map_to_tech_and_supply_region/{tech}_{regions}_{resarea}"
-        threads: 1
-        resources: mem_mb=20000
-        script: "scripts/build_landuse_map_to_tech_and_supply_region.py"
+            "resources/natura.tiff",
+        resources:
+            mem_mb=5000,
+        log:
+            "logs/build_natura_raster.log",
+        script:
+            "scripts/build_natura_raster.py"
 
-if config['enable']['build_population']: 
-    rule build_population:
-        input:
-            supply_regions='data/supply_regions/supply_regions_{regions}.shp',
-            population='data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif'
-        output: 'resources/population_{regions}.csv'
-        threads: 1
-        resources: mem_mb=1000
-        script: "scripts/build_population.py"
+rule build_landuse_map_to_tech_and_supply_region:
+    input:
+        landuse = "resources/landuse_without_protected_conservation.tiff",
+        supply_regions = "data/supply_regions/supply_regions_{regions}.shp",
+        resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
+    output:
+        raster = "resources/raster_{tech}_percent_{regions}_{resarea}.tiff",
+        area = "resources/area_{tech}_{regions}_{resarea}.csv"
+    benchmark: "benchmarks/build_landuse_map_to_tech_and_supply_region/{tech}_{regions}_{resarea}"
+    threads: 1
+    resources: mem_mb=10000
+    script: "scripts/build_landuse_map_to_tech_and_supply_region.py"
+
+#if config['enable']['build_population']: 
+#    rule build_population:
+#        input:
+#            supply_regions='data/supply_regions/supply_regions_{regions}.shp',
+#            population='data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif'
+#        output: 'resources/population_{regions}.csv'
+#        threads: 1
+#        resources: mem_mb=1000
+#        script: "scripts/build_population.py"
 
 if config['enable']['build_cutout']:
     rule build_cutout:
