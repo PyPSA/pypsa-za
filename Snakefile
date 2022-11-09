@@ -31,7 +31,6 @@ if config['enable']['build_land_use']:
 if config["enable"]["build_natura_raster"]:
     rule build_natura_raster:
         input:
-            natura="data/bundle/natura/Natura2000_end2015.shp",
             protected_areas = "data/bundle/SAPAD_OR_2017_Q2/SAPAD_OR_2017_Q2.shp",
             conservation_areas = "data/bundle/SACAD_OR_2017_Q2/SACAD_OR_2017_Q2.shp",
             cutouts=expand("cutouts/{cutouts}.nc", **config["atlite"]),
