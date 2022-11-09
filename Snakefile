@@ -118,7 +118,7 @@ rule base_network:
     script: "scripts/base_network.py"
 
 
-if config['enable']['build_renewable_profiles']: 
+if config['enable']['build_renewable_profiles'] & ~config['enable']['use_eskom_wind_solar']: 
     rule build_renewable_profiles:
         input:
             base_network="networks/base_{regions}.nc",
@@ -132,7 +132,7 @@ if config['enable']['build_renewable_profiles']:
             cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
         output:
             profile="resources/profile_{technology}_{regions}_{resarea}.nc",
-            other_re_profiles="resources/other_re_profiles_{technology}_{regions}_{resarea}.nc"
+            
         log:
             "logs/build_renewable_profile_{technology}_{regions}_{resarea}.log",
         benchmark:
@@ -156,7 +156,7 @@ rule add_electricity:
         load='data/bundle/SystemEnergy2009_13.csv',
         onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         solar_area='resources/area_solar_{regions}_{resarea}.csv',
-        other_re_profiles="resources/other_re_profiles_onwind_{regions}.nc",
+        eskom_profiles="data/bundle/eskom_pu_profiles.csv",
         model_file="data/model_file.xlsx",
         existing_generators_eaf="data/Eskom EAF data.xlsx",
     output: "networks/elec_{model_file}_{regions}_{resarea}.nc",

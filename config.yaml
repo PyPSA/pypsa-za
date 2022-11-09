@@ -17,12 +17,12 @@ data:
     corridors: Power_corridors
 
 years: 
-  simulation: [2022,2025,2026,2027,2028,2029,2030]
+  simulation: [2022,2025,2030]
   reference_demand_year: 2012  # should be a single year
   reference_weather_years: 
     # reference years used for solar PV and wind profiles - can be single or multiple years
-    solar: [2013] 
-    onwind: [2013]
+    solar: [2021] 
+    onwind: [2021]
     # reference years from actual Eskom data published at https://www.eskom.co.za/dataportal/
     CSP: [2021] 
     hydro: [2021]
@@ -34,9 +34,9 @@ enable:
   build_land_use: false
   build_population: false
   build_topology: true
+  use_eskom_wind_solar: true
   build_renewable_profiles: true
   build_cutout: false
-  
 
 snapshots:
   start: "2013-01-01"
@@ -50,11 +50,8 @@ crs:
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
 
 electricity:
-  demand: 428.e+6     # annual demand in base_year
-                      # IRP_Update_Assumptions_1904.pdf
   co2limit: 10.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
-  csp: false
-  renewable_carriers: [solar, onwind, offwind-ac, offwind-dc, hydro]
+  renewable_carriers: [solar, onwind, CSP, biomass, hydro]
   
   generator_availability: 
     implement_availability: true
@@ -81,15 +78,12 @@ electricity:
     Renewables: ['onwind', solar]
     Generator: [CCGT, OCGT, coal, nuclear]
     StorageUnit: [battery] 
-    #Store: [battery]
-    #Link: []
-
 
   buses:
     9_10-supply: 
       OCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE] # Saldana Bay, Richards Bay, Coega
       CCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE]
-      coal: [GAUTENG, LIMPOPO] # JOhannesburg, Waterberg
+      coal: [GAUTENG, LIMPOPO] # Johannesburg, Waterberg
       nuclear: [EASTERN CAPE, WESTERN CAPE] # Thyspunt, Koeberg
       imports: [LIMPOPO]         
     27-supply:
@@ -98,9 +92,6 @@ electricity:
       coal: [JOHANNESBURG, WATERBERG]
       nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
       imports: [POLOKWANE]
-  BAU_mincapacities:
-    nuclear: 10000
-    coal: 10000
   
   SAFE_reservemargin: 0.1
 
@@ -112,7 +103,7 @@ electricity:
       contingency: 0 # fixed capacity in MW
 
   max_hours:
-    battery: 3
+    battery: 4
     H2: 10
 
 respotentials:
@@ -131,8 +122,6 @@ respotentials:
   capacity_per_sqm:
     onwind: 5   # half of 10 (IWES)
     solar: 16.5 # half of 33 (IWES)
-
-  source: eskom_actuals
 
 atlite:
   nprocesses: 4
@@ -263,7 +252,7 @@ lines:
     220.: "Al/St 240/40 2-bundle 220.0"
     300.: "Al/St 240/40 3-bundle 300.0"
     380.: "Al/St 240/40 4-bundle 380.0"
-    400.: "Al/St 240/40 4-bundle 400.0"
+    400.: "Al/St 240/40 4-bundle 400.0" # network voltage set to 400kV
   dc_type: "DC_custom_linetype"
   s_max_pu: 0.7
   s_nom_factor: 0.7
