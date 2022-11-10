@@ -197,9 +197,14 @@ if __name__ == "__main__":
     # do not pull up, set_index does not work if geo dataframe is empty
     regions = regions.set_index("name").rename_axis("bus")
     buses = regions.index
+    area_crs = snakemake.config["crs"]["area_crs"]
+    resarea = gpd.read_file(snakemake.input.resarea).to_crs(area_crs)
 
     res = config.get("excluder_resolution", 100)
     excluder = atlite.ExclusionContainer(crs=3035, res=res)
+
+    # limit to resareas REDZ or CORRIDORS
+    excluder.add_geometry(resarea.geometry,invert=True)
 
     if config["natura"]:
         excluder.add_raster(snakemake.input.natura, nodata=0, allow_no_overlap=True)
@@ -324,17 +329,16 @@ if __name__ == "__main__":
 
     #    ds["underwater_fraction"] = xr.DataArray(underwater_fraction, [buses])
 
-    # select only buses with some capacity and minimal capacity factor
-    ds = ds.sel(
-        bus=(
-            (ds["profile"].mean("time") > config.get("min_p_max_pu", 0.0))
-            & (ds["p_nom_max"] > config.get("min_p_nom_max", 0.0))
-        )
-    )
+#    ds = ds.sel(
+#        bus=(
+#            (ds["profile"].mean("time") > config.get("min_p_max_pu", 0.0))
+#            & (ds["p_nom_max"] > config.get("min_p_nom_max", 0.0))
+#        )
+#    )
 
-    if "clip_p_max_pu" in config:
-        min_p_max_pu = config["clip_p_max_pu"]
-        ds["profile"] = ds["profile"].where(ds["profile"] >= min_p_max_pu, 0)
+#    if "clip_p_max_pu" in config:
+#        min_p_max_pu = config["clip_p_max_pu"]
+#        ds["profile"] = ds["profile"].where(ds["profile"] >= min_p_max_pu, 0)
 
 
     ds.to_netcdf(snakemake.output.profile)

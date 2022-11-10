@@ -123,6 +123,7 @@ if config['enable']['build_renewable_profiles'] & ~config['enable']['use_eskom_w
         input:
             base_network="networks/base_{regions}.nc",
             regions = 'resources/onshore_shapes_{regions}.geojson',
+            resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea],
             natura=lambda w: (
                 "resources/landuse_without_protected_conservation.tiff"
                 if config["renewable"][w.technology]["natura"]

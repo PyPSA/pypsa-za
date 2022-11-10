@@ -30,12 +30,12 @@ years:
     imports: [2021]
 
 enable:
-  build_natura_raster: True
+  build_natura_raster: false
   build_land_use: false
   build_population: false
-  build_topology: true
-  use_eskom_wind_solar: true
-  build_renewable_profiles: true
+  build_topology: false
+  use_eskom_wind_solar: false
+  build_renewable_profiles: True
   build_cutout: false
 
 snapshots:
@@ -210,13 +210,13 @@ renewable:
   #  potential: simple # or conservative
   #  clip_p_max_pu: 1.e-2
   solar:
-    cutout: RSA-2013-era5
+    cutout: RSA-2013-era
     resource:
       method: pv
       panel: CSi
-      orientation:
-        slope: 35.
-        azimuth: 0.
+      orientation: latitude_optimal
+        #slope: 35.
+        #azimuth: 0.
     capacity_per_sqkm: 1.7 # ScholzPhd Tab 4.3.1: 170 MW/km^2 and assuming 1% of the area can be used for solar PV panels
     # Correction factor determined by comparing uncorrected area-weighted full-load hours to those
     # published in Supplementary Data to
