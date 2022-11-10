@@ -101,7 +101,9 @@ electricity:
       epsilon_load: 0.02 # share of total load
       epsilon_vres: 0.02 # share of total renewable supply
       contingency: 0 # fixed capacity in MW
-
+    operating_reserves:
+      fast: ['battery','PHS']
+      slow: ['diesel','gas','OCGT','CCGT'] 
   max_hours:
     battery: 4
     H2: 10

@@ -370,7 +370,56 @@ def min_capacity_factor(n,sns):
                 define_constraints(n, lhs, '>=',0, 'Generators', tech+'_y_'+str(y)+'_min_CF')
 
 # Reserve requirement of 1GW for fast acting reserves from PHS or battery, and 2.2GW of total reserves
-def reserves(n, sns):
+def add_operating_reserves(n, sns,requirements):
+    # Get variables for isntalled capacity and power
+    gen_i = n.generators.index
+    
+    for cat in ['fast','slow']:
+        carriers = snakemake.config["electricity"]["reserves"]["operating_reserves"][cat]
+    
+        gen_ext_i = n.generators.query("carrier == @carriers and p_nom_extendable").index
+        gen_fix_i = n.generators.query("carrier == @carriers and not p_nom_extendable").index
+        st_ext_i = n.storage_units.query("carrier == @carriers and p_nom_extendable").index
+        st_fix_i = n.storage.query("carrier == @carriers and not p_nom_extendable").index
+
+
+        gen_ext_i = n.generators.query("p_nom_extendable").index
+        gen_fix_i = n.generators.query("not p_nom_extendable").index
+        fast_res = n.generators.query("carrier")
+        st_ext_i = n.storage_units.query("p_nom_extendable").index
+        st_fix_i = n.storage_units.query("not p_nom_extendable").index
+
+        capacity_fixed = n.generators.p_nom[gen_fix_i]
+
+        p_max_pu = get_as_dense(n, "Generator", "p_max_pu")
+
+
+        dispatch_gen = get_var(n, "Generator", "p")
+        dispatch_st = get_var(n, "StorageUnit", "p")
+        cap_vars_gen = get_var(n, "Generator", "p_nom")
+        cap_vars_st = get_var(n, "StorageUnit", "p_nom")
+
+
+
+
+    reserve = get_var(n, "Generator", "r")
+
+    capacity_fixed = n.generators.p_nom[fix_i]
+
+    p_max_pu = get_as_dense(n, "Generator", "p_max_pu")
+
+    lhs = linexpr((1, dispatch), (1, reserve))
+
+    if not ext_i.empty:
+        capacity_variable = get_var(n, "Generator", "p_nom")
+        lhs += linexpr((-p_max_pu[ext_i], capacity_variable)).reindex(
+            columns=gen_i, fill_value=""
+        )
+
+    rhs = (p_max_pu[fix_i] * capacity_fixed).reindex(columns=gen_i, fill_value=0)
+
+
+
     ocgt_link_efficiency=n.links.efficiency['ocgt']
     ocgt_p_nom = n.links.p_nom['ocgt']*ocgt_link_efficiency
     phs_p_nom = n.links.p_nom['phs_d']
@@ -511,7 +560,7 @@ def extra_functionality(n, snapshots):
     add_battery_constraints(n,snapshots)
     min_capacity_factor(n,snapshots)
     define_storage_global_constraints(n, snapshots)
-
+    add_operating_reserves(n,snapshots,1000)
 def solve_network(n, config, opts="", **kwargs):
     solver_options = config["solving"]["solver"].copy()
     solver_name = solver_options.pop("name")

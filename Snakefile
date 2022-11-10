@@ -157,7 +157,7 @@ rule add_electricity:
         load='data/bundle/SystemEnergy2009_13.csv',
         onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         solar_area='resources/area_solar_{regions}_{resarea}.csv',
-        eskom_profiles="data/bundle/eskom_pu_profiles.csv",
+        eskom_profiles="data/eskom_pu_profiles.csv",
         model_file="data/model_file.xlsx",
         existing_generators_eaf="data/Eskom EAF data.xlsx",
     output: "networks/elec_{model_file}_{regions}_{resarea}.nc",
