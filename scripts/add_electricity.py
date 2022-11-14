@@ -255,22 +255,28 @@ def load_costs(model_file, cost_scenario, config, elec_config, config_years):
 
     return costs
 
-def add_generator_availability(n,generators,config_avail):
+def add_generator_availability(n,generators,config_avail,eaf_projections):
     # Add plant availability based on actual Eskom data
     eskom_data  = pd.read_excel(snakemake.input.existing_generators_eaf, sheet_name='eskom_data', na_values=['-'],index_col=[1,0],parse_dates=True)
-    # if isinstance(n.snapshots, pd.MultiIndex):
     snapshots = n.snapshots.get_level_values(1)
-    # else:
-    #     snapshots=n.snapshots
+    years_full = range(n.investment_periods[0]-1,n.investment_periods[-1]+1)
+
     eaf_profiles = pd.DataFrame(1,index=snapshots,columns=[])
-    delta_eaf=1 #TODO change with projections into the future
+    delta_eaf=pd.DataFrame(0,index=years_full,columns=n.generators.carrier.unique()) 
+    cum_delta_eaf =pd.DataFrame(1,index=years_full,columns=n.generators.carrier.unique())
+    for carrier in delta_eaf.columns:
+       if carrier+ '_fleet_EAF' in eaf_projections.index:
+        delta_eaf[carrier]= eaf_projections.loc[carrier+ '_fleet_EAF',:].T
+        for y in range(n.investment_periods[0],n.investment_periods[-1]+1):
+            cum_delta_eaf.loc[y,carrier]=cum_delta_eaf.loc[y-1,carrier]*(1+eaf_projections.loc[carrier+ '_fleet_EAF',y])
 
     # All existing generators in the Eskom fleet with available data
     for tech in n.generators.index[n.generators.index.isin(eskom_data.index.get_level_values(0).unique())]:
         reference_data = eskom_data.loc[tech].loc[eskom_data.loc[tech].index.year.isin(config_avail['reference_years'])]
         base_eaf=(reference_data['EAF %']/100).groupby(reference_data['EAF %'].index.month).mean()
         for y in n.investment_periods:
-            eaf_profiles.loc[str(y),tech]=base_eaf[eaf_profiles.loc[str(y)].index.month].values * delta_eaf
+            eaf_profiles.loc[str(y),tech]=(base_eaf[eaf_profiles.loc[str(y)].index.month].values 
+                                            * cum_delta_eaf.loc[y, n.generators.carrier[tech]])
 
     # New plants without existing data take best performing of Eskom fleet
     for carrier in ['coal', 'OCGT', 'CCGT', 'nuclear']:
@@ -777,7 +783,10 @@ if __name__ == "__main__":
     attach_extendable_generators(n, costs)
     attach_storage(n, costs)
     if snakemake.config['electricity']['generator_availability']['implement_availability']==True:
-        add_generator_availability(n,gens,snakemake.config['electricity']['generator_availability'])
+        add_generator_availability(n,
+                    gens,
+                    snakemake.config['electricity']['generator_availability'],
+                    projections)
         add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])    
     add_partial_decommissioning(n,gens)      
     add_nice_carrier_names(n, snakemake.config)
