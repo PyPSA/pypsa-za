@@ -62,7 +62,7 @@ import numpy as np
 import pandas as pd
 import pypsa
 from pypsa.linopt import get_var, write_objective, define_constraints, linexpr
-from _helpers import configure_logging
+from _helpers import configure_logging, clean_pu_profiles
 from add_electricity import load_costs, update_transmission_costs
 
 idx = pd.IndexSlice
@@ -356,10 +356,10 @@ if __name__ == "__main__":
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('prepare_network', 
                             **{'model_file':'IRP-2019',
-                            'regions':'10-supply',
+                            'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC-1200SEG'})
+                            'opts':'LC'})
     configure_logging(snakemake)
 
     model_setup = (pd.read_excel(snakemake.input.model_file, 
@@ -463,5 +463,5 @@ if __name__ == "__main__":
         s_nom_max_set=snakemake.config["lines"].get("s_nom_max,", np.inf),
         p_nom_max_set=snakemake.config["links"].get("p_nom_max,", np.inf),
     )
-
+    
     n.export_to_netcdf(snakemake.output[0])

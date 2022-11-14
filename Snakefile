@@ -191,8 +191,10 @@ rule prepare_network:
         "scripts/prepare_network.py"
 
 rule solve_network:
-    input: network="networks/pre_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc"
-    output: "results/version-" + str(config['version']) + "/networks/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc"
+    input: 
+        network="networks/pre_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc",
+        model_file="data/model_file.xlsx",
+    output: "results/networks/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc"
     shadow: "shallow"
     log:
         solver=normpath(

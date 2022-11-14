@@ -655,8 +655,8 @@ def clean_pu_profiles(n):
     for carrier in n.generators_t.p_min_pu.columns:
         if carrier in pu_index:
             error_loc=n.generators_t.p_min_pu[carrier][n.generators_t.p_min_pu[carrier]>n.generators_t.p_max_pu[carrier]].index
-            n.generators_t.p_min_pu.loc[error_loc,carrier]=n.generators_t.p_max_pu.loc[error_loc,carrier]-0.001
+            n.generators_t.p_min_pu.loc[error_loc,carrier]=n.generators_t.p_max_pu.loc[error_loc,carrier]
         else:
             error_loc=n.generators_t.p_min_pu[carrier][n.generators_t.p_min_pu[carrier]>n.generators.p_max_pu[carrier]].index
-            n.generators_t.p_min_pu.loc[error_loc,carrier]=n.generators.p_max_pu.loc[carrier]-0.001
+            n.generators_t.p_min_pu.loc[error_loc,carrier]=n.generators.p_max_pu.loc[carrier]
 

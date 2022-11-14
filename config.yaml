@@ -34,8 +34,8 @@ enable:
   build_land_use: false
   build_population: false
   build_topology: false
-  use_eskom_wind_solar: false
-  build_renewable_profiles: True
+  use_eskom_wind_solar: true
+  build_renewable_profiles: true
   build_cutout: false
 
 snapshots:
@@ -55,7 +55,7 @@ electricity:
   
   generator_availability: 
     implement_availability: true
-    reference_years: [2017, 2018, 2019, 2020, 2021] #if multiple years specified an average is used
+    reference_years: [2021] #if multiple years specified an average is used
     new_unit_ref: 
     # base new generator performance on an existing Eskom generator
     # in the format [generator,ref year/s, rescale e.g 10% higher]
@@ -73,7 +73,7 @@ electricity:
   min_capacity_factor:
     CCGT: 0.3
     nuclear: 0.5
-  
+
   extendable_carriers:
     Renewables: ['onwind', solar]
     Generator: [CCGT, OCGT, coal, nuclear]
@@ -103,7 +103,7 @@ electricity:
       contingency: 0 # fixed capacity in MW
     operating_reserves:
       fast: ['battery','PHS']
-      slow: ['diesel','gas','OCGT','CCGT'] 
+      total: ['diesel','gas','OCGT','CCGT','battery','PHS'] 
   max_hours:
     battery: 4
     H2: 10

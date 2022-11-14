@@ -106,6 +106,7 @@ from shapely.geometry import Point
 from vresutils import transfer as vtransfer
 idx = pd.IndexSlice
 logger = logging.getLogger(__name__)
+from pypsa.descriptors import get_switchable_as_dense as get_as_dense
 
 def normed(s):
     return s / s.sum()
@@ -315,11 +316,12 @@ def add_partial_decommissioning(n,generators):
                 else:
                     n.generators_t.p_max_pu.loc[y,tech]=0.5*n.generators.p_max_pu.loc[tech]
 
-                if (generators.loc[tech,'min_stable']!=0) & (tech in n.generators_t.p_min_pu.columns):
+                if tech in n.generators_t.p_min_pu.columns:
                     n.generators_t.p_min_pu.loc[y,tech]*=0.5
-                elif (generators.loc[tech,'min_stable']!=0) & (tech not in n.generators_t.p_min_pu.columns):
+                elif tech not in n.generators_t.p_min_pu.columns:
                     n.generators_t.p_min_pu.loc[y,tech]=0.5*n.generators.p_min_pu.loc[tech]
-                    
+    n.generators_t.p_min_pu=n.generators_t.p_min_pu.fillna(0)   
+                
  ## Attach components
 # ### Load
 
@@ -449,7 +451,8 @@ def attach_wind_and_solar(n, costs,input_profiles, model_setup, eskom_profiles):
         if pos_at_bus_b.any():
             gens.loc[pos_at_bus_b, "bus"] = bus
     gens.loc[gens.bus.isnull(), "bus"] = pos[gens.bus.isnull()].map(lambda p: regions.distance(p).idxmin())
-
+    gens.loc['Sere','Grouping'] = 'REIPPPP_BW1' #add Sere wind farm to BW1 for simplification #TODO fix this to be general
+    
     # Aggregate REIPPPP bid window generators at each bus #TODO use capacity weighted average for lifetime, costs 
     for carrier in ['solar','onwind']:
         plant_data = gens.loc[gens['carrier']==carrier,['Grouping','bus','p_nom']].groupby(['Grouping','bus']).sum()
@@ -461,9 +464,6 @@ def attach_wind_and_solar(n, costs,input_profiles, model_setup, eskom_profiles):
             weather_years+=weather_years
 
         ds = xr.open_dataset(getattr(input_profiles, "profile_" + carrier))
-        # with xr.open_dataset(getattr(input_profiles, "profile_" + carrier)) as ds:
-        #     if ds.indexes["bus"].empty:
-        #         continue
         cnt=0
         resource_carrier=pd.DataFrame(0,index=n.snapshots,columns=n.buses.index) 
         
@@ -488,6 +488,7 @@ def attach_wind_and_solar(n, costs,input_profiles, model_setup, eskom_profiles):
                 p_max_pu=resource_carrier[plant_data.loc[group].index],
                 p_min_pu=resource_carrier[plant_data.loc[group].index]*0.95, # for existing PPAs force to buy all energy produced
                 )
+        
     # Add new generators
         for y in n.investment_periods:
             #TODO add check here to exclude buses where p_nom_max = 0 
@@ -503,7 +504,7 @@ def attach_wind_and_solar(n, costs,input_profiles, model_setup, eskom_profiles):
                 capital_cost=costs[y].at[carrier, 'capital_cost'],
                 efficiency=costs[y].at[carrier, 'efficiency'],
                 p_max_pu=resource_carrier[n.buses.index])
-
+    return gens
 # # Generators
 def attach_existing_generators(n, costs, eskom_profiles, model_setup):
     # Coal, gas, diesel, biomass, hydro, pumped storage
@@ -618,8 +619,6 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
             max_hours=phs['PHS_max_hours'],
             capital_cost=phs['capital_cost'],
             marginal_cost=phs['marginal_cost'],
-            p_max_pu=1.,  # dispatch
-            p_min_pu=0.,  # store
             efficiency_dispatch=phs['PHS_efficiency']**(0.5),
             efficiency_store=phs['PHS_efficiency']**(0.5),
             cyclic_state_of_charge=True

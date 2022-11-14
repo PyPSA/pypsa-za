@@ -78,7 +78,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pypsa
-from _helpers import configure_logging
+from _helpers import configure_logging, clean_pu_profiles
 from pypsa.descriptors import get_switchable_as_dense as get_as_dense
 from pypsa.linopf import (
     define_constraints,
@@ -101,8 +101,7 @@ from pypsa.descriptors import (
     get_non_extendable_i,
     nominal_attrs,
 )
-
-
+idx = pd.IndexSlice
 from vresutils.benchmark import memory_logger
 
 logger = logging.getLogger(__name__)
@@ -113,7 +112,7 @@ def prepare_network(n, solve_opts):
     if "clip_p_max_pu" in solve_opts:
         for df in (n.generators_t.p_max_pu, n.storage_units_t.inflow):
             df.where(df > solve_opts["clip_p_max_pu"], other=0.0, inplace=True)
-
+    clean_pu_profiles(n)
     load_shedding = solve_opts.get("load_shedding")
     if load_shedding:
         n.add("Carrier", "Load")
@@ -370,74 +369,46 @@ def min_capacity_factor(n,sns):
                 define_constraints(n, lhs, '>=',0, 'Generators', tech+'_y_'+str(y)+'_min_CF')
 
 # Reserve requirement of 1GW for fast acting reserves from PHS or battery, and 2.2GW of total reserves
-def add_operating_reserves(n, sns,requirements):
-    # Get variables for isntalled capacity and power
-    gen_i = n.generators.index
+def reserves(n, sns):
+    model_setup = (pd.read_excel(snakemake.input.model_file, 
+                                sheet_name='model_setup',
+                                index_col=[0])
+                                .loc[snakemake.wildcards.model_file])
     
-    for cat in ['fast','slow']:
-        carriers = snakemake.config["electricity"]["reserves"]["operating_reserves"][cat]
-    
-        gen_ext_i = n.generators.query("carrier == @carriers and p_nom_extendable").index
-        gen_fix_i = n.generators.query("carrier == @carriers and not p_nom_extendable").index
-        st_ext_i = n.storage_units.query("carrier == @carriers and p_nom_extendable").index
-        st_fix_i = n.storage.query("carrier == @carriers and not p_nom_extendable").index
+    reserve_requirements = (pd.read_excel(snakemake.input.model_file, 
+                                sheet_name='projected_parameters',
+                                index_col=[0,1])
+                                .loc[model_setup['projected_parameters']]
+                                .loc[['fast_reserves','total_reserves'],:].T)
 
-
-        gen_ext_i = n.generators.query("p_nom_extendable").index
-        gen_fix_i = n.generators.query("not p_nom_extendable").index
-        fast_res = n.generators.query("carrier")
-        st_ext_i = n.storage_units.query("p_nom_extendable").index
-        st_fix_i = n.storage_units.query("not p_nom_extendable").index
-
-        capacity_fixed = n.generators.p_nom[gen_fix_i]
-
-        p_max_pu = get_as_dense(n, "Generator", "p_max_pu")
-
-
-        dispatch_gen = get_var(n, "Generator", "p")
-        dispatch_st = get_var(n, "StorageUnit", "p")
-        cap_vars_gen = get_var(n, "Generator", "p_nom")
-        cap_vars_st = get_var(n, "StorageUnit", "p_nom")
-
-
-
-
-    reserve = get_var(n, "Generator", "r")
-
-    capacity_fixed = n.generators.p_nom[fix_i]
-
-    p_max_pu = get_as_dense(n, "Generator", "p_max_pu")
-
-    lhs = linexpr((1, dispatch), (1, reserve))
-
-    if not ext_i.empty:
-        capacity_variable = get_var(n, "Generator", "p_nom")
-        lhs += linexpr((-p_max_pu[ext_i], capacity_variable)).reindex(
-            columns=gen_i, fill_value=""
-        )
-
-    rhs = (p_max_pu[fix_i] * capacity_fixed).reindex(columns=gen_i, fill_value=0)
-
-
-
-    ocgt_link_efficiency=n.links.efficiency['ocgt']
-    ocgt_p_nom = n.links.p_nom['ocgt']*ocgt_link_efficiency
-    phs_p_nom = n.links.p_nom['phs_d']
-    bat_1h_p_nom = n.storage_units.p_nom['battery_1h']
-    bat_4h_p_nom = n.storage_units.p_nom['battery_4h']
-    phs_p=get_var(n, 'Link', 'p')['phs_d']
-    ocgt_p=get_var(n, 'Link', 'p')['ocgt']
-    bat_1h_p=get_var(n, 'StorageUnit', 'p_dispatch')['battery_1h']
-    bat_4h_p=get_var(n, 'StorageUnit', 'p_dispatch')['battery_4h']
-
-    reserve=phs_p_nom+bat_1h_p_nom+bat_4h_p_nom-1000 
-    lhs = linexpr((1,phs_p)) + linexpr((1,bat_1h_p)) + linexpr((1,bat_4h_p))
-    define_constraints(n, lhs, '<=',reserve, 'Links', 'fast_reserve')
-
-    tot_reserve=ocgt_p_nom+phs_p_nom+bat_1h_p_nom+bat_4h_p_nom-2200
-    lhs += linexpr((ocgt_link_efficiency,ocgt_p))
-    define_constraints(n, lhs, '<=',tot_reserve, 'Links', 'total_reserve')
-
+    for reserve_type in ['fast','total']:
+        carriers = snakemake.config["electricity"]["reserves"]["operating_reserves"][reserve_type]
+        for y in n.investment_periods:
+            lhs=0
+            rhs=reserve_requirements.loc[y,reserve_type+'_reserves']
+            # Generators
+            for tech_type in ['Generator','StorageUnit']:
+                active = get_active_assets(n,tech_type,y)
+                tech_list = n.df(tech_type).query("carrier == @carriers").index.intersection(active[active].index)
+                for tech in tech_list:
+                    if tech_type=='Generator':
+                        tech_p=get_var(n, tech_type, 'p')[tech].loc[y]
+                    elif tech_type=='StorageUnit':
+                        tech_p=get_var(n, tech_type, 'p_dispatch')[tech].loc[y]
+                    p_max_pu = get_as_dense(n, tech_type, "p_max_pu")[tech].loc[y]
+                    if type(lhs)==int:
+                        lhs=linexpr((-1,tech_p))
+                    else:
+                        lhs+=linexpr((-1,tech_p))
+                    if n.df(tech_type).p_nom_extendable[tech]==False:
+                        tech_p_nom=n.df(tech_type).p_nom[tech]
+                        rhs+=-tech_p_nom*p_max_pu
+                    else:
+                        tech_p_nom=get_var(n, tech_type, 'p_nom')[tech]
+                        lhs+=linexpr((p_max_pu,tech_p_nom))
+            lhs.index=pd.MultiIndex.from_arrays([lhs.index.year,lhs.index])  
+            rhs.index=pd.MultiIndex.from_arrays([rhs.index.year,rhs.index])
+            define_constraints(n, lhs, '>=',rhs, 'Reserves_'+str(y)+'_'+reserve_type)
 
 def define_storage_global_constraints(n, sns):
     """
@@ -560,7 +531,7 @@ def extra_functionality(n, snapshots):
     add_battery_constraints(n,snapshots)
     min_capacity_factor(n,snapshots)
     define_storage_global_constraints(n, snapshots)
-    add_operating_reserves(n,snapshots,1000)
+    reserves(n,snapshots)
 def solve_network(n, config, opts="", **kwargs):
     solver_options = config["solving"]["solver"].copy()
     solver_name = solver_options.pop("name")
@@ -634,7 +605,7 @@ if __name__ == "__main__":
             opts=opts,
             solver_dir=tmpdir,
             solver_logfile=snakemake.log.solver,
-            #keep_references=True, only for debugging when needed
+            #keep_references=True, #only for debugging when needed
         )
         n.export_to_netcdf(snakemake.output[0])
     logger.info("Maximum memory usage: {}".format(mem.mem_usage))
