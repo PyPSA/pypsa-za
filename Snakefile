@@ -72,6 +72,7 @@ if config['enable']['build_cutout']:
     rule build_cutout:
         input:
             regions_onshore='data/supply_regions/supply_regions_RSA.shp',
+            wasa_map = 'data/bundle/ZAF_wind-speed_100m.tif',
         output:
             "cutouts/{cutout}.nc",
         log:
@@ -83,6 +84,22 @@ if config['enable']['build_cutout']:
             mem_mb=ATLITE_NPROCESSES * 1000,
         script:
             "scripts/build_cutout.py"
+
+
+rule apply_wind_correction:
+    input:
+        cutout="cutouts/"+ config["renewable"]["onwind"]["cutout"] + ".nc",
+        regions_onshore='data/supply_regions/supply_regions_RSA.shp',
+        wasa_map = 'data/bundle/ZAF_wind-speed_100m.tif',
+    output:
+        "cutouts/{cutout}_corrected.nc",
+    log:
+        "logs/apply_wind_correction/{cutout}.log",
+    benchmark:
+        "benchmarks/apply_wind_correction_{cutout}"
+    script:
+        "scripts/apply_wind_correction.py"
+
 
 if not config['hydro_inflow']['disable']:
     rule build_inflow_per_country:

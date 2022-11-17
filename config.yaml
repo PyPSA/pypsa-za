@@ -17,7 +17,7 @@ data:
     corridors: Power_corridors
 
 years: 
-  simulation: [2022,2025,2030,2035,2040]
+  simulation: [2025]
   reference_demand_year: 2012  # should be a single year
   reference_weather_years: 
     # reference years used for solar PV and wind profiles - can be single or multiple years
@@ -37,6 +37,7 @@ enable:
   use_eskom_wind_solar: true
   build_renewable_profiles: true
   build_cutout: false
+  build_wind_correction: true
 
 snapshots:
   start: "2013-01-01"
@@ -131,27 +132,28 @@ atlite:
     # use 'base' to determine geographical bounds and time span from config
     # base:
       # module: era5
-    RSA-2013-era5:
+    RSA-2012-era5:
       module: era5 # in priority order
       x: [16, 35]
       y: [-35., -21]
       dx: 0.3
       dy: 0.3
-      time: ['2014', '2014']
-    RSA-2013-sarah:
+      time: ['2012', '2012']
+    RSA-2012-sarah:
       module: [sarah, era5] # in priority order
       x: [16, 35]
       y: [-35.,-21]
       dx: 0.2
       dy: 0.2
-      time: ['2014', '2014']
+      time: ['2012', '2012']
       sarah_interpolate: false
       sarah_dir:
       features: [influx, temperature]
+    apply_wind_speed_correction: true
 
 renewable:
   onwind:
-    cutout: RSA-2014-era5
+    cutout: RSA-2012-era5
     resource:
       method: wind
       turbine: Vestas_V112_3MW

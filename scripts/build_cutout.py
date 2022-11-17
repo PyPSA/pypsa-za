@@ -81,7 +81,13 @@ import logging
 import atlite
 import geopandas as gpd
 import pandas as pd
+import numpy as np
+import xarray as xr
+import rasterio
+import shapely
+
 from _helpers import configure_logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -111,5 +117,8 @@ if __name__ == "__main__":
 
     logging.info(f"Preparing cutout with parameters {cutout_params}.")
     features = cutout_params.pop("features", None)
+    
     cutout = atlite.Cutout(snakemake.output[0], **cutout_params)
     cutout.prepare(features=features)
+
+    
