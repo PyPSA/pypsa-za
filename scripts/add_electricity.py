@@ -467,16 +467,17 @@ def attach_wind_and_solar(n, costs,input_profiles, model_setup, eskom_profiles):
 
         weather_years=snakemake.config['years']['reference_weather_years'][carrier]
         for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
-            weather_years+=weather_years
-
-        ds = xr.open_dataset(getattr(input_profiles, "profile_" + carrier))
-        cnt=0
-        resource_carrier=pd.DataFrame(0,index=n.snapshots,columns=n.buses.index) 
+            weather_years+=weather_years        
         
+        resource_carrier=pd.DataFrame(0,index=n.snapshots,columns=n.buses.index) 
         if snakemake.config["enable"]["use_eskom_wind_solar"]==False:
+            ds = xr.open_dataset(getattr(input_profiles, "profile_" + carrier))
+            cnt=0
             for y in n.investment_periods: 
                     atlite_data = ds["profile"].transpose("time", "bus").to_pandas()
-                    resource_carrier.loc[y] = (atlite_data.loc[str(weather_years[cnt])].clip(lower=0., upper=1.)).values     
+                     #TODO remove hard coding only sue 1yr from atlite at present
+                    #resource_carrier.loc[y] = (atlite_data.loc[str(weather_years[cnt])].clip(lower=0., upper=1.)).values
+                    resource_carrier.loc[y] = atlite_data.clip(lower=0., upper=1.).values     
             cnt+=1
         else:
             for bus in n.buses.index:
@@ -504,8 +505,8 @@ def attach_wind_and_solar(n, costs,input_profiles, model_setup, eskom_profiles):
                 build_year=y,
                 lifetime=costs[y].at[carrier,'lifetime'],
                 p_nom_extendable=True,
-                p_nom_max=ds["p_nom_max"].to_pandas(), # For multiple years a further constraint is applied in prepare_network.py
-                weight=ds["weight"].to_pandas(),
+                #p_nom_max=ds["p_nom_max"].to_pandas(), # For multiple years a further constraint is applied in prepare_network.py
+                #weight=ds["weight"].to_pandas(),
                 marginal_cost=costs[y].at[carrier, 'marginal_cost'],
                 capital_cost=costs[y].at[carrier, 'capital_cost'],
                 efficiency=costs[y].at[carrier, 'efficiency'],

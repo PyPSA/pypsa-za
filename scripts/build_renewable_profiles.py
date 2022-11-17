@@ -166,7 +166,7 @@ if __name__ == "__main__":
 
         #snakemake = mock_snakemake("build_renewable_profiles", technology="onwind")
         snakemake = mock_snakemake('build_renewable_profiles',technology='onwind', 
-                    **{'regions':'9-supply',
+                    **{'regions':'RSA',
                     'resarea':'redz'})
     configure_logging(snakemake)
     pgb.streams.wrap_stderr()
@@ -246,11 +246,11 @@ if __name__ == "__main__":
     #        snakemake.input.country_shapes, buffer=buffer, invert=True
     #    )
 
-    kwargs = dict(nprocesses=nprocesses, disable_progressbar=noprogress)
+    #kwargs = dict(nprocesses=nprocesses, disable_progressbar=noprogress)
     if noprogress:
         logger.info("Calculate landuse availabilities...")
         start = time.time()
-        availability = cutout.availabilitymatrix(regions, excluder, **kwargs)
+        availability = cutout.availabilitymatrix(regions, excluder)#, **kwargs)
         duration = time.time() - start
         logger.info(f"Completed availability calculation ({duration:2.2f}s)")
     else:

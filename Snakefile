@@ -29,6 +29,19 @@ if config['enable']['build_land_use']:
         threads: 1
         resources: mem_mb=20000
         script: "scripts/build_landuse_remove_protected_and_conservation_areas.py"
+    rule build_landuse_map_to_tech_and_supply_region:
+        input:
+            landuse = "resources/landuse_without_protected_conservation.tiff",
+            supply_regions = "data/supply_regions/supply_regions_{regions}.shp",
+            resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
+        output:
+            raster = "resources/raster_{tech}_percent_{regions}_{resarea}.tiff",
+            area = "resources/area_{tech}_{regions}_{resarea}.csv"
+        benchmark: "benchmarks/build_landuse_map_to_tech_and_supply_region/{tech}_{regions}_{resarea}"
+        threads: 1
+        resources: mem_mb=10000
+        script: "scripts/build_landuse_map_to_tech_and_supply_region.py"
+
 
 if config["enable"]["build_natura_raster"]:
     rule build_natura_raster:
@@ -45,28 +58,15 @@ if config["enable"]["build_natura_raster"]:
         script:
             "scripts/build_natura_raster.py"
 
-rule build_landuse_map_to_tech_and_supply_region:
-    input:
-        landuse = "resources/landuse_without_protected_conservation.tiff",
-        supply_regions = "data/supply_regions/supply_regions_{regions}.shp",
-        resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
-    output:
-        raster = "resources/raster_{tech}_percent_{regions}_{resarea}.tiff",
-        area = "resources/area_{tech}_{regions}_{resarea}.csv"
-    benchmark: "benchmarks/build_landuse_map_to_tech_and_supply_region/{tech}_{regions}_{resarea}"
-    threads: 1
-    resources: mem_mb=10000
-    script: "scripts/build_landuse_map_to_tech_and_supply_region.py"
-
-#if config['enable']['build_population']: 
-#    rule build_population:
-#        input:
-#            supply_regions='data/supply_regions/supply_regions_{regions}.shp',
-#            population='data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif'
-#        output: 'resources/population_{regions}.csv'
-#        threads: 1
-#        resources: mem_mb=1000
-#        script: "scripts/build_population.py"
+if config['enable']['build_population']: 
+   rule build_population:
+       input:
+           supply_regions='data/supply_regions/supply_regions_{regions}.shp',
+           population='data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif'
+       output: 'resources/population_{regions}.csv'
+       threads: 1
+       resources: mem_mb=1000
+       script: "scripts/build_population.py"
 
 if config['enable']['build_cutout']:
     rule build_cutout:
@@ -146,11 +146,16 @@ if config['enable']['build_renewable_profiles'] & ~config['enable']['use_eskom_w
         script:
             "scripts/build_renewable_profiles.py"
 
+if ~config['enable']['use_eskom_wind_solar']:
+    renewable_carriers = config["renewable"] 
+else:
+    renewable_carriers=[]
+
 rule add_electricity:
     input:
         **{
             f"profile_{tech}": f"resources/profile_{tech}_"+ "{regions}_{resarea}.nc"
-            for tech in config["renewable"]
+            for tech in renewable_carriers
         },
         base_network='networks/base_{regions}.nc',
         supply_regions='data/supply_regions/supply_regions_{regions}.shp',
