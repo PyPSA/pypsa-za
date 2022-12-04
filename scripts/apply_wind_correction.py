@@ -22,8 +22,10 @@ import xarray as xr
 import rasterio
 import shapely
 from _helpers import configure_logging
-
+import warnings
+warnings.filterwarnings(action='ignore', category=RuntimeWarning) 
 logger = logging.getLogger(__name__)
+from progressbar import progressbar
 
 if __name__ == "__main__":
     if "snakemake" not in globals():
@@ -37,26 +39,37 @@ if __name__ == "__main__":
     era5_wnd100m=cutout.data.wnd100m.to_dataframe()
     era5_wnd100m_corrected=era5_wnd100m.copy()
 
-    logging.info(f"Scaling annual wind speed at 100m to match {snakemake.input.wasa_map}.")
-    src=rasterio.open(snakemake.input.wasa_map)
+    logging.info(f"Scaling annual wind speed at 100m to match {snakemake.input.wasa_map} at each cell in the cutout.")
+    
+    wasa=xr.open_dataarray(snakemake.input.wasa_map)
+    clipped_wasa = wasa.rio.clip_box(16.46, -34.82, 32.94, -22.13)
 
+    # Remove WASA data associated with unusable terrain
+    tri = xr.open_dataarray(snakemake.input.terrain_ruggedness_index)
+    tri=tri.interp(x=clipped_wasa.coords['x'], y=clipped_wasa.coords['y'], method="linear")
+    tri.values[(tri.values>0)&(tri.values<=200)]=1
+    tri.values[tri.values>200]=np.nan
+    tri.values[tri.values<0]=np.nan
+    clipped_wasa.values = np.multiply(tri.values,clipped_wasa.values)
+    
     # Correct wind speed in each grid cell of the cutout. This can take up to 10min, but only needs to 
     # be run once for each cutout and then can be disabled. 
-    for c in cells.index:
-        mm=cells.geometry.bounds.loc[c,:]
-        window = rasterio.windows.from_bounds(mm['minx'], mm['miny'], mm['maxx'], mm['maxy'], src.transform)
-
-        box = shapely.geometry.box(mm['minx'], mm['miny'], mm['maxx'], mm['maxy'])
-        transform = rasterio.windows.transform(window, src.transform)
-        src_data = src.read(1, window=window)
+    for c in progressbar(cells.index):
+        bounds=cells.geometry.bounds.loc[c,:]
+        mask_lon = (clipped_wasa.x >= bounds['minx']) & (clipped_wasa.x <= bounds['maxx'])
+        mask_lat = (clipped_wasa.y >= bounds['miny']) & (clipped_wasa.y <= bounds['maxy'])
+        cell_wasa = clipped_wasa.where(mask_lon & mask_lat, drop=True)
+        cell_wasa_mean = np.nanquantile((cell_wasa.values),0.75)
+        
         xpos = cells.loc[c,'x']
         ypos = cells.loc[c,'y']
-        era5_wnd100m_corrected.loc[(slice(None),ypos,xpos),'wnd100m']=(np.quantile(src_data,0.75)/era5_wnd100m.loc[(slice(None),ypos,xpos),'wnd100m'].mean()
-                                                            *era5_wnd100m.loc[(slice(None),ypos,xpos),'wnd100m'])    
 
-    # Use original wind speed values in cases where the above operation introduces artificaial NaN
-    use_era5 = (era5_wnd100m_corrected.wnd100m.notnull()==False) & (era5_wnd100m.wnd100m.notnull()==True)
-    era5_wnd100m_corrected.wnd100m[use_era5]=era5_wnd100m.wnd100m[use_era5]
+        era5_mean = era5_wnd100m.loc[(slice(None),ypos,xpos),'wnd100m'].mean()
+        if (np.isnan(cell_wasa_mean)) | (era5_mean==0):
+            era5_wnd100m_corrected.loc[(slice(None),ypos,xpos),'wnd100m']=era5_wnd100m.loc[(slice(None),ypos,xpos),'wnd100m']
+        else:
+            era5_wnd100m_corrected.loc[(slice(None),ypos,xpos),'wnd100m']=((cell_wasa_mean/era5_mean)
+                                                                        *era5_wnd100m.loc[(slice(None),ypos,xpos),'wnd100m'])    
+
     cutout.data.wnd100m.data=era5_wnd100m_corrected.to_xarray().chunk(cutout.chunks).wnd100m.data
-
     cutout.to_file(snakemake.output[0])

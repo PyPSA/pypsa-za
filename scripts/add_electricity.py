@@ -100,7 +100,13 @@ import pandas as pd
 import powerplantmatching as pm
 import pypsa
 import xarray as xr
-from _helpers import configure_logging, getContinent, update_p_nom_max, pdbcast, clean_pu_profiles
+from _helpers import (configure_logging, 
+                    getContinent, 
+                    update_p_nom_max, 
+                    pdbcast, 
+                    map_generator_parameters, 
+                    clean_pu_profiles)
+
 from shapely.validation import make_valid
 from shapely.geometry import Point
 from vresutils import transfer as vtransfer
@@ -113,35 +119,6 @@ def normed(s):
 
 def remove_leap_day(df):
     return df[~((df.index.month == 2) & (df.index.day == 29))]
-
-def map_generator_parameters():
-
-    ps_f = dict(PHS_efficiency="Pump Efficiency (%)",
-                PHS_units="Pump Units",
-                PHS_load="Pump Load per unit (MW)",
-                PHS_max_hours="Pumped Storage - Max Storage (GWh)")
-    csp_f = dict(CSP_max_hours='CSP Storage (hours)')
-    g_f = dict(fom="Fixed O&M Cost (R/kW/yr)",
-               p_nom='2022 Capacity (MW)',
-               name='Power Station Name',
-               carrier='Carrier',
-               build_year='Future Commissioning Date',
-               decomdate_50='Decommissioning Date (50%)',
-               decomdate_100='Decommissioning Date (100%)',
-               x='GPS Longitude',
-               y='GPS Latitude',
-               status='Status',
-               heat_rate='Heat Rate (GJ/MWh)',
-               fuel_price='Fuel Price (R/GJ)',
-               vom='Variable O&M Cost (R/MWh)',
-               max_ramp_up='Max Ramp Up (MW/min)',
-               max_ramp_down='Max Ramp Down (MW/min)',
-               min_stable='Min Stable Level (%)',
-               unit_size='Unit size (MW)',
-               units='Number units',
-               maint_rate='Typical annual maintenance rate (%)',
-               out_rate='Typical annual forced outage rate (%)')
-    return g_f, ps_f, csp_f
 
 def calculate_annuity(n, r):
     """
@@ -189,6 +166,10 @@ def load_costs(model_file, cost_scenario, config, elec_config, config_years):
     cost_data.loc[cost_data.unit.str.contains("USD")==True, config_years] *= config["USD_to_ZAR"]
     cost_data.loc[cost_data.unit.str.contains("EUR")==True, config_years] *= config["EUR_to_ZAR"]
 
+    fom_perc_capex=cost_data.loc[cost_data.unit.str.contains("%/year")==True, config_years]
+    fom_perc_capex=fom_perc_capex.index.get_level_values(0)
+
+
     costs = {}
     for y in config_years:
         costs[y]=cost_data.loc[idx[:, y]].unstack(level=1).fillna(
@@ -207,14 +188,10 @@ def load_costs(model_file, cost_scenario, config, elec_config, config_years):
 
         costs[y]['efficiency_store']=costs[y]['efficiency'].pow(1./2) #if only 1 efficiency value is given assume it is round trip efficiency
         costs[y]['efficiency_dispatch']=costs[y]['efficiency'].pow(1./2)
-
-        costs[y]["capital_cost"] = (
-            (
-                calculate_annuity(costs[y]["lifetime"], costs[y]["discount rate"])
-                + costs[y]["FOM"] / 100.0
-            )
-            * costs[y]["investment"]
-        )
+        costs[y].loc[fom_perc_capex,'FOM']*=costs[y].loc[fom_perc_capex,"investment"]/100.0
+        costs[y]["capital_cost"] = (costs[y]["investment"]*
+                                    calculate_annuity(costs[y]["lifetime"], costs[y]["discount rate"])
+                                    + costs[y]["FOM"])
 
         costs[y].at["OCGT", "fuel"] = costs[y].at["gas", "fuel"]
         costs[y].at["CCGT", "fuel"] = costs[y].at["gas", "fuel"]
@@ -260,24 +237,23 @@ def add_generator_availability(n,generators,config_avail,eaf_projections):
     eskom_data  = pd.read_excel(snakemake.input.existing_generators_eaf, sheet_name='eskom_data', na_values=['-'],index_col=[1,0],parse_dates=True)
     snapshots = n.snapshots.get_level_values(1)
     years_full = range(n.investment_periods[0]-1,n.investment_periods[-1]+1)
-
-    eaf_profiles = pd.DataFrame(1,index=snapshots,columns=[])
-    delta_eaf=pd.DataFrame(0,index=years_full,columns=n.generators.carrier.unique()) 
-    cum_delta_eaf =pd.DataFrame(1,index=years_full,columns=n.generators.carrier.unique())
-    for carrier in delta_eaf.columns:
-       if carrier+ '_fleet_EAF' in eaf_projections.index:
-        delta_eaf[carrier]= eaf_projections.loc[carrier+ '_fleet_EAF',:].T
-        for y in range(n.investment_periods[0],n.investment_periods[-1]+1):
-            cum_delta_eaf.loc[y,carrier]=cum_delta_eaf.loc[y-1,carrier]*(1+eaf_projections.loc[carrier+ '_fleet_EAF',y])
-
+    eaf_profiles = pd.DataFrame(1,index=snapshots,columns=[])   
+    
     # All existing generators in the Eskom fleet with available data
+    
+    
     for tech in n.generators.index[n.generators.index.isin(eskom_data.index.get_level_values(0).unique())]:
         reference_data = eskom_data.loc[tech].loc[eskom_data.loc[tech].index.year.isin(config_avail['reference_years'])]
         base_eaf=(reference_data['EAF %']/100).groupby(reference_data['EAF %'].index.month).mean()
+        carrier = n.generators.carrier[tech]
         for y in n.investment_periods:
-            eaf_profiles.loc[str(y),tech]=(base_eaf[eaf_profiles.loc[str(y)].index.month].values 
-                                            * cum_delta_eaf.loc[y, n.generators.carrier[tech]])
-
+            eaf_profiles.loc[str(y),tech]=base_eaf[eaf_profiles.loc[str(y)].index.month].values 
+            if carrier + '_fleet_EAF' in eaf_projections.index:            
+                eaf_profiles.loc[str(y),tech]=(base_eaf[eaf_profiles.loc[str(y)].index.month].values
+                                *eaf_projections.loc[carrier+ '_fleet_EAF',y]
+                                /(eskom_data.loc[carrier+'_total'].loc[eskom_data.loc[carrier+'_total'].index.year.isin(config_avail['reference_years']),'EAF %'].mean()/100))
+                                                
+                                            
     # New plants without existing data take best performing of Eskom fleet
     for carrier in ['coal', 'OCGT', 'CCGT', 'nuclear']:
         # 0 - Reference station, 1 - reference year, 2 - multiplier
@@ -357,6 +333,9 @@ def attach_load(n, annual_demand):
 ### Generate pu profiles for other_re based on Eskom data
 def generate_eskom_profiles(n,config_carriers,ref_years):
     carriers= config_carriers + ['imports']
+    if snakemake.config["enable"]["use_excel_wind_solar"][0]:
+        carriers = [ elem for elem in carriers if elem not in ['onwind','solar']]
+
     eskom_data = (pd.read_csv(snakemake.input.eskom_profiles,skiprows=[1], 
                                 index_col=0,parse_dates=True)
                                 .resample('1h').mean())
@@ -375,6 +354,33 @@ def generate_eskom_profiles(n,config_carriers,ref_years):
                                         .clip(lower=0., upper=1.)).values     
             cnt+=1
     return eskom_profiles
+
+def generate_excel_wind_solar_profiles(n,ref_years):
+    profiles={}
+    profiles['onwind'] = pd.DataFrame(0,index=n.snapshots,columns=n.buses.index)
+    profiles['solar'] = pd.DataFrame(0,index=n.snapshots,columns=n.buses.index)
+    # wind and solar resources can be explicitly specified in excel format
+    for carrier in ['onwind','solar']:
+        raw_profiles= (pd.read_excel(snakemake.config["enable"]["use_excel_wind_solar"][1],
+                                    sheet_name=carrier+'_pu',
+                                    skiprows=[1], 
+                                    index_col=0,parse_dates=True)
+                                    .resample('1h').mean())
+        raw_profiles = remove_leap_day(raw_profiles)
+
+        weather_years=ref_years[carrier]
+        for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
+            weather_years+=weather_years
+        
+        cnt=0
+        # Use the default RSA hourly data (from Eskom) and extend to multiple weather years
+        for y in n.investment_periods:    
+            profiles[carrier].loc[y,n.buses.index] = (raw_profiles.loc[str(weather_years[cnt]),n.buses.index]
+                                        .clip(lower=0., upper=1.)).values     
+            cnt+=1
+
+    return profiles
+
 
 ### Set line costs
 
@@ -464,21 +470,20 @@ def attach_wind_and_solar(n, costs,input_profiles, model_setup, eskom_profiles):
         plant_data = gens.loc[gens['carrier']==carrier,['Grouping','bus','p_nom']].groupby(['Grouping','bus']).sum()
         for param in ['lifetime','capital_cost','marginal_cost']:
             plant_data[param]=gens.loc[gens['carrier']==carrier,['Grouping','bus',param]].groupby(['Grouping','bus']).mean()
-
-        weather_years=snakemake.config['years']['reference_weather_years'][carrier]
-        for i in range(0,int(np.ceil(len(n.investment_periods)/len(weather_years))-1)):
-            weather_years+=weather_years        
-        
+ 
         resource_carrier=pd.DataFrame(0,index=n.snapshots,columns=n.buses.index) 
-        if snakemake.config["enable"]["use_eskom_wind_solar"]==False:
+        if ((snakemake.config["enable"]["use_eskom_wind_solar"]==False) &
+            (snakemake.config["enable"]["use_excel_wind_solar"][0]==False)):
             ds = xr.open_dataset(getattr(input_profiles, "profile_" + carrier))
-            cnt=0
             for y in n.investment_periods: 
                     atlite_data = ds["profile"].transpose("time", "bus").to_pandas()
-                     #TODO remove hard coding only sue 1yr from atlite at present
+                     #TODO remove hard coding only use 1yr from atlite at present
                     #resource_carrier.loc[y] = (atlite_data.loc[str(weather_years[cnt])].clip(lower=0., upper=1.)).values
-                    resource_carrier.loc[y] = atlite_data.clip(lower=0., upper=1.).values     
-            cnt+=1
+                    resource_carrier.loc[y] = atlite_data.clip(lower=0., upper=1.).values[0:8760]     
+        elif (snakemake.config["enable"]["use_excel_wind_solar"][0]):
+            excel_wind_solar_profiles = generate_excel_wind_solar_profiles(n,
+                                snakemake.config['years']['reference_weather_years'])    
+            resource_carrier[n.buses.index] = excel_wind_solar_profiles[carrier][n.buses.index]
         else:
             for bus in n.buses.index:
                 resource_carrier[bus] = eskom_profiles[carrier].values # duplicate aggregate Eskom profile if specified
@@ -745,7 +750,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', 
-                        **{'model_file':'IRP-2019',
+                        **{'model_file':'CSIR-ambitions-2019',
                             'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
@@ -775,7 +780,7 @@ if __name__ == "__main__":
     eskom_profiles = generate_eskom_profiles(n,
                         snakemake.config['electricity']['renewable_carriers'],
                         snakemake.config['years']['reference_weather_years'])
-   
+
     attach_load(n, projections.loc['annual_demand',:])
     if snakemake.wildcards.regions!='RSA':
         update_transmission_costs(n, costs)
@@ -789,6 +794,6 @@ if __name__ == "__main__":
                     snakemake.config['electricity']['generator_availability'],
                     projections)
         add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])    
-    add_partial_decommissioning(n,gens)      
+    add_partial_decommissioning(n,gens[gens.carrier=='coal'])      
     add_nice_carrier_names(n, snakemake.config)
     n.export_to_netcdf(snakemake.output[0])

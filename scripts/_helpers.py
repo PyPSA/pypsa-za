@@ -650,6 +650,35 @@ def pdbcast(v, h):
     return pd.DataFrame(v.values.reshape((-1, 1)) * h.values,
                         index=v.index, columns=h.index)
 
+def map_generator_parameters():
+
+    ps_f = dict(PHS_efficiency="Pump Efficiency (%)",
+                PHS_units="Pump Units",
+                PHS_load="Pump Load per unit (MW)",
+                PHS_max_hours="Pumped Storage - Max Storage (GWh)")
+    csp_f = dict(CSP_max_hours='CSP Storage (hours)')
+    g_f = dict(fom="Fixed O&M Cost (R/kW/yr)",
+               p_nom='2022 Capacity (MW)',
+               name='Power Station Name',
+               carrier='Carrier',
+               build_year='Future Commissioning Date',
+               decomdate_50='Decommissioning Date (50%)',
+               decomdate_100='Decommissioning Date (100%)',
+               x='GPS Longitude',
+               y='GPS Latitude',
+               status='Status',
+               heat_rate='Heat Rate (GJ/MWh)',
+               fuel_price='Fuel Price (R/GJ)',
+               vom='Variable O&M Cost (R/MWh)',
+               max_ramp_up='Max Ramp Up (MW/min)',
+               max_ramp_down='Max Ramp Down (MW/min)',
+               min_stable='Min Stable Level (%)',
+               unit_size='Unit size (MW)',
+               units='Number units',
+               maint_rate='Typical annual maintenance rate (%)',
+               out_rate='Typical annual forced outage rate (%)')
+    return g_f, ps_f, csp_f
+
 def clean_pu_profiles(n):
     pu_index = n.generators_t.p_max_pu.columns.intersection(n.generators_t.p_min_pu.columns)
     for carrier in n.generators_t.p_min_pu.columns:

@@ -13,10 +13,10 @@ wildcard_constraints:
     #sectors="[+a-zA-Z0-9]+",
     opts="[-+a-zA-Z0-9]+"
 
-rule all:
-    input:
-        expand("results/version-" + str(config['version']) + "/plots/scenario_{param}.html",
-               param=list(config['scenario']))
+# rule all:
+#     input:
+#         expand("results/version-" + str(config['version']) + "/plots/scenario_{param}.html",
+#                param=list(config['scenario']))
 
 if config['enable']['build_land_use']: 
     rule build_landuse_remove_protected_and_conservation_areas:
@@ -85,20 +85,20 @@ if config['enable']['build_cutout']:
         script:
             "scripts/build_cutout.py"
 
-
-rule apply_wind_correction:
-    input:
-        cutout="cutouts/"+ config["renewable"]["onwind"]["cutout"] + ".nc",
-        regions_onshore='data/supply_regions/supply_regions_RSA.shp',
-        wasa_map = 'data/bundle/ZAF_wind-speed_100m.tif',
-    output:
-        "cutouts/{cutout}_corrected.nc",
-    log:
-        "logs/apply_wind_correction/{cutout}.log",
-    benchmark:
-        "benchmarks/apply_wind_correction_{cutout}"
-    script:
-        "scripts/apply_wind_correction.py"
+if config['enable']['build_wind_correction']:
+    rule apply_wind_correction:
+        input:
+            cutout="cutouts/"+ config["renewable"]["onwind"]["cutout"] + ".nc",
+            regions_onshore='data/supply_regions/supply_regions_RSA.shp',
+            wasa_map = 'data/bundle/ZAF_wind-speed_100m.tif',
+        output:
+            "cutouts/{cutout}_corrected.nc",
+        log:
+            "logs/apply_wind_correction/{cutout}.log",
+        benchmark:
+            "benchmarks/apply_wind_correction_{cutout}"
+        script:
+            "scripts/apply_wind_correction.py"
 
 
 if not config['hydro_inflow']['disable']:
@@ -135,6 +135,11 @@ rule base_network:
     script: "scripts/base_network.py"
 
 
+if config['enable']['apply_wind_correction']:
+    correction='_corrected'
+else:
+    correction=""
+
 if config['enable']['build_renewable_profiles'] & ~config['enable']['use_eskom_wind_solar']: 
     rule build_renewable_profiles:
         input:
@@ -147,7 +152,7 @@ if config['enable']['build_renewable_profiles'] & ~config['enable']['use_eskom_w
                 else []
             ),
             profiles='data/bundle/renewable_profiles.xlsx',
-            cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
+            cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + correction + ".nc",
         output:
             profile="resources/profile_{technology}_{regions}_{resarea}.nc",
             
@@ -241,70 +246,3 @@ rule plot_network:
         ext='results/version-0.6/plots/{model_file}_{regions}_{resarea}_l{ll}_{opts}_{attr}_ext.{ext}',
     log: 'logs/plot_network/{model_file}_{regions}_{resarea}_l{ll}_{opts}_{attr}.{ext}.log'
     script: "scripts/plot_network.py"
-
-# rule plot_network:
-
-#     input:
-#         network='results/version-' + str(config['version']) + '/networks/{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc',
-#         supply_regions = "data/supply_regions/supply_regions_{regions}.shp",
-#         resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
-#     output:
-#         only_map=touch('results/version-' + str(config['version']) + '/plots/{model_file}_{regions}_{resarea}_l{ll}_{opts}_{attr}'),
-#         ext=touch('results/version-' + str(config['version']) + '/plots/{model_file}_{regions}_{resarea}_l{ll}_{opts}_{attr}_ext')
-#     params: ext=['png', 'pdf']
-#     script: "scripts/plot_network.py"
-
-rule scenario_comparison:
-    input:
-        expand('results/version-{version}/plots/network_{model_file}_{regions}_{resarea}_l{ll}_{opts}_{attr}_ext',
-               version=config['version'],
-               attr=['p_nom'],
-               **config['scenario'])
-    output:
-       html='results/version-' + str(config['version']) + '/plots/scenario_{param}.html'
-    params:
-       tmpl="network_[cost]_[resarea]_[sectors]_[opts]_[attr]_ext",
-       plot_dir='results/version-' + str(config['version']) + '/plots'
-    script: "scripts/scenario_comparison.py"
-
-def input_make_summary(w):
-    # It's mildly hacky to include the separate costs input as first entry
-    return (expand("results/version-" + str(config['version']) + "/networks/{model_file}_{regions}_{resarea}_{sectors}_l{ll}_{opts}.nc",
-                   **{k: config["scenario"][k] if getattr(w, k) == "all" else getattr(w, k)
-                      for k in ["cost", "resarea", "sectors", "opts"]}))
-
-rule make_summary:
-    input: input_make_summary
-    output: directory("results/version-" + str(config['version']) + "/summaries/{model_file}_{regions}_{resarea}_{sectors}_l{ll}_{opts}")
-    script: "scripts/make_summary.py"
-
-# extract_summaries and plot_costs needs to be updated before it can be used again
-#
-# rule extract_summaries:
-#     input:
-#         expand("results/version-{version}/networks/{model_file}_{resarea}_{sectors}_{opts}.nc",
-#                version=config['version'],
-#                **config['scenario'])
-#     output:
-#         **{n: "results/version-{version}/summaries/{}-summary.csv".format(n, version=config['version'])
-#            for n in ['costs', 'costs2', 'e_curtailed', 'e_nom_opt', 'e', 'p_nom_opt']}
-#     params:
-#         scenario_tmpl="[cost]_[resarea]_[sectors]_[opts]",
-#         scenarios=config['scenario']
-#     script: "scripts/extract_summaries.py"
-
-# rule plot_costs:
-#     input: 'results/summaries/costs2-summary.csv'
-#     output:
-#         expand('results/plots/costs_{model_file}_{resarea}_{sectors}_{opt}',
-#                **dict(chain(config['scenario'].items(), (('{param}')))
-#         touch('results/plots/scenario_plots')
-#     params:
-#         tmpl="results/plots/costs_[cost]_[resarea]_[sectors]_[opt]"
-#         exts=["pdf", "png"]
-#     scripts: "scripts/plot_costs.py"
-
-
-# Local Variables:
-# mode: python
-# End:

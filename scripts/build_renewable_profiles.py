@@ -209,52 +209,15 @@ if __name__ == "__main__":
     if config["natura"]:
         excluder.add_raster(snakemake.input.natura, nodata=0, allow_no_overlap=True)
 
-    #corine = config.get("corine", {})
-    #if "grid_codes" in corine:
-    #    codes = corine["grid_codes"]
-    #    excluder.add_raster(snakemake.input.corine, codes=codes, invert=True, crs=3035)
-    #if corine.get("distance", 0.0) > 0.0:
-    #    codes = corine["distance_grid_codes"]
-    #    buffer = corine["distance"]
-    #    excluder.add_raster(
-    #        snakemake.input.corine, codes=codes, buffer=buffer, crs=3035
-    #    )
-
-    #if "ship_threshold" in config:
-    #    shipping_threshold = (
-    #        config["ship_threshold"] * 8760 * 6
-    #    )  # approximation because 6 years of data which is hourly collected
-    #    func = functools.partial(np.less, shipping_threshold)
-    #    excluder.add_raster(
-    #        snakemake.input.ship_density, codes=func, crs=4326, allow_no_overlap=True
-    #    )
-
-    #if "max_depth" in config:
-    #    # lambda not supported for atlite + multiprocessing
-    #    # use named function np.greater with partially frozen argument instead
-    #    # and exclude areas where: -max_depth > grid cell depth
-    #    func = functools.partial(np.greater, -config["max_depth"])
-    #    excluder.add_raster(snakemake.input.gebco, codes=func, crs=4326, nodata=-1000)
-
-    #if "min_shore_distance" in config:
-    #    buffer = config["min_shore_distance"]
-    #    excluder.add_geometry(snakemake.input.country_shapes, buffer=buffer)
-
-    #if "max_shore_distance" in config:
-    #    buffer = config["max_shore_distance"]
-    #    excluder.add_geometry(
-    #        snakemake.input.country_shapes, buffer=buffer, invert=True
-    #    )
-
     #kwargs = dict(nprocesses=nprocesses, disable_progressbar=noprogress)
     if noprogress:
         logger.info("Calculate landuse availabilities...")
         start = time.time()
-        availability = cutout.availabilitymatrix(regions, excluder)#, **kwargs)
+        availability = cutout.availabilitymatrix(regions, excluder)#, **kwargs) #TODO fix to run in parallel
         duration = time.time() - start
         logger.info(f"Completed availability calculation ({duration:2.2f}s)")
     else:
-        availability = cutout.availabilitymatrix(regions, excluder, **kwargs)
+        availability = cutout.availabilitymatrix(regions, excluder)#, **kwargs)
 
     area = cutout.grid.to_crs(3035).area / 1e6
     area = xr.DataArray(
@@ -317,17 +280,7 @@ if __name__ == "__main__":
         ]
     )
     ds.sel(time=~((ds.time.dt.month == 2) & (ds.time.dt.day == 29)))
-    #if snakemake.wildcards.technology.startswith("offwind"):
-    #    logger.info("Calculate underwater fraction of connections.")
-    #    offshore_shape = gpd.read_file(snakemake.input["offshore_shapes"]).unary_union
-    #    underwater_fraction = []
-    #    for bus in buses:
-    #        p = centre_of_mass.sel(bus=bus).data
-    #        line = LineString([p, regions.loc[bus, ["x", "y"]]])
-    #        frac = line.intersection(offshore_shape).length / line.length
-    #        underwater_fraction.append(frac)
 
-    #    ds["underwater_fraction"] = xr.DataArray(underwater_fraction, [buses])
 
 #    ds = ds.sel(
 #        bus=(

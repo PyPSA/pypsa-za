@@ -4,12 +4,25 @@ logging:
   level: INFO
   format: "%(levelname)s:%(name)s:%(message)s"
 
-scenario:
-  resarea: [redz, corridors]
-  regions: ['RSA','9-supply','27-supply'] # Resolution 1-node, 9 provinces, 27 Eskom supply areas 
-  model_file: [za-original, ambitions] 
-  opts: [LC, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
-  ll: ['copt']
+
+enable:
+  build_natura_raster: false
+  build_land_use: false
+  build_population: false
+  build_topology: false
+  build_cutout: false
+  use_eskom_wind_solar: false
+  use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"]
+  build_renewable_profiles: true
+  build_wind_correction: false
+  apply_wind_correction: true
+
+# scenario:
+#   resarea: [redz, corridors]
+#   regions: ['RSA','9-supply','27-supply'] # Resolution 1-node, 9 provinces, 27 Eskom supply areas 
+#   model_file: [za-original, ambitions] 
+#   opts: [LC, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
+#   ll: ['copt']
 
 data:
   resarea:
@@ -17,31 +30,21 @@ data:
     corridors: Power_corridors
 
 years: 
-  simulation: [2025]
+  simulation: [2025,2026,2027,2028,2029,2030,2035,2040,2045,2050]
   reference_demand_year: 2012  # should be a single year
   reference_weather_years: 
     # reference years used for solar PV and wind profiles - can be single or multiple years
-    solar: [2021] 
-    onwind: [2021]
+    solar: [2012]
+    onwind: [2012]
     # reference years from actual Eskom data published at https://www.eskom.co.za/dataportal/
     CSP: [2021] 
     hydro: [2021]
     biomass: [2021]
     imports: [2021]
 
-enable:
-  build_natura_raster: false
-  build_land_use: false
-  build_population: false
-  build_topology: true
-  use_eskom_wind_solar: true
-  build_renewable_profiles: true
-  build_cutout: false
-  build_wind_correction: true
-
 snapshots:
-  start: "2013-01-01"
-  end: "2014-01-01"
+  start: "2012-01-01"
+  end: "2013-01-01"
   closed: 'left' # end is not inclusive
 
 # definition of the Coordinate Reference Systems
@@ -69,10 +72,10 @@ electricity:
     coal: 0.3 # Applied to whole fleet that is operational at the time
     OCGT: 0 
     CCGT: 0
-    nuclear: 0.5
+    nuclear: 0
 
   min_capacity_factor:
-    CCGT: 0.3
+    CCGT: 0.5
     nuclear: 0.5
 
   extendable_carriers:
@@ -106,7 +109,7 @@ electricity:
       fast: ['battery','PHS']
       total: ['diesel','gas','OCGT','CCGT','battery','PHS'] 
   max_hours:
-    battery: 4
+    battery: 3
     H2: 10
 
 respotentials:
@@ -214,7 +217,7 @@ renewable:
   #  potential: simple # or conservative
   #  clip_p_max_pu: 1.e-2
   solar:
-    cutout: RSA-2013-era5
+    cutout: RSA-2012-era5
     resource:
       method: pv
       panel: CSi
