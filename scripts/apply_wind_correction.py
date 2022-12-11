@@ -20,8 +20,9 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 import rasterio
+import rioxarray
 import shapely
-from _helpers import configure_logging
+#from _helpers import configure_logging
 import warnings
 warnings.filterwarnings(action='ignore', category=RuntimeWarning) 
 logger = logging.getLogger(__name__)
@@ -41,16 +42,25 @@ if __name__ == "__main__":
 
     logging.info(f"Scaling annual wind speed at 100m to match {snakemake.input.wasa_map} at each cell in the cutout.")
     
-    wasa=xr.open_dataarray(snakemake.input.wasa_map)
-    clipped_wasa = wasa.rio.clip_box(16.46, -34.82, 32.94, -22.13)
+    gwa_data = rioxarray.open_rasterio(snakemake.input.wasa_map)
+    gwa_data_clipped = gwa_data.rio.clip_box(16.46, -34.82, 32.94, -22.13)
+    
+    # wasa=xr.open_dataarray(snakemake.input.wasa_map)
+    # clipped_wasa = wasa.rio.clip_box(16.46, -34.82, 32.94, -22.13)
 
-    # Remove WASA data associated with unusable terrain
-    tri = xr.open_dataarray(snakemake.input.terrain_ruggedness_index)
-    tri=tri.interp(x=clipped_wasa.coords['x'], y=clipped_wasa.coords['y'], method="linear")
-    tri.values[(tri.values>0)&(tri.values<=200)]=1
-    tri.values[tri.values>200]=np.nan
-    tri.values[tri.values<0]=np.nan
-    clipped_wasa.values = np.multiply(tri.values,clipped_wasa.values)
+    # Remove GWA data associated with unusable terrain
+    terrain_roughness = rioxarray.open_rasterio(snakemake.input.terrain_ruggedness_index)
+    terrain_roughness = terrain_roughness.interp(x=gwa_data_clipped.coords['x'], y=gwa_data_clipped.coords['y'], method="linear")
+    terrain_roughness.values[(terrain_roughness.values>0)&(terrain_roughness.values<=200)]=1
+    terrain_roughness.values[terrain_roughness.values>200]=np.nan
+    terrain_roughness.values[terrain_roughness.values<0]=np.nan
+    gwa_data_clipped.values = np.multiply(terrain_roughness.values,gwa_data_clipped.values)
+
+    ds=gwa_data_clipped.sel(band=1, x=slice(*cutout.extent[[0,1]]), y=slice(*cutout.extent[[3,2]]))
+    ds=ds.where(ds!=-999)
+    ds=atlite.gis.regrid(ds,cutout.data.x, cutout.data.y,resampling=rasterio.warp.Resampling.average)
+    
+    bias_correction=ds/cutout.data.wnd100m.mean("time")
     
     # Correct wind speed in each grid cell of the cutout. This can take up to 10min, but only needs to 
     # be run once for each cutout and then can be disabled. 

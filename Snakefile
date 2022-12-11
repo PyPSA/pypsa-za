@@ -2,7 +2,7 @@ configfile: "config.yaml"
 
 from os.path import normpath, exists, isdir
 
-localrules: all, base_network, add_electricity, plot_network, scenario_comparison # , extract_summaries, add_sectors
+localrules: base_network, add_electricity, plot_network # , extract_summaries, add_sectors
 
 ATLITE_NPROCESSES = config["atlite"].get("nprocesses", 4)
 
@@ -10,13 +10,7 @@ wildcard_constraints:
     resarea="[a-zA-Z0-9]+",
     model_file="[-a-zA-Z0-9]+",
     regions="[-+a-zA-Z0-9]+",
-    #sectors="[+a-zA-Z0-9]+",
     opts="[-+a-zA-Z0-9]+"
-
-# rule all:
-#     input:
-#         expand("results/version-" + str(config['version']) + "/plots/scenario_{param}.html",
-#                param=list(config['scenario']))
 
 if config['enable']['build_land_use']: 
     rule build_landuse_remove_protected_and_conservation_areas:
@@ -72,7 +66,7 @@ if config['enable']['build_cutout']:
     rule build_cutout:
         input:
             regions_onshore='data/supply_regions/supply_regions_RSA.shp',
-            wasa_map = 'data/bundle/ZAF_wind-speed_100m.tif',
+            gwa_map = 'data/bundle/ZAF_wind-speed_100m.tif',
         output:
             "cutouts/{cutout}.nc",
         log:
@@ -84,22 +78,6 @@ if config['enable']['build_cutout']:
             mem_mb=ATLITE_NPROCESSES * 1000,
         script:
             "scripts/build_cutout.py"
-
-if config['enable']['build_wind_correction']:
-    rule apply_wind_correction:
-        input:
-            cutout="cutouts/"+ config["renewable"]["onwind"]["cutout"] + ".nc",
-            regions_onshore='data/supply_regions/supply_regions_RSA.shp',
-            wasa_map = 'data/bundle/ZAF_wind-speed_100m.tif',
-        output:
-            "cutouts/{cutout}_corrected.nc",
-        log:
-            "logs/apply_wind_correction/{cutout}.log",
-        benchmark:
-            "benchmarks/apply_wind_correction_{cutout}"
-        script:
-            "scripts/apply_wind_correction.py"
-
 
 if not config['hydro_inflow']['disable']:
     rule build_inflow_per_country:
@@ -134,12 +112,6 @@ rule base_network:
     resources: mem_mb=1000
     script: "scripts/base_network.py"
 
-
-if config['enable']['apply_wind_correction']:
-    correction='_corrected'
-else:
-    correction=""
-
 if config['enable']['build_renewable_profiles'] & ~config['enable']['use_eskom_wind_solar']: 
     rule build_renewable_profiles:
         input:
@@ -151,8 +123,8 @@ if config['enable']['build_renewable_profiles'] & ~config['enable']['use_eskom_w
                 if config["renewable"][w.technology]["natura"]
                 else []
             ),
-            profiles='data/bundle/renewable_profiles.xlsx',
-            cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + correction + ".nc",
+            cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
+            gwa_map="data/bundle/ZAF_wind-speed_100m.tif"
         output:
             profile="resources/profile_{technology}_{regions}_{resarea}.nc",
             
@@ -192,15 +164,6 @@ rule add_electricity:
     threads: 1
     resources: mem_mb=1000
     script: "scripts/add_electricity.py"
-
-# rule add_sectors:
-#     input:
-#         network="networks/elec_{model_file}_{resarea}_{regions}_{opts}.nc"
-#         # emobility="data/emobility"
-#     output: "networks/sector_{model_file}_{resarea}_{sectors}_{regions}_{opts}.nc"
-#     threads: 1
-#     resources: mem_mb=1000
-#     script: "scripts/add_sectors.py"
 
 rule prepare_network:
     input:

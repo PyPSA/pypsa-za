@@ -88,7 +88,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('build_topology', **{'costs':'ambitions',
-                            'regions':'9-supply',
+                            'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC-24H',

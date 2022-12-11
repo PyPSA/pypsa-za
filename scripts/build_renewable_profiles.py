@@ -150,6 +150,8 @@ import geopandas as gpd
 import numpy as np
 import progressbar as pgb
 import xarray as xr
+import rioxarray
+import rasterio
 from _helpers import configure_logging
 from dask.distributed import Client, LocalCluster
 from pypsa.geo import haversine
@@ -178,10 +180,7 @@ if __name__ == "__main__":
     correction_factor = config.get("correction_factor", 1.0)
     capacity_per_sqkm = config["capacity_per_sqkm"]
     p_nom_max_meth = config.get("potential", "conservative")
-
-    #if isinstance(config.get("corine", {}), list):
-    #    config["corine"] = {"grid_codes": config["corine"]}
-
+  
     if correction_factor != 1.0:
         logger.info(f"correction_factor is set as {correction_factor}")
 
@@ -194,6 +193,18 @@ if __name__ == "__main__":
         f"List of regions in {snakemake.input.regions} is empty, please "
         "disable the corresponding renewable technology"
     )
+
+    if snakemake.config["atlite"]["cutouts"]["apply_wind_correction"]:
+        gwa_data = rioxarray.open_rasterio(snakemake.input.gwa_map)
+        ds=gwa_data.sel(band=1, x=slice(*cutout.extent[[0,1]]), y=slice(*cutout.extent[[3,2]]))
+        ds=ds.where(ds!=-999)
+        ds=atlite.gis.regrid(ds,cutout.data.x, cutout.data.y,resampling=rasterio.warp.Resampling.average)
+        cutout.data.wnd100m.mean("time").plot()
+
+        bias_correction=ds/cutout.data.wnd100m.mean("time")
+        bias_correction=bias_correction.fillna(1)
+        cutout.data.wnd100m.values=(bias_correction*cutout.data.wnd100m).transpose('time', 'y', 'x').values
+          
     # do not pull up, set_index does not work if geo dataframe is empty
     regions = regions.set_index("name").rename_axis("bus")
     buses = regions.index

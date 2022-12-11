@@ -96,7 +96,7 @@ if __name__ == "__main__":
     if "snakemake" not in globals():
         from _helpers import mock_snakemake
 
-        snakemake = mock_snakemake("build_natura_raster", cutouts=["cutouts/RSA-2013-era5.nc"])
+        snakemake = mock_snakemake("build_natura_raster", cutouts=["cutouts/RSA-2012-era5.nc"])
     configure_logging(snakemake)
 
     #get_crs

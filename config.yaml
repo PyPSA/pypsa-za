@@ -6,23 +6,14 @@ logging:
 
 
 enable:
-  build_natura_raster: false
-  build_land_use: false
-  build_population: false
-  build_topology: false
+  build_natura_raster: true
+  build_land_use: true
+  build_population: true
+  build_topology: true
   build_cutout: false
   use_eskom_wind_solar: false
   use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"]
   build_renewable_profiles: true
-  build_wind_correction: false
-  apply_wind_correction: true
-
-# scenario:
-#   resarea: [redz, corridors]
-#   regions: ['RSA','9-supply','27-supply'] # Resolution 1-node, 9 provinces, 27 Eskom supply areas 
-#   model_file: [za-original, ambitions] 
-#   opts: [LC, Co2L] # , EP, BAU, LC-SAFE, Co2L-SAFE] #, LC-FL, LC-T, Ep-T, Co2L-T]
-#   ll: ['copt']
 
 data:
   resarea:
@@ -152,14 +143,14 @@ atlite:
       sarah_interpolate: false
       sarah_dir:
       features: [influx, temperature]
-    apply_wind_speed_correction: true
+    apply_wind_correction: true
 
 renewable:
   onwind:
     cutout: RSA-2012-era5
     resource:
       method: wind
-      turbine: Vestas_V112_3MW
+      turbine: NREL_ReferenceTurbine_2020ATB_4MW
     capacity_per_sqkm: 3 # ScholzPhd Tab 4.3.1: 10MW/km^2 and assuming 30% fraction of the already restricted
     # area is available for installation of wind generators due to competing land use and likely public
     # acceptance issues.
