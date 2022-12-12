@@ -159,6 +159,8 @@ from shapely.geometry import LineString
 
 logger = logging.getLogger(__name__)
 
+SALANDCOVER_CRS = "EPSG:32635"
+
 def remove_leap_day(df):
     return df[~((df.index.month == 2) & (df.index.day == 29))]
 
@@ -168,7 +170,7 @@ if __name__ == "__main__":
 
         #snakemake = mock_snakemake("build_renewable_profiles", technology="onwind")
         snakemake = mock_snakemake('build_renewable_profiles',technology='onwind', 
-                    **{'regions':'RSA',
+                    **{'regions':'9-supply',
                     'resarea':'redz'})
     configure_logging(snakemake)
     pgb.streams.wrap_stderr()
@@ -194,7 +196,7 @@ if __name__ == "__main__":
         "disable the corresponding renewable technology"
     )
 
-    if snakemake.config["atlite"]["cutouts"]["apply_wind_correction"]:
+    if snakemake.config["atlite"]["apply_wind_correction"]:
         gwa_data = rioxarray.open_rasterio(snakemake.input.gwa_map)
         ds=gwa_data.sel(band=1, x=slice(*cutout.extent[[0,1]]), y=slice(*cutout.extent[[3,2]]))
         ds=ds.where(ds!=-999)
@@ -217,8 +219,27 @@ if __name__ == "__main__":
     # limit to resareas REDZ or CORRIDORS
     excluder.add_geometry(resarea.geometry,invert=True)
 
+    # exclude protected and conservation areas
     if config["natura"]:
         excluder.add_raster(snakemake.input.natura, nodata=0, allow_no_overlap=True)
+
+    # exclude landuse types given by the grid codes
+    if "salandcover" in config and config["salandcover"]:
+        salandcover = config["salandcover"]
+        excluder.add_raster(
+            snakemake.input.salandcover,
+            codes=salandcover["grid_codes"],
+            invert=True,
+            crs=SALANDCOVER_CRS,
+        )
+        # add a distance buffer to the landuse gridcode
+        if "distance" in salandcover and config["salandcover"]["distance"] > 0:
+            excluder.add_raster(
+                snakemake.input.salandcover,
+                codes=salandcover["distance_grid_codes"],
+                buffer=salandcover["distance"],
+                crs=SALANDCOVER_CRS,
+            )
 
     #kwargs = dict(nprocesses=nprocesses, disable_progressbar=noprogress)
     if noprogress:

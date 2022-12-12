@@ -40,8 +40,8 @@ if config['enable']['build_land_use']:
 if config["enable"]["build_natura_raster"]:
     rule build_natura_raster:
         input:
-            protected_areas = "data/bundle/SAPAD_OR_2017_Q2/SAPAD_OR_2017_Q2.shp",
-            conservation_areas = "data/bundle/SACAD_OR_2017_Q2/SACAD_OR_2017_Q2.shp",
+            protected_areas = "data/bundle/SAPAD_OR_2017_Q2",
+            conservation_areas = "data/bundle/SACAD_OR_2017_Q2",
             cutouts=expand("cutouts/{cutouts}.nc", **config["atlite"]),
         output:
             "resources/natura.tiff",
@@ -124,7 +124,8 @@ if config['enable']['build_renewable_profiles'] & ~config['enable']['use_eskom_w
                 else []
             ),
             cutout=lambda w: "cutouts/"+ config["renewable"][w.technology]["cutout"] + ".nc",
-            gwa_map="data/bundle/ZAF_wind-speed_100m.tif"
+            gwa_map="data/bundle/ZAF_wind-speed_100m.tif",
+            salandcover = 'data/bundle/SALandCover_OriginalUTM35North_2013_GTI_72Classes/sa_lcov_2013-14_gti_utm35n_vs22b.tif'
         output:
             profile="resources/profile_{technology}_{regions}_{resarea}.nc",
             
