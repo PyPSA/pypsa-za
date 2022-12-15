@@ -1,42 +1,14 @@
-version: 0.6
+version: 2.0
 
 logging:
   level: INFO
   format: "%(levelname)s:%(name)s:%(message)s"
 
-
-enable:
-  build_natura_raster: true
-  build_land_use: true
-  build_population: true
-  build_topology: true
-  build_cutout: false
-  use_eskom_wind_solar: false
-  use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"]
-  build_renewable_profiles: true
-
+# General inputs
 data:
   resarea:
     redz: REDZ_DEA_Unpublished_Draft_2015
     corridors: Power_corridors
-
-years: 
-  simulation: [2025,2026,2027,2028,2029,2030,2035,2040,2045,2050]
-  reference_demand_year: 2012  # should be a single year
-  reference_weather_years: 
-    # reference years used for solar PV and wind profiles - can be single or multiple years
-    solar: [2012]
-    onwind: [2012]
-    # reference years from actual Eskom data published at https://www.eskom.co.za/dataportal/
-    CSP: [2021] 
-    hydro: [2021]
-    biomass: [2021]
-    imports: [2021]
-
-snapshots:
-  start: "2012-01-01"
-  end: "2013-01-01"
-  closed: 'left' # end is not inclusive
 
 # definition of the Coordinate Reference Systems
 crs:
@@ -44,16 +16,48 @@ crs:
   distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
 
+
+# When running the model for the first time it is necessary to enable the following scripts:
+# build_natura_raster, build_population, build_topology, build_cutout. For subsequent model
+# runs these scripts can be diabled to save time. Although snakemake will skip the execution
+# of scripts where the outputs are already built, these switches are useful for forced 
+# re-runs of the snakemake workflow, where you may not necessarily want to rebuild everything
+enable:
+  build_natura_raster: true # Rasters natural protection areas onto all cutout regions
+  build_population: true # Population distribution
+  build_topology: true # Base network topology
+  build_cutout: false # Atlite cutout 
+  use_eskom_wind_solar: false # Model defaults to Eskom hourly pu profiles for all wind and solar generators
+  use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"] # Model defaults to excel input hourly pu profiles for all wind andsolar generators  
+  build_renewable_profiles: true # Enable recalculation of renewable profiles
+
+# Specification of relevent years for the model
+years: 
+  simulation: [2025,2026,2027,2028,2029,2030,2035,2040,2045,2050] # Years to be modelled
+  reference_demand_year: 2012  # should be a single year at present, could be extended in the future
+  reference_weather_years: 
+    # reference years used for solar PV and wind profiles - can be single or multiple years
+    # if multiple years are specified these are applied sequencially to the simulation years
+    solar: [2012]
+    onwind: [2012]
+    # reference years from actual Eskom data published at https://www.eskom.co.za/dataportal/ 
+    # can be single or multiple years if multiple years are specified these are applied 
+    # sequencially to the simulation years
+    CSP: [2021] 
+    hydro: [2021]
+    biomass: [2021]
+    imports: [2021]
+
+
 electricity:
-  co2limit: 10.e+6    # 470.9e+5  # 0.1 * 470.9e+6 (2014 Electricity Sector)
-  renewable_carriers: [solar, onwind, CSP, biomass, hydro]
-  
-  generator_availability: 
+  co2limit: 10.e+6    # 470.9e+5  Cumulative CO2 emissions budget for all simulation years combined
+  renewable_carriers: [solar, onwind, CSP, biomass, hydro] # defines renewable carriers
+  generator_availability: # generator planned and unplanned outages are included based on Eskom data
     implement_availability: true
     reference_years: [2021] #if multiple years specified an average is used
     new_unit_ref: 
-    # base new generator performance on an existing Eskom generator
-    # in the format [generator,ref year/s, rescale e.g 10% higher]
+    # New generator availability is based on an existing Eskom generator
+    # in the format [generator, ref year/s (avg), rescale e.g 10% higher]
       coal: ['Lethabo', [2017], 1]
       OCGT: ['Ankerlig', [2017], 1]
       CCGT: ['Ankerlig', [2017], 1]
@@ -65,8 +69,8 @@ electricity:
     CCGT: 0
     nuclear: 0
 
-  min_capacity_factor:
-    CCGT: 0.5
+  min_capacity_factor: # Minimum annual capacity factor 
+    CCGT: 0.5 
     nuclear: 0.5
 
   extendable_carriers:
@@ -121,19 +125,20 @@ respotentials:
     solar: 16.5 # half of 33 (IWES)
 
 atlite:
+  cutout_snapshots:
+    start: "2012-01-01"
+    end: "2013-01-01"
+    closed: 'left' # end is not inclusive
   nprocesses: 1
   cutouts:
-    # use 'base' to determine geographical bounds and time span from config
-    # base:
-      # module: era5
-    RSA-2013-era5:
+    RSA-2012-era5:
       module: era5 # in priority order
       x: [16, 35]
       y: [-35., -21]
       dx: 0.3
       dy: 0.3
       time: ['2013', '2013']
-    #RSA-2012-sarah:
+    # RSA-2012-sarah:
     #  module: [sarah, era5] # in priority order
     #  x: [16, 35]
     #  y: [-35.,-21]
@@ -170,47 +175,8 @@ renewable:
     excluder_resolution: 100
     potential: simple # or conservative
     clip_p_max_pu: 1.e-2
-  #offwind-ac:
-  #  cutout: RSA-2013-era5
-  #  resource:
-  #    method: wind
-  #    turbine: NREL_ReferenceTurbine_5MW_offshore
-  #  capacity_per_sqkm: 2 # ScholzPhd Tab 4.3.1: 10MW/km^2 and assuming 20% fraction of the already restricted
-  #  # area is available for installation of wind generators due to competing land use and likely public
-  #  # acceptance issues.
-  #  correction_factor: 0.8855
-  #  # proxy for wake losses
-  #  # from 10.1016/j.energy.2018.08.153
-  #  # until done more rigorously in #153
-  #  corine: [44, 255]
-  #  natura: true
-  #  ship_threshold: 400
-  #  max_depth: 50
-  #  max_shore_distance: 30000
-  #  excluder_resolution: 200
-  #  potential: simple # or conservative
-  #  clip_p_max_pu: 1.e-2
-  #offwind-dc:
-  #  cutout: RSA-2013-era5
-  #  resource:
-  #    method: wind
-  #    turbine: NREL_ReferenceTurbine_5MW_offshore
-  #  capacity_per_sqkm: 2 # ScholzPhd Tab 4.3.1: 10MW/km^2 and assuming 20% fraction of the already restricted
-  #  # area is available for installation of wind generators due to competing land use and likely public
-  #  # acceptance issues.
-  #  correction_factor: 0.8855
-  #  # proxy for wake losses
-  #  # from 10.1016/j.energy.2018.08.153
-  #  # until done more rigorously in #153
-  #  corine: [44, 255]
-  #  natura: true
-  #  ship_threshold: 400
-  #  max_depth: 50
-  #  min_shore_distance: 30000
-  #  excluder_resolution: 200
-  #  potential: simple # or conservative
-  #  clip_p_max_pu: 1.e-2
-  solar:
+
+   solar:
     cutout: RSA-2013-era5
     resource:
       method: pv
@@ -356,7 +322,7 @@ plotting:
 
   costs_max: 1000
 
-  vre_techs: ["onwind", "offwind-ac", "offwind-dc", "solar", "ror"]
+  vre_techs: ["onwind","solar", "ror"]
   conv_techs: ["OCGT", "CCGT", "nuclear", "coal"]
   storage_techs: ["hydro", "CAES", "battery", "PHS", "hydro+PHS"]
   store_techs: ["Li ion", "water tanks"]

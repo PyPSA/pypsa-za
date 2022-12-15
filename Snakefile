@@ -12,31 +12,6 @@ wildcard_constraints:
     regions="[-+a-zA-Z0-9]+",
     opts="[-+a-zA-Z0-9]+"
 
-if config['enable']['build_land_use']: 
-    rule build_landuse_remove_protected_and_conservation_areas:
-        input:
-            landuse = "data/bundle/SALandCover_OriginalUTM35North_2013_GTI_72Classes/sa_lcov_2013-14_gti_utm35n_vs22b.tif",
-            protected_areas = "data/bundle/SAPAD_OR_2017_Q2",
-            conservation_areas = "data/bundle/SACAD_OR_2017_Q2"
-        output: "resources/landuse_without_protected_conservation.tiff"
-        benchmark: "benchmarks/landuse_remove_protected_and_conservation_areas"
-        threads: 1
-        resources: mem_mb=20000
-        script: "scripts/build_landuse_remove_protected_and_conservation_areas.py"
-    rule build_landuse_map_to_tech_and_supply_region:
-        input:
-            landuse = "resources/landuse_without_protected_conservation.tiff",
-            supply_regions = "data/supply_regions/supply_regions_{regions}.shp",
-            resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
-        output:
-            raster = "resources/raster_{tech}_percent_{regions}_{resarea}.tiff",
-            area = "resources/area_{tech}_{regions}_{resarea}.csv"
-        benchmark: "benchmarks/build_landuse_map_to_tech_and_supply_region/{tech}_{regions}_{resarea}"
-        threads: 1
-        resources: mem_mb=10000
-        script: "scripts/build_landuse_map_to_tech_and_supply_region.py"
-
-
 if config["enable"]["build_natura_raster"]:
     rule build_natura_raster:
         input:
