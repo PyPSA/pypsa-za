@@ -70,16 +70,15 @@ if config['enable']['build_topology']:
             centroids='data/supply_regions/centroids_{regions}.shp',
             num_lines='data/num_lines.xlsx',
         output:
-            buses='resources/buses_{regions}.csv',
-            lines='resources/lines_{regions}.csv',
-            regions = 'resources/onshore_shapes_{regions}.geojson'
+            buses='resources/buses_{regions}.geojson',
+            lines='resources/lines_{regions}.geojson',
         threads: 1
         script: "scripts/build_topology.py"
 
 rule base_network:
     input:
-        buses='resources/buses_{regions}.csv',
-        lines='resources/lines_{regions}.csv',
+        buses='resources/buses_{regions}.geojson',
+        lines='resources/lines_{regions}.geojson',
         population='resources/population_{regions}.csv'
     output: "networks/base_{regions}.nc"
     benchmark: "benchmarks/base_network_{regions}"
