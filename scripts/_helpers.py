@@ -179,7 +179,8 @@ def load_network_for_plots(fn, model_file, config, model_setup_costs, combine_hy
         model_setup_costs,
         config["costs"],
         config["electricity"],
-        config["years"])
+        config["years"]["simulation"])
+    
     update_transmission_costs(n, costs)
 
     return n

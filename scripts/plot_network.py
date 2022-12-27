@@ -282,11 +282,12 @@ def plot_total_cost_bar(n, opts, ax=None):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('plot_network', **{'model_file':'IRP-2019',
-                            'regions':'10-supply',
+        snakemake = mock_snakemake('plot_network', 
+                            **{'model_file':'CSIR-ambitions-2022',
+                            'regions':'27-supply',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC',
+                            'opts':'LC-1H',
                             'attr':'p_nom',
                             'ext':'pdf'})                                 
     configure_logging(snakemake)
@@ -302,7 +303,7 @@ if __name__ == "__main__":
 
     map_figsize = config["plotting"]['map']['figsize']
     map_boundaries = config["plotting"]['map']['boundaries']
-    config_years = [2035]
+    config_years = [2040]
 
     n = load_network_for_plots(
         snakemake.input.network, snakemake.input.model_file, config, model_setup.costs

@@ -24,16 +24,15 @@ crs:
 # re-runs of the snakemake workflow, where you may not necessarily want to rebuild everything
 enable:
   build_natura_raster: true # Rasters natural protection areas onto all cutout regions
-  build_population: true # Population distribution
   build_topology: true # Base network topology
   build_cutout: false # Atlite cutout 
   use_eskom_wind_solar: false # Model defaults to Eskom hourly pu profiles for all wind and solar generators
-  use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"] # Model defaults to excel input hourly pu profiles for all wind andsolar generators  
-  build_renewable_profiles: true # Enable recalculation of renewable profiles
+  use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"] # Model defaults to excel input hourly pu profiles for all wind and solar generators  
+  build_renewable_profiles: true # Enable calculation of renewable profiles
 
 # Specification of relevent years for the model
 years: 
-  simulation: [2025,2026,2027,2030,2050] # Years to be modelled
+  simulation: [2030,2040,2050] # Years to be modelled
   reference_demand_year: 2012  # should be a single year at present, could be extended in the future
   reference_weather_years: 
     # reference years used for solar PV and wind profiles - can be single or multiple years
@@ -47,7 +46,6 @@ years:
     hydro: [2021]
     biomass: [2021]
     imports: [2021]
-
 
 electricity:
   co2limit: 10.e+6    # 470.9e+5  Cumulative CO2 emissions budget for all simulation years combined
@@ -297,7 +295,7 @@ solving:
     clip_p_max_pu: 1.e-2
     load_shedding: true
     noisy_costs: true
-    skip_iterations: true
+    skip_iterations: false
     min_iterations: 1
     max_iterations: 10
     formulation: kirchhoff

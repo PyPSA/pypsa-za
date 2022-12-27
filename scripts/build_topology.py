@@ -5,6 +5,7 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import LineString
 import numpy as np
+import rasterstats
 from operator import attrgetter
 import pypsa
 from vresutils.costdata import annuity
@@ -96,7 +97,12 @@ def build_topology():
                  y=centroids.map(attrgetter('y')),
                  v_nom=v_nom)
             )
-    
+
+    # Calculate population in each region
+    population = pd.DataFrame(rasterstats.zonal_stats(regions['geometry'], snakemake.input.population, stats='sum'))['sum']
+    population.index = regions.index
+    buses['population'] = population
+
     # Load num_parallel data and calculate num_parallel column for lines dataframe
     num_lines = pd.read_excel(snakemake.input.num_lines,
                         sheet_name = snakemake.wildcards.regions, 
@@ -121,7 +127,7 @@ if __name__ == "__main__":
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('build_topology', 
                             **{'costs':'ambitions',
-                            'regions':'RSA',
+                            'regions':'27-supply',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC-24H',
@@ -132,4 +138,5 @@ if __name__ == "__main__":
     
     if not lines.empty:
         save_to_geojson(lines,snakemake.output.lines)
-
+    else:
+        save_to_geojson(buses,snakemake.output.lines) # Dummy file will not get used if single node model  

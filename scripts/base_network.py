@@ -28,9 +28,7 @@ def load_buses_and_lines(n):
         lines = pd.DataFrame(index=[],columns=['name','bus0','bus1','length','num_parallel'])
     return buses, lines
 
-def add_population_data(buses):
-    buses['population'] = pd.read_csv(snakemake.input.population, index_col=0)['population']
-    return buses
+
 
 def set_snapshots(n):
     snapshots = pd.DatetimeIndex([])
@@ -75,20 +73,17 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('base_network', 
-                            **{'costs':'ambitions',
+                            **{'costs':'CSIR-ambitions-2022',
                             'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC-24H',
+                            'opts':'LC-1H',
                             'attr':'p_nom'})
 
     # Create network and load buses and lines data
     n = create_network()
     buses, lines = load_buses_and_lines(n)
-    
-    # Add population data to buses
-    buses = add_population_data(buses)
-    
+        
     # Set snapshots and investment periods
     n = set_snapshots(n)
     n = set_investment_periods(n)

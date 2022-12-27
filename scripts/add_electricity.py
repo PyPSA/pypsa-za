@@ -169,7 +169,6 @@ def load_costs(model_file, cost_scenario, config, elec_config, config_years):
     fom_perc_capex=cost_data.loc[cost_data.unit.str.contains("%/year")==True, config_years]
     fom_perc_capex=fom_perc_capex.index.get_level_values(0)
 
-
     costs = {}
     for y in config_years:
         costs[y]=cost_data.loc[idx[:, y]].unstack(level=1).fillna(
@@ -750,7 +749,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', 
-                        **{'model_file':'CSIR-ambitions-2019',
+                        **{'model_file':'CSIR-ambitions-2022',
                             'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
