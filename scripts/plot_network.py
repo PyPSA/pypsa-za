@@ -303,7 +303,7 @@ if __name__ == "__main__":
 
     map_figsize = config["plotting"]['map']['figsize']
     map_boundaries = config["plotting"]['map']['boundaries']
-    config_years = [2040]
+    config_years = [2050]
 
     n = load_network_for_plots(
         snakemake.input.network, snakemake.input.model_file, config, model_setup.costs

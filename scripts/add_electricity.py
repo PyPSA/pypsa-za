@@ -286,6 +286,27 @@ def add_min_stable_levels(n,generators,config_min_stable):
 
     n.generators_t.p_min_pu=n.generators_t.p_min_pu.fillna(0)
 
+def add_min_stable_levels(n, generators, config_min_stable):
+    # Existing generators
+    for gen in generators.index:
+        if generators.loc[gen, "min_stable"] != 0:
+            p_min_pu = n.generators_t.p_min_pu.get(gen, n.generators.p_max_pu[gen])
+            n.generators_t.p_min_pu[gen] = p_min_pu * generators.loc[gen, "min_stable"]
+            
+            p_max_pu = n.generators_t.p_max_pu.get(gen, n.generators.p_max_pu[gen])
+            if isinstance(p_max_pu, (pd.DataFrame, pd.Series)):
+                n.generators_t.p_max_pu[gen] = p_max_pu.where(p_max_pu >= generators.loc[gen, "min_stable"], generators.loc[gen, "min_stable"])
+            else:
+                n.generators_t.p_max_pu[gen] = max(p_max_pu, generators.loc[gen, "min_stable"])
+
+    # New plants without existing data take best performing of Eskom fleet
+    for carrier in ["coal", "OCGT", "CCGT", "nuclear"]:
+        for gen_ext in n.generators[(n.generators.carrier == carrier) & (~n.generators.index.isin(generators.index))].index:
+            n.generators_t.p_min_pu[gen_ext] = n.generators_t.p_max_pu[gen_ext] * config_min_stable[carrier]
+
+    n.generators_t.p_min_pu = n.generators_t.p_min_pu.fillna(0)
+
+
 
 def add_partial_decommissioning(n,generators):
     # Only considered for existing conventional - partial decomissioning of capacity
