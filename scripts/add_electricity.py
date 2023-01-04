@@ -268,24 +268,6 @@ def add_generator_availability(n,generators,config_avail,eaf_projections):
     eaf_profiles.index=n.snapshots
     n.generators_t.p_max_pu[eaf_profiles.columns]=eaf_profiles
 
-def add_min_stable_levels(n,generators,config_min_stable):
-    # Existing generators
-    for gen in generators.index: 
-        if generators.loc[gen,'min_stable']!=0:
-            try:
-                n.generators_t.p_min_pu[gen] = n.generators_t.p_max_pu[gen] * generators.loc[gen,'min_stable']   
-                n.generators_t.p_max_pu[gen][n.generators_t.p_max_pu[gen]<generators.loc[gen,'min_stable']] = generators.loc[gen,'min_stable']   
-            except:
-                n.generators_t.p_min_pu[gen] = n.generators.p_max_pu[gen] * generators.loc[gen,'min_stable']   
-                n.generators_t.p_max_pu[gen] = max(n.generators.p_max_pu[gen],generators.loc[gen,'min_stable'])
-
-    # New plants without existing data take best performing of Eskom fleet
-    for carrier in ['coal', 'OCGT', 'CCGT', 'nuclear']:
-        for gen_ext in n.generators[(n.generators.carrier==carrier) & (~n.generators.index.isin(generators.index))].index:
-            n.generators_t.p_min_pu[gen_ext] = n.generators_t.p_max_pu[gen_ext]*config_min_stable[carrier]
-
-    n.generators_t.p_min_pu=n.generators_t.p_min_pu.fillna(0)
-
 def add_min_stable_levels(n, generators, config_min_stable):
     # Existing generators
     for gen in generators.index:
@@ -306,24 +288,22 @@ def add_min_stable_levels(n, generators, config_min_stable):
 
     n.generators_t.p_min_pu = n.generators_t.p_min_pu.fillna(0)
 
-
-
-def add_partial_decommissioning(n,generators):
+def add_partial_decommissioning(n, generators):
     # Only considered for existing conventional - partial decomissioning of capacity
-    for tech in generators.index: #n.generators[n.generators.p_nom_extendable==False]
+    decommission_factor = 0.5
+    for tech in generators.index:
         for y in n.investment_periods:
             if y >= generators.decomdate_50[tech]:
-                if tech in n.generators_t.p_max_pu.columns:
-                    n.generators_t.p_max_pu.loc[y,tech]*=0.5
-                else:
-                    n.generators_t.p_max_pu.loc[y,tech]=0.5*n.generators.p_max_pu.loc[tech]
+                p_max_pu = n.generators_t.p_max_pu.get(tech, n.generators.p_max_pu[tech])
+                n.generators_t.p_max_pu[tech] = p_max_pu * decommission_factor
 
-                if tech in n.generators_t.p_min_pu.columns:
-                    n.generators_t.p_min_pu.loc[y,tech]*=0.5
-                elif tech not in n.generators_t.p_min_pu.columns:
-                    n.generators_t.p_min_pu.loc[y,tech]=0.5*n.generators.p_min_pu.loc[tech]
-    n.generators_t.p_min_pu=n.generators_t.p_min_pu.fillna(0)   
-                
+                p_min_pu = n.generators_t.p_min_pu.get(tech, n.generators.p_min_pu[tech])
+                n.generators_t.p_min_pu[tech] = p_min_pu * decommission_factor
+    
+    n.generators_t.p_min_pu = n.generators_t.p_min_pu.fillna(0)
+
+
+
  ## Attach components
 # ### Load
 

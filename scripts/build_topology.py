@@ -114,8 +114,7 @@ def build_topology():
                     .join(num_parallel.rename('num_parallel'), on=['bus0', 'bus1'])
                     .join(num_parallel.rename("num_parallel_i"), on=['bus1', 'bus0']))
 
-        lines['num_parallel'] = (line_config['s_nom_factor'] * lines['num_parallel']
-                                    .fillna(lines.pop('num_parallel_i')))
+        lines['num_parallel'] = (lines['num_parallel'].fillna(lines.pop('num_parallel_i'))) #TODO removed line_config['s_nom_factor'] seems double counting the s_nom_factor of 0.7
         lines.reset_index(drop=True,inplace=True)
 
         lines = convert_lines_to_gdf(lines,centroids)
