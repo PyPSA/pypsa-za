@@ -169,7 +169,6 @@ def load_costs(model_file, cost_scenario, config, elec_config, config_years):
     fom_perc_capex=cost_data.loc[cost_data.unit.str.contains("%/year")==True, config_years]
     fom_perc_capex=fom_perc_capex.index.get_level_values(0)
 
-
     costs = {}
     for y in config_years:
         costs[y]=cost_data.loc[idx[:, y]].unstack(level=1).fillna(
@@ -269,41 +268,42 @@ def add_generator_availability(n,generators,config_avail,eaf_projections):
     eaf_profiles.index=n.snapshots
     n.generators_t.p_max_pu[eaf_profiles.columns]=eaf_profiles
 
-def add_min_stable_levels(n,generators,config_min_stable):
+def add_min_stable_levels(n, generators, config_min_stable):
     # Existing generators
-    for gen in generators.index: 
-        if generators.loc[gen,'min_stable']!=0:
-            try:
-                n.generators_t.p_min_pu[gen] = n.generators_t.p_max_pu[gen] * generators.loc[gen,'min_stable']   
-                n.generators_t.p_max_pu[gen][n.generators_t.p_max_pu[gen]<generators.loc[gen,'min_stable']] = generators.loc[gen,'min_stable']   
-            except:
-                n.generators_t.p_min_pu[gen] = n.generators.p_max_pu[gen] * generators.loc[gen,'min_stable']   
-                n.generators_t.p_max_pu[gen] = max(n.generators.p_max_pu[gen],generators.loc[gen,'min_stable'])
+    for gen in generators.index:
+        if generators.loc[gen, "min_stable"] != 0:
+            p_min_pu = n.generators_t.p_min_pu.get(gen, n.generators.p_max_pu[gen])
+            n.generators_t.p_min_pu[gen] = p_min_pu * generators.loc[gen, "min_stable"]
+            
+            p_max_pu = n.generators_t.p_max_pu.get(gen, n.generators.p_max_pu[gen])
+            if isinstance(p_max_pu, (pd.DataFrame, pd.Series)):
+                n.generators_t.p_max_pu[gen] = p_max_pu.where(p_max_pu >= generators.loc[gen, "min_stable"], generators.loc[gen, "min_stable"])
+            else:
+                n.generators_t.p_max_pu[gen] = max(p_max_pu, generators.loc[gen, "min_stable"])
 
     # New plants without existing data take best performing of Eskom fleet
-    for carrier in ['coal', 'OCGT', 'CCGT', 'nuclear']:
-        for gen_ext in n.generators[(n.generators.carrier==carrier) & (~n.generators.index.isin(generators.index))].index:
-            n.generators_t.p_min_pu[gen_ext] = n.generators_t.p_max_pu[gen_ext]*config_min_stable[carrier]
+    for carrier in ["coal", "OCGT", "CCGT", "nuclear"]:
+        for gen_ext in n.generators[(n.generators.carrier == carrier) & (~n.generators.index.isin(generators.index))].index:
+            n.generators_t.p_min_pu[gen_ext] = n.generators_t.p_max_pu[gen_ext] * config_min_stable[carrier]
 
-    n.generators_t.p_min_pu=n.generators_t.p_min_pu.fillna(0)
+    n.generators_t.p_min_pu = n.generators_t.p_min_pu.fillna(0)
 
-
-def add_partial_decommissioning(n,generators):
+def add_partial_decommissioning(n, generators):
     # Only considered for existing conventional - partial decomissioning of capacity
-    for tech in generators.index: #n.generators[n.generators.p_nom_extendable==False]
+    decommission_factor = 0.5
+    for tech in generators.index:
         for y in n.investment_periods:
             if y >= generators.decomdate_50[tech]:
-                if tech in n.generators_t.p_max_pu.columns:
-                    n.generators_t.p_max_pu.loc[y,tech]*=0.5
-                else:
-                    n.generators_t.p_max_pu.loc[y,tech]=0.5*n.generators.p_max_pu.loc[tech]
+                p_max_pu = n.generators_t.p_max_pu.get(tech, n.generators.p_max_pu[tech])
+                n.generators_t.p_max_pu[tech] = p_max_pu * decommission_factor
 
-                if tech in n.generators_t.p_min_pu.columns:
-                    n.generators_t.p_min_pu.loc[y,tech]*=0.5
-                elif tech not in n.generators_t.p_min_pu.columns:
-                    n.generators_t.p_min_pu.loc[y,tech]=0.5*n.generators.p_min_pu.loc[tech]
-    n.generators_t.p_min_pu=n.generators_t.p_min_pu.fillna(0)   
-                
+                p_min_pu = n.generators_t.p_min_pu.get(tech, n.generators.p_min_pu[tech])
+                n.generators_t.p_min_pu[tech] = p_min_pu * decommission_factor
+    
+    n.generators_t.p_min_pu = n.generators_t.p_min_pu.fillna(0)
+
+
+
  ## Attach components
 # ### Load
 
@@ -750,7 +750,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', 
-                        **{'model_file':'CSIR-ambitions-2019',
+                        **{'model_file':'CSIR-ambitions-2022',
                             'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',

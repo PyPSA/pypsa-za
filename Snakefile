@@ -27,16 +27,6 @@ if config["enable"]["build_natura_raster"]:
         script:
             "scripts/build_natura_raster.py"
 
-if config['enable']['build_population']: 
-   rule build_population:
-       input:
-           supply_regions='data/supply_regions/supply_regions_{regions}.shp',
-           population='data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif'
-       output: 'resources/population_{regions}.csv'
-       threads: 1
-       resources: mem_mb=1000
-       script: "scripts/build_population.py"
-
 if config['enable']['build_cutout']:
     rule build_cutout:
         input:
@@ -67,20 +57,19 @@ if config['enable']['build_topology']:
     rule build_topology:
         input:
             supply_regions='data/supply_regions/supply_regions_{regions}.shp',
-            centroids='data/supply_regions/centroids_{regions}.shp',
+            population='data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif',
             num_lines='data/num_lines.xlsx',
         output:
-            buses='resources/buses_{regions}.csv',
-            lines='resources/lines_{regions}.csv',
-            regions = 'resources/onshore_shapes_{regions}.geojson'
+            buses='resources/buses_{regions}.geojson',
+            lines='resources/lines_{regions}.geojson',
         threads: 1
         script: "scripts/build_topology.py"
 
+
 rule base_network:
     input:
-        buses='resources/buses_{regions}.csv',
-        lines='resources/lines_{regions}.csv',
-        population='resources/population_{regions}.csv'
+        buses='resources/buses_{regions}.geojson',
+        lines='resources/lines_{regions}.geojson',
     output: "networks/base_{regions}.nc"
     benchmark: "benchmarks/base_network_{regions}"
     threads: 1
@@ -137,8 +126,6 @@ rule add_electricity:
         existing_generators_eaf="data/Eskom EAF data.xlsx",
     output: "networks/elec_{model_file}_{regions}_{resarea}.nc",
     benchmark: "benchmarks/add_electricity/elec_{model_file}_{regions}_{resarea}"
-    threads: 1
-    resources: mem_mb=1000
     script: "scripts/add_electricity.py"
 
 rule prepare_network:
@@ -150,9 +137,6 @@ rule prepare_network:
     output:"networks/pre_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc",
     log:"logs/prepare_network/pre_{model_file}_{regions}_{resarea}_l{ll}_{opts}.log",
     benchmark:"benchmarks/prepare_network/pre_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc",
-    threads: 1
-    resources:
-        mem=4000,
     script:
         "scripts/prepare_network.py"
 
@@ -169,19 +153,17 @@ rule solve_network:
         python="logs/solve_network/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}_python.log",
         memory="logs/solve_network/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}_memory.log",
     benchmark: "benchmarks/solve_network/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}"
-    threads: 15
-    resources: mem_mb=40000 # for electricity only
     script: "scripts/solve_network.py"
 
 
 rule plot_network:
     input:
-        network='results/version-0.6/networks/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc',
+        network='results/networks/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc',
         model_file="data/model_file.xlsx",
         supply_regions='data/supply_regions/supply_regions_{regions}.shp',
         resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
     output:
-        only_map='results/version-0.6/plots/{model_file}_{regions}_{resarea}_l{ll}_{opts}_{attr}.{ext}',
-        ext='results/version-0.6/plots/{model_file}_{regions}_{resarea}_l{ll}_{opts}_{attr}_ext.{ext}',
+        only_map='results/plots/{model_file}_{regions}_{resarea}_l{ll}_{opts}_{attr}.{ext}',
+        ext='results/plots/{model_file}_{regions}_{resarea}_l{ll}_{opts}_{attr}_ext.{ext}',
     log: 'logs/plot_network/{model_file}_{regions}_{resarea}_l{ll}_{opts}_{attr}.{ext}.log'
     script: "scripts/plot_network.py"

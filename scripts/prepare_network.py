@@ -68,6 +68,9 @@ from add_electricity import load_costs, update_transmission_costs
 idx = pd.IndexSlice
 logger = logging.getLogger(__name__)
 
+def remove_leap_day(df):
+    return df[~((df.index.month == 2) & (df.index.day == 29))]
+
 def calc_new_built_constraints(n, model_setup):
     build_constraints = (pd.read_excel(snakemake.input.model_file, 
                                 sheet_name='new_build',
@@ -243,13 +246,10 @@ def set_transmission_limit(n, ll_type, factor, costs, Nyears=1):
 def average_every_nhours(n, offset):
     logger.info(f"Resampling the network to {offset}")
     m = n.copy()#with_time=False)
-
-    if len(n.investment_periods)>1:
-        snapshots_unstacked = n.snapshots.get_level_values(1)
-    else:
-        snapshots_unstacked = n.snapshots.copy()
+    snapshots_unstacked = n.snapshots.get_level_values(1)
 
     snapshot_weightings = n.snapshot_weightings.copy().set_index(snapshots_unstacked).resample(offset).sum()
+    snapshot_weightings = remove_leap_day(snapshot_weightings)
     snapshot_weightings=snapshot_weightings[snapshot_weightings.index.year.isin(n.investment_periods)]
     snapshot_weightings.index = pd.MultiIndex.from_arrays([snapshot_weightings.index.year, snapshot_weightings.index])
     m.set_snapshots(snapshot_weightings.index)
@@ -260,6 +260,7 @@ def average_every_nhours(n, offset):
         for k, df in c.pnl.items():
             if not df.empty:
                 resampled = df.set_index(snapshots_unstacked).resample(offset).mean()
+                resampled = remove_leap_day(resampled)
                 resampled=resampled[resampled.index.year.isin(n.investment_periods)]
                 resampled.index = snapshot_weightings.index
                 pnl[k] = resampled
@@ -355,11 +356,11 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('prepare_network', 
-                            **{'model_file':'IRP-2019',
+                            **{'model_file':'CSIR-ambitions-2022',
                             'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC'})
+                            'opts':'LC-1H'})
     configure_logging(snakemake)
 
     model_setup = (pd.read_excel(snakemake.input.model_file, 
@@ -388,11 +389,6 @@ if __name__ == "__main__":
             n = average_every_nhours(n, m.group(0))
             break
 
-    # for o in opts:
-    #     m = re.match(r"^\d+PER$", o, re.IGNORECASE)
-    #     if m is not None:
-    #         n = apply_time_segmentation(n, m.group(0)[:-3],snakemake.config["tsam_clustering"])
-    #         break
 
     for o in opts:
         m = re.match(r"^\d+SEG$", o, re.IGNORECASE)
