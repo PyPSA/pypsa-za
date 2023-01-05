@@ -68,10 +68,11 @@ if config['enable']['build_topology']:
 
 rule base_network:
     input:
+        model_file="model_file.xlsx",
         buses='resources/buses_{regions}.geojson',
         lines='resources/lines_{regions}.geojson',
-    output: "networks/base_{regions}.nc"
-    benchmark: "benchmarks/base_network_{regions}"
+    output: "networks/base_{model_file}_{regions}.nc"
+    benchmark: "benchmarks/base_{model_file}_{regions}"
     threads: 1
     resources: mem_mb=1000
     script: "scripts/base_network.py"
@@ -79,7 +80,6 @@ rule base_network:
 if config['enable']['build_renewable_profiles'] & ~config['enable']['use_eskom_wind_solar']: 
     rule build_renewable_profiles:
         input:
-            base_network="networks/base_{regions}.nc",
             regions = 'resources/buses_{regions}.geojson',#'resources/onshore_shapes_{regions}.geojson',
             resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea],
             natura=lambda w: (
@@ -116,13 +116,13 @@ rule add_electricity:
             f"profile_{tech}": f"resources/profile_{tech}_"+ "{regions}_{resarea}.nc"
             for tech in renewable_carriers
         },
-        base_network='networks/base_{regions}.nc',
+        base_network='networks/base_{model_file}_{regions}.nc',
         supply_regions='data/bundle/supply_regions/{regions}.shp',
         load='data/bundle/SystemEnergy2009_13.csv',
         onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         solar_area='resources/area_solar_{regions}_{resarea}.csv',
         eskom_profiles="data/eskom_pu_profiles.csv",
-        model_file="data/model_file.xlsx",
+        model_file="model_file.xlsx",
         existing_generators_eaf="data/Eskom EAF data.xlsx",
     output: "networks/elec_{model_file}_{regions}_{resarea}.nc",
     benchmark: "benchmarks/add_electricity/elec_{model_file}_{regions}_{resarea}"
@@ -131,7 +131,7 @@ rule add_electricity:
 rule prepare_network:
     input:
         network="networks/elec_{model_file}_{regions}_{resarea}.nc",
-        model_file="data/model_file.xlsx",
+        model_file="model_file.xlsx",
         onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         solar_area='resources/area_solar_{regions}_{resarea}.csv',
     output:"networks/pre_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc",
@@ -143,7 +143,7 @@ rule prepare_network:
 rule solve_network:
     input: 
         network="networks/pre_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc",
-        model_file="data/model_file.xlsx",
+        model_file="model_file.xlsx",
     output: "results/networks/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc"
     shadow: "shallow"
     log:
@@ -159,7 +159,7 @@ rule solve_network:
 rule plot_network:
     input:
         network='results/networks/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc',
-        model_file="data/model_file.xlsx",
+        model_file="model_file.xlsx",
         supply_regions='data/bundle/supply_regions/{regions}.shp',
         resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
     output:

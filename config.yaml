@@ -23,7 +23,7 @@ crs:
 # of scripts where the outputs are already built, these switches are useful for forced 
 # re-runs of the snakemake workflow, where you may not necessarily want to rebuild everything
 enable:
-  build_natura_raster: false # Rasters natural protection areas onto all cutout regions
+  build_natura_raster: true # Rasters natural protection areas onto all cutout regions
   build_topology: true # Base network topology
   build_cutout: false # Atlite cutout 
   use_eskom_wind_solar: false # Model defaults to Eskom hourly pu profiles for all wind and solar generators
@@ -32,7 +32,6 @@ enable:
 
 # Specification of relevent years for the model
 years: 
-  simulation: [2019,2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030,2035,2040,2045,2050] # Years to be modelled
   reference_demand_year: 2012  # should be a single year at present, could be extended in the future
   reference_weather_years: 
     # reference years used for solar PV and wind profiles - can be single or multiple years
@@ -68,16 +67,16 @@ electricity:
     nuclear: 0
 
   min_capacity_factor: # Minimum annual capacity factor 
-    CCGT: 0.5 
+    CCGT: 0.3 
     nuclear: 0.5
 
   extendable_carriers:
     Renewables: ['onwind', solar]
     Generator: [CCGT, OCGT, coal, nuclear]
-    StorageUnit: [battery] 
+    StorageUnit: [battery, PHS] 
 
   buses:
-    9_10-supply: 
+    9_10_11-supply: 
       OCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE] # Saldana Bay, Richards Bay, Coega
       CCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE]
       coal: [GAUTENG, LIMPOPO] # Johannesburg, Waterberg
@@ -103,6 +102,7 @@ electricity:
       total: ['diesel','gas','OCGT','CCGT','battery','PHS'] 
   max_hours:
     battery: 3
+    PHS: 20
     H2: 10
 
 respotentials:

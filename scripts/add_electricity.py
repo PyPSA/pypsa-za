@@ -426,14 +426,14 @@ def attach_wind_and_solar(n, costs,input_profiles, model_setup, eskom_profiles):
 
     # Aggregate existing REIPPPP plants per region
     eskom_gens = pd.read_excel(snakemake.input.model_file, 
-                                    sheet_name='existing_eskom_stations', 
+                                    sheet_name='existing_eskom', 
                                     na_values=['-'],
-                                    index_col=[0,1]).loc[model_setup.existing_eskom_stations]
+                                    index_col=[0,1]).loc[model_setup.existing_eskom]
     eskom_gens = eskom_gens[eskom_gens['Carrier'].isin(['solar','onwind'])] # Currently only Sere wind farm
     ipp_gens = pd.read_excel(snakemake.input.model_file, 
-                                    sheet_name='existing_non_eskom_stations', 
+                                    sheet_name='existing_non_eskom', 
                                     na_values=['-'],
-                                    index_col=[0,1]).loc[model_setup.existing_non_eskom_stations]
+                                    index_col=[0,1]).loc[model_setup.existing_non_eskom]
 
     ipp_gens=ipp_gens[ipp_gens['Carrier'].isin(['solar','onwind'])] # add existing wind and PV IPP generators 
     gens = pd.concat([eskom_gens,ipp_gens])
@@ -521,14 +521,14 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
 
     # Add existing conventional generators that are active
     eskom_gens = pd.read_excel(snakemake.input.model_file, 
-                                sheet_name='existing_eskom_stations',
+                                sheet_name='existing_eskom',
                                 na_values=['-'],
-                                index_col=[0,1]).loc[model_setup.existing_eskom_stations]
+                                index_col=[0,1]).loc[model_setup.existing_eskom]
     eskom_gens = eskom_gens[~eskom_gens['Carrier'].isin(['solar','onwind'])]
     ipp_gens = pd.read_excel(snakemake.input.model_file,
-                                sheet_name='existing_non_eskom_stations',
+                                sheet_name='existing_non_eskom',
                                 na_values=['-'],
-                                index_col=[0,1]).loc[model_setup.existing_non_eskom_stations]
+                                index_col=[0,1]).loc[model_setup.existing_non_eskom]
     ipp_gens=ipp_gens[~ipp_gens['Carrier'].isin(['solar','onwind'])] # add existing non eskom generators (excluding solar, onwind)  
     gens = pd.concat([eskom_gens,ipp_gens])
 
@@ -567,10 +567,10 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
 
     if snakemake.wildcards.regions=='RSA':
         CahoraBassa['bus'] = "RSA"
-    elif (snakemake.wildcards.regions=='9-supply') | (snakemake.wildcards.regions=='10-supply'):
-        CahoraBassa['bus'] = "LIMPOPO"
     elif snakemake.wildcards.regions=='27-supply':
         CahoraBassa['bus'] = "POLOKWANE"
+    else:
+        CahoraBassa['bus'] = "LIMPOPO"
     gens = pd.concat([gens,CahoraBassa])
 
     gen_index=gens[gens.carrier.isin(['coal','nuclear','gas','diesel','hydro'])].index
@@ -646,7 +646,7 @@ def attach_extendable_generators(n, costs):
     elif snakemake.wildcards.regions=='27-supply':
         buses = elec_opts['buses']['27-supply']
     else:
-        buses = elec_opts['buses']['9_10-supply']
+        buses = elec_opts['buses']['9_10_11-supply']
 
     _add_missing_carriers_from_costs(n, costs[n.investment_periods[0]], carriers)
 
@@ -770,7 +770,7 @@ if __name__ == "__main__":
         model_setup.costs,
         snakemake.config["costs"],
         snakemake.config["electricity"],
-        snakemake.config["years"]["simulation"],
+        n.investment_periods,
     )
 
     #wind_solar_profiles = xr.open_dataset(snakemake.input.wind_solar_profiles).to_dataframe()

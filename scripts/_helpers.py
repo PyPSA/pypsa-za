@@ -659,7 +659,7 @@ def map_generator_parameters():
                 PHS_max_hours="Pumped Storage - Max Storage (GWh)")
     csp_f = dict(CSP_max_hours='CSP Storage (hours)')
     g_f = dict(fom="Fixed O&M Cost (R/kW/yr)",
-               p_nom='2022 Capacity (MW)',
+               p_nom='Capacity (MW)',
                name='Power Station Name',
                carrier='Carrier',
                build_year='Future Commissioning Date',
