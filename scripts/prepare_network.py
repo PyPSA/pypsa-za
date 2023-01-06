@@ -73,8 +73,8 @@ def remove_leap_day(df):
 
 def calc_new_built_constraints(n, model_setup):
     build_constraints = (pd.read_excel(snakemake.input.model_file, 
-                                sheet_name='new_build',
-                                index_col=[0,1,2])).loc[model_setup['new_build']]
+                                sheet_name='new_build_limits',
+                                index_col=[0,1,2])).loc[model_setup['new_build_limits']]
 
     max_build = build_constraints.loc['max_installed_limit'].fillna(100000)
     min_build = build_constraints.loc['min_installed_limit']
@@ -84,8 +84,8 @@ def calc_new_built_constraints(n, model_setup):
 def add_global_annual_build_limits(n,model_setup):
     logger.info("Setting annual new build limits as specified in model_file.xlsx")
     build_constraints = (pd.read_excel(snakemake.input.model_file, 
-                                sheet_name='new_build',
-                                index_col=[0,1,2])).loc[model_setup['new_build']]
+                                sheet_name='new_build_limits',
+                                index_col=[0,1,2])).loc[model_setup['new_build_limits']]
 
     max_build = build_constraints.loc['max_installed_limit'].fillna(100000)
     min_build = build_constraints.loc['min_installed_limit']
@@ -376,7 +376,7 @@ if __name__ == "__main__":
         model_setup.costs,
         snakemake.config["costs"],
         snakemake.config["electricity"],
-        snakemake.config["years"]["simulation"],
+        n.investment_periods,
     )
 
     add_global_annual_build_limits(n, model_setup)

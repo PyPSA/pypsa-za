@@ -30,9 +30,9 @@ def load_buses_and_lines(n):
 
 
 
-def set_snapshots(n):
+def set_snapshots(n,years):
     snapshots = pd.DatetimeIndex([])
-    for y in snakemake.config['years']['simulation']:
+    for y in years:
         year_len = 8784 if (round(y/4,0)-y/4) == 0 else 8760
         period = pd.date_range(start=f"{y}-01-01 00:00", freq='h', periods=year_len)
         period = period[~((period.month == 2) & (period.day == 29))]  # exclude Feb 29 for leap years
@@ -40,10 +40,10 @@ def set_snapshots(n):
     n.set_snapshots(pd.MultiIndex.from_arrays([snapshots.year, snapshots]))
     return n
 
-def set_investment_periods(n):
-    n.investment_periods = snakemake.config['years']['simulation']
-    if len(snakemake.config['years']) > 1:
-        n.investment_period_weightings["years"] = list(np.diff(snakemake.config['years']['simulation'])) + [5]
+def set_investment_periods(n,years):
+    n.investment_periods = years
+    if len(years) > 1:
+        n.investment_period_weightings["years"] = list(np.diff(years)) + [5]
         T = 0
         for period, nyears in n.investment_period_weightings.years.items():
             discounts = [(1 / (1 + snakemake.config['costs']['discountrate']) ** t) for t in range(T, T + nyears)]
@@ -73,11 +73,11 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('base_network', 
-                            **{'costs':'CSIR-ambitions-2022',
+                            **{'model_file':'validation-1',
                             'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC-1H',
+                            'opts':'LC',
                             'attr':'p_nom'})
 
     # Create network and load buses and lines data
@@ -85,8 +85,14 @@ if __name__ == "__main__":
     buses, lines = load_buses_and_lines(n)
         
     # Set snapshots and investment periods
-    n = set_snapshots(n)
-    n = set_investment_periods(n)
+    years = (pd.read_excel(snakemake.input.model_file,
+                           sheet_name="model_setup",
+                           index_col=0)
+            .loc[snakemake.wildcards.model_file,"simulation_years"]
+    )
+    years = list(map(int, years.strip('[]').split(',')))
+    n = set_snapshots(n,years)
+    n = set_investment_periods(n,years)
     
     # Set line capacity and add components to network
     line_config = snakemake.config['lines']
