@@ -7,7 +7,7 @@ networks/*
 resources/*
 results/*
 cutouts/*
-
+docs/build/*
 benchmarks/*
 logs/*
 

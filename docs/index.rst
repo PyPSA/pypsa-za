@@ -3,8 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to pypsa-za's documentation!
-====================================
+PyPSA-ZA: An open Optimisation Model of the South African Power System
+=======================================================================
+.. image:: ../imgs/network_csir-moderate_redz_E_LC_p_nom_ext.png
+   :width: 50%
+   :align: center
+
 PyPSA model of the South African electricity system at the level of ESKOM's supply regions.
 
 The model is described and evaluated in the paper PyPSA-ZA: Investment and operation co-optimization of integrating wind and solar in South Africa at high spatial and temporal detail, 2017, arXiv:1710.11199.
@@ -22,7 +26,6 @@ Documentation
 * :doc:`tutorials`
 * :doc:`data_workflow`
 
-
 .. toctree::
    :hidden:
    :maxdepth: 2
@@ -30,7 +33,7 @@ Documentation
 
    introduction
    installation  
-   tutorial
+   tutorials
    data_workflow    
 
 **Configuration**
