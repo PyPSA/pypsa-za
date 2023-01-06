@@ -211,6 +211,8 @@ def plot_total_energy_pie(n, opts, ax=None):
         if e_primary.at[i] < 0.04 * e_primary.sum():
             t1.remove()
             t2.remove()
+    for autotext in autotexts:
+        autotext.set_color('white')
 
 def plot_total_cost_bar(n, opts, ax=None):
     if ax is None: ax = plt.gca()
@@ -236,16 +238,17 @@ def plot_total_cost_bar(n, opts, ax=None):
             "AC-AC",
             "AC line",
             "onwind",
-            "offwind-ac",
-            "offwind-dc",
+            #"offwind-ac",
+            #"offwind-dc",
             "solar",
-            "ror",
+            #"ror",
             "nuclear",
             "coal",
             "OCGT",
             "CCGT",
             "battery",
-            "H2",
+            #"H2",
+            "hydro+PHS"
         ],
     ).dropna()
     bottom = np.array([0.0, 0.0])

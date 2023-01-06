@@ -119,8 +119,8 @@ rule add_electricity:
         base_network='networks/base_{model_file}_{regions}.nc',
         supply_regions='data/bundle/supply_regions/{regions}.shp',
         load='data/bundle/SystemEnergy2009_13.csv',
-        onwind_area='resources/area_wind_{regions}_{resarea}.csv',
-        solar_area='resources/area_solar_{regions}_{resarea}.csv',
+        #onwind_area='resources/area_wind_{regions}_{resarea}.csv',
+        #solar_area='resources/area_solar_{regions}_{resarea}.csv',
         eskom_profiles="data/eskom_pu_profiles.csv",
         model_file="model_file.xlsx",
         existing_generators_eaf="data/Eskom EAF data.xlsx",
@@ -132,8 +132,9 @@ rule prepare_network:
     input:
         network="networks/elec_{model_file}_{regions}_{resarea}.nc",
         model_file="model_file.xlsx",
-        onwind_area='resources/area_wind_{regions}_{resarea}.csv',
-        solar_area='resources/area_solar_{regions}_{resarea}.csv',
+        #onwind_area='resources/area_wind_{regions}_{resarea}.csv',
+        #solar_area='resources/area_solar_{regions}_{resarea}.csv',
+
     output:"networks/pre_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc",
     log:"logs/prepare_network/pre_{model_file}_{regions}_{resarea}_l{ll}_{opts}.log",
     benchmark:"benchmarks/prepare_network/pre_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc",
