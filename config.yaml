@@ -47,7 +47,7 @@ years:
     imports: [2021]
 
 electricity:
-  co2limit: 10.e+6    # 470.9e+5  Cumulative CO2 emissions budget for all simulation years combined
+  co2limit: 2.e+9    # 470.9e+5  Cumulative CO2 emissions budget for all simulation years combined
   renewable_carriers: [solar, onwind, CSP, biomass, hydro] # defines renewable carriers
   generator_availability: # generator planned and unplanned outages are included based on Eskom data
     implement_availability: true
@@ -60,8 +60,9 @@ electricity:
       CCGT: ['Ankerlig', [2017], 1]
       nuclear: ['Koeberg', [2017], 1.1]
 
+  # Only for new generators, existing generators are specified in model_file
   min_stable_levels:
-    coal: 0.3 # Applied to whole fleet that is operational at the time
+    coal: 0 
     OCGT: 0 
     CCGT: 0
     nuclear: 0

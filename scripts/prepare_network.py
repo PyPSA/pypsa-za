@@ -71,7 +71,7 @@ logger = logging.getLogger(__name__)
 def remove_leap_day(df):
     return df[~((df.index.month == 2) & (df.index.day == 29))]
 
-def calc_new_built_constraints(n, model_setup):
+def calc_new_build_constraints(n, model_setup):
     build_constraints = (pd.read_excel(snakemake.input.model_file, 
                                 sheet_name='new_build_limits',
                                 index_col=[0,1,2])).loc[model_setup['new_build_limits']]

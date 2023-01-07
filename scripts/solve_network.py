@@ -90,6 +90,25 @@ from pypsa.linopf import (
     network_lopf,
 )
 
+from pypsa.linopt import (
+    define_constraints,
+    define_variables,
+    get_con,
+    get_var,
+    join_exprs,
+    linexpr,
+    run_and_read_cbc,
+    run_and_read_cplex,
+    run_and_read_glpk,
+    run_and_read_gurobi,
+    run_and_read_highs,
+    run_and_read_xpress,
+    set_conref,
+    write_bound,
+    write_constraint,
+    write_objective,
+)
+
 from pypsa.descriptors import (
     Dict,
     additional_linkports,
@@ -507,7 +526,6 @@ def add_local_max_capacity_constraint(n,snapshots):
 
     define_constraints(n, lhs, "<=", rhs, 'GlobalConstraint', 'res_limit')
 
-
 def extra_functionality(n, snapshots):
     """
     Collects supplementary constraints which will be passed to ``pypsa.linopf.network_lopf``.
@@ -532,6 +550,7 @@ def extra_functionality(n, snapshots):
     min_capacity_factor(n,snapshots)
     define_storage_global_constraints(n, snapshots)
     reserves(n,snapshots)
+
 def solve_network(n, config, opts="", **kwargs):
     solver_options = config["solving"]["solver"].copy()
     solver_name = solver_options.pop("name")
@@ -577,11 +596,11 @@ if __name__ == "__main__":
 
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('solve_network', **{'model_file':'CSIR-ambitions-2022',
+        snakemake = mock_snakemake('solve_network', **{'model_file':'validation-2',
                             'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
-                            'opts':'LC-1H',
+                            'opts':'LC',
                             'attr':'p_nom'})
     configure_logging(snakemake)
 
@@ -607,5 +626,6 @@ if __name__ == "__main__":
             solver_logfile=snakemake.log.solver,
             #keep_references=True, #only for debugging when needed
         )
+
         n.export_to_netcdf(snakemake.output[0])
     logger.info("Maximum memory usage: {}".format(mem.mem_usage))

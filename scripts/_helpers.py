@@ -8,7 +8,8 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-
+from pypsa.descriptors import (Dict,get_active_assets)
+from pypsa.descriptors import get_switchable_as_dense as get_as_dense
 
 def sets_path_to_root(root_directory_name):
     """
@@ -247,49 +248,97 @@ def aggregate_p_curtailed(n):
         ]
     )
 
-
-def aggregate_costs(n, flatten=False, opts=None, existing_only=False):
+def aggregate_costs(n):
 
     components = dict(
-        Link=("p_nom", "p0"),
-        Generator=("p_nom", "p"),
-        StorageUnit=("p_nom", "p"),
-        Store=("e_nom", "p"),
-        Line=("s_nom", None),
-        Transformer=("s_nom", None),
+        Link=("p_nom_opt", "p0"),
+        Generator=("p_nom_opt", "p"),
+        StorageUnit=("p_nom_opt", "p"),
+        Store=("e_nom_opt", "p"),
+        Line=("s_nom_opt", None),
+        Transformer=("s_nom_opt", None),
     )
 
-    costs = {}
+    fixed_cost, variable_cost=pd.DataFrame([]),pd.DataFrame([])
     for c, (p_nom, p_attr) in zip(
         n.iterate_components(components.keys(), skip_empty=False), components.values()
     ):
         if c.df.empty:
             continue
-        if not existing_only:
-            p_nom += "_opt"
-        costs[(c.list_name, "capital")] = (
-            (c.df[p_nom] * c.df.capital_cost).groupby(c.df.carrier).sum()
-        )
-        if p_attr is not None:
-            p = c.pnl[p_attr].sum()
-            if c.name == "StorageUnit":
-                p = p.loc[p > 0]
-            costs[(c.list_name, "marginal")] = (
-                (p * c.df.marginal_cost).groupby(c.df.carrier).sum()
+    
+        if n._multi_invest:
+            active = pd.concat(
+                {
+                    period: get_active_assets(n, c.name, period)
+                    for period in n.snapshots.unique("period")
+                },
+                axis=1,
             )
-    costs = pd.concat(costs)
-
-    if flatten:
-        assert opts is not None
-        conv_techs = opts["conv_techs"]
-
-        costs = costs.reset_index(level=0, drop=True)
-        costs = costs["capital"].add(
-            costs["marginal"].rename({t: t + " marginal" for t in conv_techs}),
-            fill_value=0.0,
+        marginal_costs = (
+                get_as_dense(n, c.name, "marginal_cost", n.snapshots)
+                .mul(n.snapshot_weightings.objective, axis=0)
         )
 
-    return costs
+        fixed_cost_tmp=pd.DataFrame(0,index=n.df(c.name).carrier.unique(),columns=n.investment_periods)
+        variable_cost_tmp=pd.DataFrame(0,index=n.df(c.name).carrier.unique(),columns=n.investment_periods)
+    
+        for y in n.investment_periods:
+            fixed_cost_tmp.loc[:,y] = (active[y]*c.df[p_nom]*c.df.capital_cost).groupby(c.df.carrier).sum()
+
+            if p_attr is not None:
+                p = c.pnl[p_attr].loc[y]
+                if c.name == "StorageUnit":
+                    p = p[p>=0]
+                    
+                variable_cost_tmp.loc[:,y] = (marginal_costs.loc[y]*p).sum().groupby(c.df.carrier).sum()
+
+        fixed_cost = pd.concat([fixed_cost,fixed_cost_tmp])
+        variable_cost = pd.concat([variable_cost,variable_cost_tmp])
+        
+    return fixed_cost, variable_cost
+
+# def aggregate_costs(n, flatten=False, opts=None, existing_only=False):
+
+#     components = dict(
+#         Link=("p_nom", "p0"),
+#         Generator=("p_nom", "p"),
+#         StorageUnit=("p_nom", "p"),
+#         Store=("e_nom", "p"),
+#         Line=("s_nom", None),
+#         Transformer=("s_nom", None),
+#     )
+
+#     costs = {}
+#     for c, (p_nom, p_attr) in zip(
+#         n.iterate_components(components.keys(), skip_empty=False), components.values()
+#     ):
+#         if c.df.empty:
+#             continue
+#         if not existing_only:
+#             p_nom += "_opt"
+#         costs[(c.list_name, "capital")] = (
+#             (c.df[p_nom] * c.df.capital_cost).groupby(c.df.carrier).sum()
+#         )
+#         if p_attr is not None:
+#             p = c.pnl[p_attr].sum()
+#             if c.name == "StorageUnit":
+#                 p = p.loc[p > 0]
+#             costs[(c.list_name, "marginal")] = (
+#                 (p * c.df.marginal_cost).groupby(c.df.carrier).sum()
+#             )
+#     costs = pd.concat(costs)
+
+#     if flatten:
+#         assert opts is not None
+#         conv_techs = opts["conv_techs"]
+
+#         costs = costs.reset_index(level=0, drop=True)
+#         costs = costs["capital"].add(
+#             costs["marginal"].rename({t: t + " marginal" for t in conv_techs}),
+#             fill_value=0.0,
+#         )
+
+#     return costs
 
 
 def progress_retrieve(url, file, data=None, disable_progress=False, roundto=1.0):

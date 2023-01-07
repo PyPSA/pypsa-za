@@ -533,7 +533,7 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
     gens = pd.concat([eskom_gens,ipp_gens])
 
     # Calculate fields where pypsa uses different conventions
-    gens['efficiency'] = (3.6/gens.pop(g_f['heat_rate']))
+    gens['efficiency'] = (3.6/gens.pop(g_f['heat_rate'])).fillna(1)
     gens['marginal_cost'] = (3.6*gens.pop(g_f['fuel_price'])/gens['efficiency']).fillna(0) + gens.pop(g_f['vom'])
     gens['capital_cost'] = 1e3*gens.pop(g_f['fom'])
     gens['ramp_limit_up'] = 60*gens.pop(g_f['max_ramp_up'])/gens[g_f['p_nom']]
@@ -581,6 +581,7 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
         lifetime=gens.loc[gen_index,'lifetime'],
         p_nom = gens.loc[gen_index,'p_nom'],
         p_nom_extendable=False,
+        efficiency = gens.loc[gen_index,'efficiency'],
         ramp_limit_up = gens.loc[gen_index,'ramp_limit_up'],
         ramp_limit_down = gens.loc[gen_index,'ramp_limit_down'],
         marginal_cost=gens.loc[gen_index,'marginal_cost'],
@@ -591,7 +592,7 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
     for carrier in ['CSP','biomass']:
         n.add("Carrier", name=carrier)
         plant_data = gens.loc[gens['carrier']==carrier,['Grouping','bus','p_nom']].groupby(['Grouping','bus']).sum()
-        for param in ['lifetime','capital_cost','marginal_cost']:
+        for param in ['lifetime','efficiency','capital_cost','marginal_cost']:
             plant_data[param]=gens.loc[gens['carrier']==carrier,['Grouping','bus',param]].groupby(['Grouping','bus']).mean()
 
         for group in plant_data.index.levels[0]:
@@ -608,6 +609,7 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
                 lifetime=plant_data.loc[group,'lifetime'],
                 p_nom = plant_data.loc[group,'p_nom'],
                 p_nom_extendable=False,
+                efficiency = plant_data.loc[group,'efficiency'],
                 capital_cost=annual_cost,
                 p_max_pu=eskom_data.values,
                 p_min_pu=eskom_data.values*0.95, #purchase at least 95% of power under existing PPAs despite higher cost
@@ -747,7 +749,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', 
-                        **{'model_file':'CSIR-ambitions-2022',
+                        **{'model_file':'validation-2',
                             'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
