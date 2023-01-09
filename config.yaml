@@ -313,7 +313,7 @@ solving:
 
 plotting:
   map:
-    figsize: [7, 7]
+    figsize: [8, 8]
     boundaries: [14, 34, -35, -22] #[x1,x2,y1,y2]
     p_nom:
       bus_size_factor: 5.e+4
@@ -395,3 +395,4 @@ plotting:
     ror: "Run of River"
     coal: "Coal"
     nuclear: "Nuclear"
+    biomass: "Biomass"

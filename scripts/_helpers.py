@@ -224,13 +224,13 @@ def aggregate_energy(n):
                     .mul(n.snapshot_weightings['objective'],axis=0)
                     .loc[y].sum()
                     .groupby(n.generators.carrier)
-                    .sum(),
-                )
+                    .sum()
+                ),
                 (
                     n.storage_units_t.p_dispatch
                     .mul(n.snapshot_weightings['objective'],axis=0)
                     .loc[y].sum()
-                    .groupby(n.storage_units.carrier).sum(),
+                    .groupby(n.storage_units.carrier).sum()
                 )
             ]
         )

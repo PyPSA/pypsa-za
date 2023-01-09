@@ -205,50 +205,53 @@ def plot_total_energy_pie(n, opts, ax=None):
         startangle=90,
         labels = e_primary.rename(opts['nice_names']).index,
         autopct='%.0f%%',
+        textprops=dict(),
         shadow=False,
         colors = [opts['tech_colors'][tech] for tech in e_primary.index])
     for t1, t2, i in zip(texts, autotexts, e_primary.index):
         if e_primary.at[i] < 0.04 * e_primary.sum():
             t1.remove()
             t2.remove()
-    for autotext in autotexts:
-        autotext.set_color('white')
+
 
 def plot_total_cost_bar(n, opts, ax=None):
     if ax is None: ax = plt.gca()
 
-    total_load = (n.snapshot_weightings.generators * n.loads_t.p.sum(axis=1)).sum()
+    total_load = (n.snapshot_weightings.generators.loc[2040] * n.loads_t.p.loc[2040].sum(axis=1)).sum()
     tech_colors = opts['tech_colors']
 
-    def split_costs(n):
-        costs = aggregate_costs(n).reset_index(level=0, drop=True)
-        costs_ex = aggregate_costs(n, existing_only=True).reset_index(level=0, drop=True)
-        return (
-            costs['capital'].add(costs['marginal'], fill_value=0.),
-            costs_ex['capital'], 
-            costs['capital'] - costs_ex['capital'], 
-            costs['marginal']
-            )
+    #def split_costs(n):
+    #    costs = aggregate_costs(n).reset_index(level=0, drop=True)
+    #    costs_ex = aggregate_costs(n, existing_only=True).reset_index(level=0, drop=True)
+    #    return (
+    #        costs['capital'].add(costs['marginal'], fill_value=0.),
+    #        costs_ex['capital'], 
+    #        costs['capital'] - costs_ex['capital'], 
+    #        costs['marginal']
+    #        )
 
-    costs, costs_cap_ex, costs_cap_new, costs_marg = split_costs(n)
+    #costs, costs_cap_ex, costs_cap_new, costs_marg = split_costs(n)
+
+    fixed_cost, variable_cost = aggregate_costs(n)
+
+    costs = fixed_cost + variable_cost
+    costs_marg = variable_cost
 
     costs_graph = pd.DataFrame(
-        dict(a=costs.drop("load", errors="ignore")),
+        dict(a=costs[2040].drop("load_shedding", errors="ignore")),
         index=[
+            'nuclear',
+            'coal',
+            'CCGT',
+            'OCGT',
+            'hydro+PHS',
+            'biomass',
+            'onwind',
+            'CSP',
+            'solar',
+            'battery'
             "AC-AC",
-            "AC line",
-            "onwind",
-            #"offwind-ac",
-            #"offwind-dc",
-            "solar",
-            #"ror",
-            "nuclear",
-            "coal",
-            "OCGT",
-            "CCGT",
-            "battery",
-            #"H2",
-            "hydro+PHS"
+            "AC line"
         ],
     ).dropna()
     bottom = np.array([0.0, 0.0])
@@ -262,7 +265,8 @@ def plot_total_cost_bar(n, opts, ax=None):
         bottom = bottom+data
 
         if ind in opts['conv_techs'] + ['AC line']:
-            for c in [costs_cap_ex, costs_marg]:
+            #for c in [costs_cap_ex, costs_marg]:
+            for c in [costs[2040], costs_marg[2040]]:
                 if ind in c:
                     data_sub = np.asarray([c.loc[ind]])/total_load
                     ax.bar([0.5], data_sub, linewidth=0,
@@ -288,11 +292,11 @@ if __name__ == "__main__":
         snakemake = mock_snakemake(
             'plot_network', 
             **{
-                'model_file':'CSIR-ambitions-2022',
-                'regions':'27-supply',
+                'model_file':'validation-4',
+                'regions':'RSA',
                 'resarea':'redz',
                 'll':'copt',
-                'opts':'LC-1H',
+                'opts':'LC',
                 'attr':'p_nom',
                 'ext':'pdf'
             }
@@ -311,7 +315,7 @@ if __name__ == "__main__":
 
     map_figsize = config["plotting"]['map']['figsize']
     map_boundaries = config["plotting"]['map']['boundaries']
-    config_years = [2050]
+    #config_years = [2050]
 
     n = load_network_for_plots(
         snakemake.input.network, snakemake.input.model_file, config, model_setup.costs
