@@ -101,7 +101,6 @@ import powerplantmatching as pm
 import pypsa
 import xarray as xr
 from _helpers import (configure_logging, 
-                    getContinent, 
                     update_p_nom_max, 
                     pdbcast, 
                     map_generator_parameters, 
@@ -172,18 +171,19 @@ def load_costs(model_file, cost_scenario, config, elec_config, config_years):
     costs = {}
     for y in config_years:
         costs[y]=cost_data.loc[idx[:, y]].unstack(level=1).fillna(
-        {
-            "CO2 intensity": 0,
-            "FOM": 0,
-            "VOM": 0,
-            "discount rate": config["discountrate"],
-            "efficiency": 1,
-            "efficiency_store": 1,
-            "efficiency_dispatch": 1,
-            "fuel": 0,
-            "investment": 0,
-            "lifetime": 25,
-        })
+            {
+                "CO2 intensity": 0,
+                "FOM": 0,
+                "VOM": 0,
+                "discount rate": config["discountrate"],
+                "efficiency": 1,
+                "efficiency_store": 1,
+                "efficiency_dispatch": 1,
+                "fuel": 0,
+                "investment": 0,
+                "lifetime": 25,
+            }
+        )
 
         costs[y]['efficiency_store']=costs[y]['efficiency'].pow(1./2) #if only 1 efficiency value is given assume it is round trip efficiency
         costs[y]['efficiency_dispatch']=costs[y]['efficiency'].pow(1./2)
@@ -233,7 +233,13 @@ def load_costs(model_file, cost_scenario, config, elec_config, config_years):
 
 def add_generator_availability(n,generators,config_avail,eaf_projections):
     # Add plant availability based on actual Eskom data
-    eskom_data  = pd.read_excel(snakemake.input.existing_generators_eaf, sheet_name='eskom_data', na_values=['-'],index_col=[1,0],parse_dates=True)
+    eskom_data  = pd.read_excel(
+        snakemake.input.existing_generators_eaf, 
+        sheet_name='eskom_data', 
+        na_values=['-'],
+        index_col=[1,0],
+        parse_dates=True
+    )
     snapshots = n.snapshots.get_level_values(1)
     years_full = range(n.investment_periods[0]-1,n.investment_periods[-1]+1)
     eaf_profiles = pd.DataFrame(1,index=snapshots,columns=[])   
