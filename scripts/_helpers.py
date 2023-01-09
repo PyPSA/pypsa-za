@@ -8,7 +8,8 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-
+from pypsa.descriptors import (Dict,get_active_assets)
+from pypsa.descriptors import get_switchable_as_dense as get_as_dense
 
 def sets_path_to_root(root_directory_name):
     """
@@ -179,7 +180,7 @@ def load_network_for_plots(fn, model_file, config, model_setup_costs, combine_hy
         model_setup_costs,
         config["costs"],
         config["electricity"],
-        config["years"]["simulation"])
+        n.investment_periods)
     
     update_transmission_costs(n, costs)
 
@@ -194,6 +195,55 @@ def update_p_nom_max(n):
 
     n.generators.p_nom_max = n.generators[["p_nom_min", "p_nom_max"]].max(1)
 
+
+def aggregate_capacity(n):
+    capacity=pd.DataFrame(
+        np.nan,index=np.append(n.generators.carrier.unique(),n.storage_units.carrier.unique()),
+        columns=range(n.investment_periods[0],n.investment_periods[-1]+1)
+    )
+
+    carriers=n.generators.carrier.unique()
+    carriers = carriers[carriers !='load_shedding']
+    for y in n.investment_periods:
+        capacity.loc[carriers,y]=n.generators.p_nom_opt[(n.get_active_assets('Generator',y))].groupby(n.generators.carrier).sum()
+
+    carriers=n.storage_units.carrier.unique()
+    for y in n.investment_periods:
+        capacity.loc[carriers,y]=n.storage_units.p_nom_opt[(n.get_active_assets('StorageUnit',y))].groupby(n.storage_units.carrier).sum()
+
+    capacity.loc['OCGT',:]+=capacity.loc['gas',:]+capacity.loc['diesel',:]
+    
+    return capacity
+
+def aggregate_energy(n):
+    def aggregate_p(n,y):
+        return pd.concat(
+            [
+                (
+                    n.generators_t.p
+                    .mul(n.snapshot_weightings['objective'],axis=0)
+                    .loc[y].sum()
+                    .groupby(n.generators.carrier)
+                    .sum(),
+                )
+                (
+                    n.storage_units_t.p_dispatch
+                    .mul(n.snapshot_weightings['objective'],axis=0)
+                    .loc[y].sum()
+                    .groupby(n.storage_units.carrier).sum(),
+                )
+            ]
+        )
+    energy=pd.DataFrame(
+        np.nan,
+        index=np.append(n.generators.carrier.unique(),n.storage_units.carrier.unique()),
+        columns=range(n.investment_periods[0],n.investment_periods[-1]+1)
+    )       
+
+    for y in n.investment_periods:
+        energy.loc[:,y]=aggregate_p(n,y)
+
+    return energy
 
 def aggregate_p_nom(n):
     return pd.concat(
@@ -247,49 +297,97 @@ def aggregate_p_curtailed(n):
         ]
     )
 
-
-def aggregate_costs(n, flatten=False, opts=None, existing_only=False):
+def aggregate_costs(n):
 
     components = dict(
-        Link=("p_nom", "p0"),
-        Generator=("p_nom", "p"),
-        StorageUnit=("p_nom", "p"),
-        Store=("e_nom", "p"),
-        Line=("s_nom", None),
-        Transformer=("s_nom", None),
+        Link=("p_nom_opt", "p0"),
+        Generator=("p_nom_opt", "p"),
+        StorageUnit=("p_nom_opt", "p"),
+        Store=("e_nom_opt", "p"),
+        Line=("s_nom_opt", None),
+        Transformer=("s_nom_opt", None),
     )
 
-    costs = {}
+    fixed_cost, variable_cost=pd.DataFrame([]),pd.DataFrame([])
     for c, (p_nom, p_attr) in zip(
         n.iterate_components(components.keys(), skip_empty=False), components.values()
     ):
         if c.df.empty:
             continue
-        if not existing_only:
-            p_nom += "_opt"
-        costs[(c.list_name, "capital")] = (
-            (c.df[p_nom] * c.df.capital_cost).groupby(c.df.carrier).sum()
-        )
-        if p_attr is not None:
-            p = c.pnl[p_attr].sum()
-            if c.name == "StorageUnit":
-                p = p.loc[p > 0]
-            costs[(c.list_name, "marginal")] = (
-                (p * c.df.marginal_cost).groupby(c.df.carrier).sum()
+    
+        if n._multi_invest:
+            active = pd.concat(
+                {
+                    period: get_active_assets(n, c.name, period)
+                    for period in n.snapshots.unique("period")
+                },
+                axis=1,
             )
-    costs = pd.concat(costs)
-
-    if flatten:
-        assert opts is not None
-        conv_techs = opts["conv_techs"]
-
-        costs = costs.reset_index(level=0, drop=True)
-        costs = costs["capital"].add(
-            costs["marginal"].rename({t: t + " marginal" for t in conv_techs}),
-            fill_value=0.0,
+        marginal_costs = (
+                get_as_dense(n, c.name, "marginal_cost", n.snapshots)
+                .mul(n.snapshot_weightings.objective, axis=0)
         )
 
-    return costs
+        fixed_cost_tmp=pd.DataFrame(0,index=n.df(c.name).carrier.unique(),columns=n.investment_periods)
+        variable_cost_tmp=pd.DataFrame(0,index=n.df(c.name).carrier.unique(),columns=n.investment_periods)
+    
+        for y in n.investment_periods:
+            fixed_cost_tmp.loc[:,y] = (active[y]*c.df[p_nom]*c.df.capital_cost).groupby(c.df.carrier).sum()
+
+            if p_attr is not None:
+                p = c.pnl[p_attr].loc[y]
+                if c.name == "StorageUnit":
+                    p = p[p>=0]
+                    
+                variable_cost_tmp.loc[:,y] = (marginal_costs.loc[y]*p).sum().groupby(c.df.carrier).sum()
+
+        fixed_cost = pd.concat([fixed_cost,fixed_cost_tmp])
+        variable_cost = pd.concat([variable_cost,variable_cost_tmp])
+        
+    return fixed_cost, variable_cost
+
+# def aggregate_costs(n, flatten=False, opts=None, existing_only=False):
+
+#     components = dict(
+#         Link=("p_nom", "p0"),
+#         Generator=("p_nom", "p"),
+#         StorageUnit=("p_nom", "p"),
+#         Store=("e_nom", "p"),
+#         Line=("s_nom", None),
+#         Transformer=("s_nom", None),
+#     )
+
+#     costs = {}
+#     for c, (p_nom, p_attr) in zip(
+#         n.iterate_components(components.keys(), skip_empty=False), components.values()
+#     ):
+#         if c.df.empty:
+#             continue
+#         if not existing_only:
+#             p_nom += "_opt"
+#         costs[(c.list_name, "capital")] = (
+#             (c.df[p_nom] * c.df.capital_cost).groupby(c.df.carrier).sum()
+#         )
+#         if p_attr is not None:
+#             p = c.pnl[p_attr].sum()
+#             if c.name == "StorageUnit":
+#                 p = p.loc[p > 0]
+#             costs[(c.list_name, "marginal")] = (
+#                 (p * c.df.marginal_cost).groupby(c.df.carrier).sum()
+#             )
+#     costs = pd.concat(costs)
+
+#     if flatten:
+#         assert opts is not None
+#         conv_techs = opts["conv_techs"]
+
+#         costs = costs.reset_index(level=0, drop=True)
+#         costs = costs["capital"].add(
+#             costs["marginal"].rename({t: t + " marginal" for t in conv_techs}),
+#             fill_value=0.0,
+#         )
+
+#     return costs
 
 
 def progress_retrieve(url, file, data=None, disable_progress=False, roundto=1.0):
@@ -416,194 +514,6 @@ def mock_snakemake(rulename, **wildcards):
     os.chdir(script_dir)
     return snakemake
 
-
-def get_country(target, **keys):
-    """
-    Function to convert country codes using pycountry
-
-    Parameters
-    ----------
-    target: str
-        Desired type of country code.
-        Examples:
-            - 'alpha_3' for 3-digit
-            - 'alpha_2' for 2-digit
-            - 'name' for full country name
-
-    keys: dict
-        Specification of the country name and reference system.
-        Examples:
-            - alpha_3="ZAF" for 3-digit
-            - alpha_2="ZA" for 2-digit
-            - name="South Africa" for full country name
-
-    Returns
-    -------
-    country code as requested in keys or np.nan, when country code is not recognized
-
-    Example of usage
-    -------
-    - Convert 2-digit code to 3-digit codes: get_country('alpha_3', alpha_2="ZA")
-    - Convert 3-digit code to 2-digit codes: get_country('alpha_2', alpha_3="ZAF")
-    - Convert 2-digit code to full name: get_country('name', alpha_2="ZA")
-
-    """
-    import pycountry as pyc
-
-    assert len(keys) == 1
-    try:
-        return getattr(pyc.countries.get(**keys), target)
-    except (KeyError, AttributeError):
-        return np.nan
-
-
-def getContinent(code):
-    """
-    Returns continent names that contains list of iso-code countries
-
-    Parameters
-    ----------
-    code : str
-        List of two letter country ISO codes
-
-    Returns
-    -------
-    continent_list : str
-        List of continent names
-
-    Example
-    -------
-    from helpers import getContinent
-    code = ["DE", "GB", "NG", "ZA"]
-    getContinent(code)
-    >>> ["africa", "europe"]
-    """
-    from config_osm_data import world_iso
-
-    continent_list = []
-    code_set = set(code)
-    for continent in world_iso:
-        single_continent_set = set(world_iso[continent])
-        if code_set.intersection(single_continent_set):
-            continent_list.append(continent)
-    return continent_list
-
-
-def two_2_three_digits_country(two_code_country):
-    """
-    Convert 2-digit to 3-digit country code:
-
-    Parameters
-    ----------
-    two_code_country: str
-        2-digit country name
-
-    Returns
-    ----------
-    three_code_country: str
-        3-digit country name
-    """
-    if two_code_country == "SN-GM":
-        return f"{two_2_three_digits_country('SN')}-{two_2_three_digits_country('GM')}"
-
-    three_code_country = get_country("alpha_3", alpha_2=two_code_country)
-    return three_code_country
-
-
-def three_2_two_digits_country(three_code_country):
-    """
-    Convert 3-digit to 2-digit country code:
-
-    Parameters
-    ----------
-    three_code_country: str
-        3-digit country name
-
-    Returns
-    ----------
-    two_code_country: str
-        2-digit country name
-    """
-    if three_code_country == "SEN-GMB":
-        return f"{three_2_two_digits_country('SN')}-{three_2_two_digits_country('GM')}"
-
-    two_code_country = get_country("alpha_2", alpha_3=three_code_country)
-    return two_code_country
-
-
-def two_digits_2_name_country(two_code_country, nocomma=False, remove_start_words=[]):
-    """
-    Convert 2-digit country code to full name country:
-
-    Parameters
-    ----------
-    two_code_country: str
-        2-digit country name
-    nocomma: bool (optional, default False)
-        When true, country names with comma are extended to remove the comma.
-        Example CD -> Congo, The Democratic Republic of -> The Democratic Republic of Congo
-    remove_start_words: list (optional, default empty)
-        When a sentence starts with any of the provided words, the beginning is removed.
-        e.g. The Democratic Republic of Congo -> Democratic Republic of Congo (remove_start_words=["The"])
-
-    Returns
-    ----------
-    full_name: str
-        full country name
-    """
-    if two_code_country == "SN-GM":
-        return f"{two_digits_2_name_country('SN')}-{two_digits_2_name_country('GM')}"
-
-    full_name = get_country("name", alpha_2=two_code_country)
-
-    if nocomma:
-        # separate list by delim
-        splits = full_name.split(", ")
-
-        # reverse the order
-        splits.reverse()
-
-        # return the merged string
-        full_name = " ".join(splits)
-
-    # when list is non empty
-    if remove_start_words:
-        # loop over every provided word
-        for word in remove_start_words:
-            # when the full_name starts with the desired word, then remove it
-            if full_name.startswith(word):
-                full_name = full_name.replace(word, "", 1)
-
-    return full_name
-
-
-def country_name_2_two_digits(country_name):
-    """
-    Convert full country name to 2-digit country code
-
-    Parameters
-    ----------
-    country_name: str
-        country name
-
-    Returns
-    ----------
-    two_code_country: str
-        2-digit country name
-    """
-    if (
-        country_name
-        == f"{two_digits_2_name_country('SN')}-{two_digits_2_name_country('GM')}"
-    ):
-        return "SN-GM"
-
-    full_name = get_country("alpha_2", name=country_name)
-    return full_name
-
-
-NA_VALUES = ["NULL"]
-
-
 def read_csv_nafix(file, **kwargs):
     "Function to open a csv as pandas file and standardize the na value"
     if "keep_default_na" in kwargs:
@@ -652,32 +562,33 @@ def pdbcast(v, h):
                         index=v.index, columns=h.index)
 
 def map_generator_parameters():
-
     ps_f = dict(PHS_efficiency="Pump Efficiency (%)",
                 PHS_units="Pump Units",
                 PHS_load="Pump Load per unit (MW)",
                 PHS_max_hours="Pumped Storage - Max Storage (GWh)")
     csp_f = dict(CSP_max_hours='CSP Storage (hours)')
-    g_f = dict(fom="Fixed O&M Cost (R/kW/yr)",
-               p_nom='Capacity (MW)',
-               name='Power Station Name',
-               carrier='Carrier',
-               build_year='Future Commissioning Date',
-               decomdate_50='Decommissioning Date (50%)',
-               decomdate_100='Decommissioning Date (100%)',
-               x='GPS Longitude',
-               y='GPS Latitude',
-               status='Status',
-               heat_rate='Heat Rate (GJ/MWh)',
-               fuel_price='Fuel Price (R/GJ)',
-               vom='Variable O&M Cost (R/MWh)',
-               max_ramp_up='Max Ramp Up (MW/min)',
-               max_ramp_down='Max Ramp Down (MW/min)',
-               min_stable='Min Stable Level (%)',
-               unit_size='Unit size (MW)',
-               units='Number units',
-               maint_rate='Typical annual maintenance rate (%)',
-               out_rate='Typical annual forced outage rate (%)')
+    g_f = dict(
+        fom="Fixed O&M Cost (R/kW/yr)",
+        p_nom='Capacity (MW)',
+        name='Power Station Name',
+        carrier='Carrier',
+        build_year='Future Commissioning Date',
+        decomdate_50='Decommissioning Date (50%)',
+        decomdate_100='Decommissioning Date (100%)',
+        x='GPS Longitude',
+        y='GPS Latitude',
+        status='Status',
+        heat_rate='Heat Rate (GJ/MWh)',
+        fuel_price='Fuel Price (R/GJ)',
+        vom='Variable O&M Cost (R/MWh)',
+        max_ramp_up='Max Ramp Up (MW/min)',
+        max_ramp_down='Max Ramp Down (MW/min)',
+        min_stable='Min Stable Level (%)',
+        unit_size='Unit size (MW)',
+        units='Number units',
+        maint_rate='Typical annual maintenance rate (%)',
+        out_rate='Typical annual forced outage rate (%)',
+    )
     return g_f, ps_f, csp_f
 
 def clean_pu_profiles(n):
@@ -690,3 +601,18 @@ def clean_pu_profiles(n):
             error_loc=n.generators_t.p_min_pu[carrier][n.generators_t.p_min_pu[carrier]>n.generators.p_max_pu[carrier]].index
             n.generators_t.p_min_pu.loc[error_loc,carrier]=n.generators.p_max_pu.loc[carrier]
 
+def save_to_geojson(df, fn):
+    if os.path.exists(fn):
+        os.unlink(fn)  # remove file if it exists
+    if not isinstance(df, gpd.GeoDataFrame):
+        df = gpd.GeoDataFrame(dict(geometry=df))
+
+    # save file if the GeoDataFrame is non-empty
+    if df.shape[0] > 0:
+        df = df.reset_index()
+        schema = {**gpd.io.file.infer_schema(df), "geometry": "Unknown"}
+        df.to_file(fn, driver="GeoJSON", schema=schema)
+    else:
+        # create empty file to avoid issues with snakemake
+        with open(fn, "w") as fp:
+            pass

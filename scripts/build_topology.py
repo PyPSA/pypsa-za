@@ -12,22 +12,7 @@ from vresutils.costdata import annuity
 from vresutils.shapes import haversine
 import os
 
-def save_to_geojson(df, fn):
-    if os.path.exists(fn):
-        os.unlink(fn)  # remove file if it exists
-    if not isinstance(df, gpd.GeoDataFrame):
-        df = gpd.GeoDataFrame(dict(geometry=df))
-
-    # save file if the GeoDataFrame is non-empty
-    if df.shape[0] > 0:
-        df = df.reset_index()
-        schema = {**gpd.io.file.infer_schema(df), "geometry": "Unknown"}
-        df.to_file(fn, driver="GeoJSON", schema=schema)
-    else:
-        # create empty file to avoid issues with snakemake
-        with open(fn, "w") as fp:
-            pass
-
+from _helpers import save_to_geojson
 
 def convert_lines_to_gdf(lines,centroids):
     gdf = gpd.GeoDataFrame(lines)

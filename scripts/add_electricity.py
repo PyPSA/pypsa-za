@@ -101,7 +101,6 @@ import powerplantmatching as pm
 import pypsa
 import xarray as xr
 from _helpers import (configure_logging, 
-                    getContinent, 
                     update_p_nom_max, 
                     pdbcast, 
                     map_generator_parameters, 
@@ -172,18 +171,19 @@ def load_costs(model_file, cost_scenario, config, elec_config, config_years):
     costs = {}
     for y in config_years:
         costs[y]=cost_data.loc[idx[:, y]].unstack(level=1).fillna(
-        {
-            "CO2 intensity": 0,
-            "FOM": 0,
-            "VOM": 0,
-            "discount rate": config["discountrate"],
-            "efficiency": 1,
-            "efficiency_store": 1,
-            "efficiency_dispatch": 1,
-            "fuel": 0,
-            "investment": 0,
-            "lifetime": 25,
-        })
+            {
+                "CO2 intensity": 0,
+                "FOM": 0,
+                "VOM": 0,
+                "discount rate": config["discountrate"],
+                "efficiency": 1,
+                "efficiency_store": 1,
+                "efficiency_dispatch": 1,
+                "fuel": 0,
+                "investment": 0,
+                "lifetime": 25,
+            }
+        )
 
         costs[y]['efficiency_store']=costs[y]['efficiency'].pow(1./2) #if only 1 efficiency value is given assume it is round trip efficiency
         costs[y]['efficiency_dispatch']=costs[y]['efficiency'].pow(1./2)
@@ -233,7 +233,13 @@ def load_costs(model_file, cost_scenario, config, elec_config, config_years):
 
 def add_generator_availability(n,generators,config_avail,eaf_projections):
     # Add plant availability based on actual Eskom data
-    eskom_data  = pd.read_excel(snakemake.input.existing_generators_eaf, sheet_name='eskom_data', na_values=['-'],index_col=[1,0],parse_dates=True)
+    eskom_data  = pd.read_excel(
+        snakemake.input.existing_generators_eaf, 
+        sheet_name='eskom_data', 
+        na_values=['-'],
+        index_col=[1,0],
+        parse_dates=True
+    )
     snapshots = n.snapshots.get_level_values(1)
     years_full = range(n.investment_periods[0]-1,n.investment_periods[-1]+1)
     eaf_profiles = pd.DataFrame(1,index=snapshots,columns=[])   
@@ -533,7 +539,7 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
     gens = pd.concat([eskom_gens,ipp_gens])
 
     # Calculate fields where pypsa uses different conventions
-    gens['efficiency'] = (3.6/gens.pop(g_f['heat_rate']))
+    gens['efficiency'] = (3.6/gens.pop(g_f['heat_rate'])).fillna(1)
     gens['marginal_cost'] = (3.6*gens.pop(g_f['fuel_price'])/gens['efficiency']).fillna(0) + gens.pop(g_f['vom'])
     gens['capital_cost'] = 1e3*gens.pop(g_f['fom'])
     gens['ramp_limit_up'] = 60*gens.pop(g_f['max_ramp_up'])/gens[g_f['p_nom']]
@@ -581,6 +587,7 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
         lifetime=gens.loc[gen_index,'lifetime'],
         p_nom = gens.loc[gen_index,'p_nom'],
         p_nom_extendable=False,
+        efficiency = gens.loc[gen_index,'efficiency'],
         ramp_limit_up = gens.loc[gen_index,'ramp_limit_up'],
         ramp_limit_down = gens.loc[gen_index,'ramp_limit_down'],
         marginal_cost=gens.loc[gen_index,'marginal_cost'],
@@ -591,7 +598,7 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
     for carrier in ['CSP','biomass']:
         n.add("Carrier", name=carrier)
         plant_data = gens.loc[gens['carrier']==carrier,['Grouping','bus','p_nom']].groupby(['Grouping','bus']).sum()
-        for param in ['lifetime','capital_cost','marginal_cost']:
+        for param in ['lifetime','efficiency','capital_cost','marginal_cost']:
             plant_data[param]=gens.loc[gens['carrier']==carrier,['Grouping','bus',param]].groupby(['Grouping','bus']).mean()
 
         for group in plant_data.index.levels[0]:
@@ -608,6 +615,7 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
                 lifetime=plant_data.loc[group,'lifetime'],
                 p_nom = plant_data.loc[group,'p_nom'],
                 p_nom_extendable=False,
+                efficiency = plant_data.loc[group,'efficiency'],
                 capital_cost=annual_cost,
                 p_max_pu=eskom_data.values,
                 p_min_pu=eskom_data.values*0.95, #purchase at least 95% of power under existing PPAs despite higher cost
@@ -747,7 +755,7 @@ if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake('add_electricity', 
-                        **{'model_file':'CSIR-ambitions-2022',
+                        **{'model_file':'validation-2',
                             'regions':'RSA',
                             'resarea':'redz',
                             'll':'copt',
