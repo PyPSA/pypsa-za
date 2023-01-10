@@ -1,0 +1,30 @@
+axes.labelsize: 9
+axes.titlepad: 6.0
+axes.titlesize: 9
+font.family: sans-serif
+font.sans-serif: Tahoma, DejaVu Sans, Lucida Grande, Verdana
+font.size: 9.0
+legend.fontsize: 9
+lines.linewidth: 1.5
+figure.titlesize: 14
+xtick.bottom: True
+xtick.labelsize: 9
+xtick.top: False
+ytick.labelsize: 9
+ytick.left: True
+ytick.right: False
+figure.figsize: 6.692913385826771 ,4.37007874015748
+axes.labelpad: 14.17325
+xtick.major.pad: 7
+ytick.major.pad: 7
+xtick.minor.pad: 7
+ytick.minor.pad: 7
+axes.spines.bottom: True
+axes.spines.left: True
+axes.spines.right: False
+axes.spines.top: False
+figure.subplot.bottom: 0.15
+figure.subplot.left: 0.125
+figure.subplot.right: 0.875
+figure.subplot.top: 0.875
+

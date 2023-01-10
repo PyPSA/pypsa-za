@@ -213,7 +213,7 @@ def aggregate_capacity(n):
 
     capacity.loc['OCGT',:]+=capacity.loc['gas',:]+capacity.loc['diesel',:]
     
-    return capacity
+    return capacity.interpolate(axis=1)
 
 def aggregate_energy(n):
     def aggregate_p(n,y):
@@ -243,7 +243,7 @@ def aggregate_energy(n):
     for y in n.investment_periods:
         energy.loc[:,y]=aggregate_p(n,y)
 
-    return energy
+    return energy.interpolate(axis=1)
 
 def aggregate_p_nom(n):
     return pd.concat(
@@ -573,8 +573,7 @@ def map_generator_parameters():
         name='Power Station Name',
         carrier='Carrier',
         build_year='Future Commissioning Date',
-        decomdate_50='Decommissioning Date (50%)',
-        decomdate_100='Decommissioning Date (100%)',
+        decom_date='Decommissioning Date',
         x='GPS Longitude',
         y='GPS Latitude',
         status='Status',
