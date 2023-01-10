@@ -245,10 +245,9 @@ def add_generator_availability(n,generators,config_avail,eaf_projections):
     eaf_profiles = pd.DataFrame(1,index=snapshots,columns=[])   
     
     # All existing generators in the Eskom fleet with available data
-    
-    
-    for tech in n.generators.index[n.generators.index.isin(eskom_data.index.get_level_values(0).unique())]:
-        reference_data = eskom_data.loc[tech].loc[eskom_data.loc[tech].index.year.isin(config_avail['reference_years'])]
+    for tech in n.generators.index[n.generators.plant_name.isin(eskom_data.index.get_level_values(0).unique())]:
+        plant_name = n.generators.plant_name[tech]
+        reference_data = eskom_data.loc[plant_name].loc[eskom_data.loc[plant_name].index.year.isin(config_avail['reference_years'])]
         base_eaf=(reference_data['EAF %']/100).groupby(reference_data['EAF %'].index.month).mean()
         carrier = n.generators.carrier[tech]
         for y in n.investment_periods:
@@ -293,18 +292,6 @@ def add_min_stable_levels(n, generators, config_min_stable):
             n.generators_t.p_min_pu[gen_ext] = n.generators_t.p_max_pu[gen_ext] * config_min_stable[carrier]
 
     n.generators_t.p_min_pu = n.generators_t.p_min_pu.fillna(0)
-
-def add_partial_decommissioning(n, generators):
-    # Only considered for existing conventional - partial decomissioning of capacity
-    p_max_pu = get_as_dense(n, "Generator", "p_max_pu")
-    p_min_pu = get_as_dense(n, "Generator", "p_min_pu")
-    
-    for tech in generators.index: #n.generators[n.generators.p_nom_extendable==False]
-        for y in n.investment_periods:
-            if y >= generators.decomdate_50[tech]:
-                n.generators_t.p_max_pu.loc[y,tech] = 0.5*p_max_pu[tech]
-                n.generators_t.p_min_pu.loc[y,tech] = 0.5*p_min_pu[tech]
-    n.generators_t.p_min_pu=n.generators_t.p_min_pu.fillna(0)   
 
 
  ## Attach components
@@ -447,11 +434,11 @@ def attach_wind_and_solar(n, costs,input_profiles, model_setup, eskom_profiles):
     # Calculate fields where pypsa uses different conventions
     gens['marginal_cost'] = gens.pop(g_f['vom'])
     gens['capital_cost'] = 1e3*gens.pop(g_f['fom'])
-    gens = gens.rename(columns={g_f[f]: f for f in {'p_nom', 'name', 'carrier', 'x', 'y','build_year','decomdate_100'}})
-    gens['build_year'] = pd.to_datetime(gens['build_year'].fillna('{}-01-01'.format(n.investment_periods[0])).values).year 
-    gens['decomdate_100'] = pd.to_datetime(gens['decomdate_100'].replace({'beyond 2050': '2051-01-01'}).values).year
-    gens['lifetime'] = gens['decomdate_100'] - gens['build_year']
-    gens = gens[gens.lifetime>0].drop(['decomdate_100','Status',
+    gens = gens.rename(columns={g_f[f]: f for f in {'p_nom', 'name', 'carrier', 'x', 'y','build_year','decom_date'}})
+    gens['build_year'] = gens['build_year'].fillna(n.investment_periods[0]).values
+    gens['decom_date'] = gens['decom_date'].replace({'beyond 2050': '2051-01-01'}).values
+    gens['lifetime'] = gens['decom_date'] - gens['build_year']
+    gens = gens[gens.lifetime>0].drop(['decom_date','Status',
                                         g_f['maint_rate'],
                                         g_f['out_rate'],
                                         g_f['units'],
@@ -545,17 +532,14 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
     gens['ramp_limit_up'] = 60*gens.pop(g_f['max_ramp_up'])/gens[g_f['p_nom']]
     gens['ramp_limit_down'] = 60*gens.pop(g_f['max_ramp_down'])/gens[g_f['p_nom']]
 
-    gens = (gens.rename(columns={g_f[f]: f for f in {'p_nom', 'name', 'carrier', 'x', 'y','build_year','decomdate_50','decomdate_100','min_stable'}})
+    gens = (gens.rename(columns={g_f[f]: f for f in {'p_nom', 'name', 'carrier', 'x', 'y','build_year','decom_date','min_stable'}})
             .rename(columns={ps_f[f]: f for f in {'PHS_efficiency','PHS_max_hours'}})
             .rename(columns={csp_f[f]: f for f in {'CSP_max_hours'}}))
 
-    gens['build_year'] = pd.to_datetime(gens['build_year'].fillna('{}-01-01'.format(n.investment_periods[0])).values).year 
-    gens['decomdate_50'] = pd.to_datetime(gens['decomdate_50'].replace({'beyond 2050': '2051-01-01'}).values).year
-    gens['decomdate_100'] = pd.to_datetime(gens['decomdate_100'].replace({'beyond 2050': '2051-01-01'}).values).year
-    gens['lifetime'] = gens['decomdate_100'] - gens['build_year']
-    gens['decomdate_50'] = gens['decomdate_50'].fillna(gens['decomdate_100'])
-    gens = gens[gens.lifetime>0].drop(['decomdate_100','Status',g_f['maint_rate'],g_f['out_rate'],g_f['units'],g_f['unit_size']],axis=1)
-
+    gens['build_year'] = gens['build_year'].fillna(n.investment_periods[0]).values
+    gens['decom_date'] = gens['decom_date'].replace({'beyond 2050': n.investment_periods[-1]+1}).values
+    gens['lifetime'] = gens['decom_date'] - gens['build_year']
+    gens = gens[gens.lifetime>0].drop(['decom_date','Status',g_f['maint_rate'],g_f['out_rate'],g_f['units'],g_f['unit_size']],axis=1)
 
     # CahoraBassa will be added later, even though we don't have coordinates
     CahoraBassa  = pd.DataFrame(gens.loc["CahoraBassa"]).T
@@ -594,7 +578,9 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
         capital_cost=gens.loc[gen_index,'capital_cost'],
         #p_max_pu - added later under generator availability function
         )  
- 
+    n.generators['plant_name'] = n.generators.index.str.split('*').str[0]
+
+
     for carrier in ['CSP','biomass']:
         n.add("Carrier", name=carrier)
         plant_data = gens.loc[gens['carrier']==carrier,['Grouping','bus','p_nom']].groupby(['Grouping','bus']).sum()
@@ -798,7 +784,6 @@ if __name__ == "__main__":
                     gens,
                     snakemake.config['electricity']['generator_availability'],
                     projections)
-        add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])    
-    add_partial_decommissioning(n,gens[gens.carrier=='coal'])      
+        add_min_stable_levels(n,gens,snakemake.config['electricity']['min_stable_levels'])      
     add_nice_carrier_names(n, snakemake.config)
     n.export_to_netcdf(snakemake.output[0])
