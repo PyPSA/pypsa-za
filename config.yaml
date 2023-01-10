@@ -25,10 +25,10 @@ crs:
 enable:
   build_natura_raster: true # Rasters natural protection areas onto all cutout regions
   build_topology: true # Base network topology
-  build_cutout: false # Atlite cutout 
+  build_cutout: true #false # Atlite cutout 
   use_eskom_wind_solar: false # Model defaults to Eskom hourly pu profiles for all wind and solar generators
   use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"] # Model defaults to excel input hourly pu profiles for all wind and solar generators  
-  build_renewable_profiles: false # Enable calculation of renewable profiles
+  build_renewable_profiles: true #false # Enable calculation of renewable profiles
 
 # Specification of relevent years for the model
 years: 
@@ -209,7 +209,7 @@ renewable:
   #   clip_min_inflow: 1.0
 
 hydro_inflow:
-  disable: true
+  disable: false #true
   source: eskom #or calculate runoff using atlite
   countries: [ZA, MZ] # only applicable to atlite
   cutout: za-mz-2012 # only applicable to atlite
@@ -313,7 +313,7 @@ solving:
 
 plotting:
   map:
-    figsize: [7, 7]
+    figsize: [8, 8]
     boundaries: [14, 34, -35, -22] #[x1,x2,y1,y2]
     p_nom:
       bus_size_factor: 5.e+4
@@ -395,3 +395,4 @@ plotting:
     ror: "Run of River"
     coal: "Coal"
     nuclear: "Nuclear"
+    biomass: "Biomass"
