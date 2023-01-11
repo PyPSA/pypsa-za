@@ -9,6 +9,35 @@
 Introduction
 ##########################################
 
+History
+========
+
+Historically, commercial tools have been extensively utilised by both governments and utilities to develop capacity expansion plans. 
+One of the challenges of utilising such commercial tools to support transparent energy policy is the closed nature of the models, 
+which are essentially a ‘black-box’. For this reason, initiatives such as openmod1 have developed with the goal of creating open 
+energy modelling platforms that are based on open-source software2 as well as open data. 
+
+An initial PyPSA model of the South African power system called PyPSA-ZA was developed by Hörsch and Calitz1 who studied a future 
+renewable energy based South African electricity network for a single reference year (in other words, it was not an intertemporally 
+optimised power system development model – showing an optimised transition over time – it only provided a snapshot of an optimised 
+high renewables system at a particular point in time – 2040, albeit with reasonable spatial (network) resolution.
+PyPSA has also been utilised to build an extensive interconnected power system model of the European power system (see PyPSA-Eur2). 
+This model has been further extended to include full sector coupling of power, transportation and heat demand (see PyPSA-Eur-Sec4). 
+Like the PyPSA-ZA model, the PyPSA-Eur model framework has been designed to handle high spatial resolution (detailed network 
+specification, i.e. grid constraints), but it does not perform multi-year optimisation and instead analyses a single year snapshot. 
+In the African context the project PyPSA meets Africa is currently ongoing and aims to develop an interconnected, high-level, 
+African power system model on the same basis as PyPSA-Eur3
+Multi-horizon planning functionality, based on the assumption of “perfect foresight”, was only recently added to PyPSA in 2021, 
+and currently PyPSA-Eur, PyPSA-ZA, and PyPSA meets Africa do not yet incorporate this capability. The PyPSA-Eur-Sec model does include myopic expansion planning capability that is based on separating the planning horizon into several shorter periods that are solved as separate optimisations.
+
+
+The PyPSA-ZA model was first developed by ...
+Explain model - single year 2040 higher spatial resolution 27-supply areas, image etc
+Link to paper 
+Branch of PyPSA-ZA original model
+
+In 2022 Meridian Economics `<https://meridianeconomics.co.za/>`_ 
+
 
 Workflow
 ========
