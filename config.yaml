@@ -25,14 +25,14 @@ crs:
 enable:
   build_natura_raster: true # Rasters natural protection areas onto all cutout regions
   build_topology: true # Base network topology
-  build_cutout: true #false # Atlite cutout 
+  build_cutout: false #false # Atlite cutout 
   use_eskom_wind_solar: false # Model defaults to Eskom hourly pu profiles for all wind and solar generators
   use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"] # Model defaults to excel input hourly pu profiles for all wind and solar generators  
   build_renewable_profiles: true #false # Enable calculation of renewable profiles
 
 # Specification of relevent years for the model
 years: 
-  reference_demand_year: 2012  # should be a single year at present, could be extended in the future
+  reference_demand_year: 2017  # should be a single year at present, could be extended in the future
   reference_weather_years: 
     # reference years used for solar PV and wind profiles - can be single or multiple years
     # if multiple years are specified these are applied sequencially to the simulation years
@@ -68,6 +68,7 @@ electricity:
     nuclear: 0
 
   min_capacity_factor: # Minimum annual capacity factor 
+    # TODO make per week
     CCGT: 0.3 
     nuclear: 0.5
 
@@ -249,7 +250,7 @@ augmented_line_connection:
 
 costs:
   # costs come from data/technology_costs.xlsx
-  discountrate: 0.08
+  discountrate: 0.082
   year: 2030
   # Marginal and capital costs can be overwritten
   # capital_cost:

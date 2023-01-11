@@ -118,7 +118,7 @@ rule add_electricity:
         },
         base_network='networks/base_{model_file}_{regions}.nc',
         supply_regions='data/bundle/supply_regions/{regions}.shp',
-        load='data/bundle/SystemEnergy2009_13.csv',
+        load='data/bundle/SystemEnergy2009_22.csv',
         #onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         #solar_area='resources/area_solar_{regions}_{resarea}.csv',
         eskom_profiles="data/eskom_pu_profiles.csv",
