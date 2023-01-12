@@ -1,14 +1,13 @@
 "Files","BY","NC","SA","Mark Changes",Detail
 "supply_regions/*","x",,,"x",
-"SAPAD_OR_2017_Q2/*","x","x","x",,
-"SACAD_OR_2017_Q2/*","x",,,,
-"REDZ_DEA_Unpublished_Draft_2015/*",,,,,
-"Phase2_REDZs/*","x","x",,"x",
-"Power_corridors","x",,"x",, RSA DEA REDZs Strategic Transmission Corridors (Apr 2017)
+"SAPAD_OR_2017_Q2/*","x","x","x",,Department of Environmental Affairs;2017/06/11;South Africa Protected Areas Database (SAPAD_OR_2017_Q2);Geospatial Data Presentation Form: Vector digital data;
+"SACAD_OR_2017_Q2/*","x","x",x,,Department of Environmental Affairs; 2017/06/11; South Africa Conservation Areas Database (SACAD_OR_2017_Q2); Geospatial Data Presentation Form: Vector digital data
+"REDZ_DEA_Unpublished_Draft_2015/*","x","x","x",,Department of Environmental Affairs; 2015-03-26; Wind and Solar PV Energy Strategic Environmental Assessment-REDZs
+"Phase2_REDZs/*","x","x","x",,
+"Power_corridors","x","x","x",, RSA DEA REDZs Strategic Transmission Corridors (Apr 2017)
 "SystemEnergy2009_13.csv","x",,,,
 "ZAF_wind-speed_100m.tif","x",,,,
-"Supply_area_normalised power feed-in for PV.xlsx ","x",,,D. S. Bofinger, B. Zimmermann, A.-K. Gerlach, D. T. Bischof-Niemz, C. Mushwana, Wind and Solar PV Resource Aggregation Study for South Africa. (2016).,
-"Supply_area_normalised power feed-in for Wind.xlsx","x","x",,,D. S. Bofinger, B. Zimmermann, A.-K. Gerlach, D. T. Bischof-Niemz, C. Mushwana, Wind and Solar PV Resource Aggregation Study for South Africa. (2016).
-costs.csv","x",,,"x",
-"EIA_hydro_generation","x",,,"x",
-"time_series_60min _singleindex_filtered.csv","x",,,,
+"Supply_area_normalised power feed-in for PV.xlsx ","x",,,,Wind and Solar PV Resource Aggregation Study for South Africa. (2016).
+"Supply_area_normalised power feed-in for Wind.xlsx","x",,,,Wind and Solar PV Resource Aggregation Study for South Africa. (2016).
+costs.csv","x",,,,
+"EIA_hydro_generation","x",,,,

@@ -16,7 +16,7 @@ Historically, commercial tools have been extensively utilised by both government
 expansion plans. One of the challenges of utilising such commercial tools to support transparent energy policy is 
 the closed nature of the models, which are essentially a ‘black-box’. For this reason, initiatives such as 
 `openmod <https://openmod-initiative.org/manifesto.html>`_ have been developed with the goal of creating open energy 
-modelling platforms that are based on `open-source software <https://opensource.com/resources/what-open-source`_ as well as open data.
+modelling platforms that are based on `open-source software <https://opensource.com/resources/what-open-source>`_ as well as open data.
 
 `PyPSA (Python for Power System Analysis) <https://pypsa.org/>`_ is a diverse toolbox of modules that can be assembled to produce a power / energy 
 system modelling framework to meet specific requirements. As described by `Brown et al <https://arxiv.org/pdf/1707.09913.pdf>`_ 
@@ -51,7 +51,7 @@ a decarbonised power sector over the coming decades. Therefore, an updated and e
 is required that is comparable with the existing, mostly proprietary, modelling approaches that are 
 used in the country. 
 
-In 2022 `Meridian Economics <https://meridianeconomics.co.za/>`_ has leveraged the experience from 
+In 2022 `Meridian Economics <https://meridianeconomics.co.za/>`_ leveraged the experience from 
 `PyPSA-Eur <https://github.com/PyPSA/pypsa-eur>`_, PyPSA-ZA and `PyPSA meets Earth <https://pypsa-meets-earth.github.io/>`_ 
 to significantly shorten the development timeframe for the new model. `Meridian Economics <https://meridianeconomics.co.za/>`_ has undergone extensive work in terms of 
 input datasets, model development, and validation against existing results from commercial tools to establish PyPSA-ZA credibility to ensure that the outcomes can 
