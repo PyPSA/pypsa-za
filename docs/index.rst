@@ -5,37 +5,37 @@
 
 PyPSA-ZA: An open Optimisation Model of the South African Power System
 =======================================================================
-PyPSA-ZA is an open model dataset of the South African power system at four levels
 
-.. subfigure:: AB|CD
-   :layout-sm: A|B|C|D
-   :gap: 8px
-   :subcaptions: above
-   :name: myfigure
-   :class-grid: outline
+PyPSA-ZA is an open model dataset of the South African power system at four spatial resolutions namely;
 
-   .. image:: img/validation-4_RSA_redz_lcopt_LC_p_nom_ext.png
-      :alt: 27-supply
+- ``RSA``: A single node for the entire South Africa.
+- ``9-supply``: 9 nodes based on the South African provinces.
+- ``10-supply``: 10 nodes based on the Eskom Transmission Develepment Plan regions.
+- ``27-supply``: 27 nodes based on Eskom 27 supply regions.
 
-   .. image:: img/validation-4_RSA_redz_lcopt_LC_p_nom_ext.png
-      :alt: 10-supply
+.. image:: img/validation-4_RSA_redz_lcopt_LC_p_nom_ext.png
+   :width: 250
+   :alt: 1-supply
 
-   .. image:: img/validation-4_RSA_redz_lcopt_LC_p_nom_ext.png
-      :alt: 9-supply
+.. image:: img/validation-4_RSA_redz_lcopt_LC_p_nom_ext.png
+   :width: 250
+   :alt: 9-supply
 
-   .. image:: img/validation-4_RSA_redz_lcopt_LC_p_nom_ext.png
-      :alt: RSA
+.. image:: img/validation-4_RSA_redz_lcopt_LC_p_nom_ext.png
+   :width: 250
+   :alt: 27-supply
 
-    Figure Caption
+PyPSA-ZA is a high temporal resolution multi-horizon expansion planning model for a least cost optimised transition path to 
+a decarbonised power sector over the coming decades for South Africa.
 
-The restriction to freely available and open data encourages the open exchange of model data developments and eases the comparison of model results. 
+PyPSA-ZA makes use of freely available and open data which encourages the open exchange of model data developments and eases the comparison of model results. 
 It provides a full, automated software pipeline to assemble the load-flow-ready model from the original datasets, which enables easy replacement and 
 improvement of the individual parts.
 
 PyPSA-ZA is designed to be imported into the open toolbox `PyPSA <https://pypsa.org/>`_ for which `documentation <https://pypsa.readthedocs.io/en/latest/index.html>`_ is available as well.
 
 This project is currently maintained by `Meridian Economics <https://meridianeconomics.co.za/>`_. Previous versions were developed within the Energy Centre 
-at the Council for Scientific and Industrial Research as part of the `CoNDyNet project <https://fias.institute/en/projects/condynet/>`_, which is supported by the 
+at the `Council for Scientific and Industrial Research (CSIR) <https://www.csir.co.za/>`_ as part of the `CoNDyNet project <https://fias.institute/en/projects/condynet/>`_, which is supported by the 
 `German Federal Ministry of Education and Research <https://www.bmbf.de/bmbf/en/home/home_node.html>`_ under grant no. 03SF0472C.
 
 
