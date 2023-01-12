@@ -12,31 +12,57 @@ Introduction
 History
 ========
 
-Historically, commercial tools have been extensively utilised by both governments and utilities to develop capacity expansion plans. 
-One of the challenges of utilising such commercial tools to support transparent energy policy is the closed nature of the models, 
-which are essentially a ‘black-box’. For this reason, initiatives such as openmod1 have developed with the goal of creating open 
-energy modelling platforms that are based on open-source software2 as well as open data. 
+Historically, commercial tools have been extensively utilised by both governments and utilities to develop capacity 
+expansion plans. One of the challenges of utilising such commercial tools to support transparent energy policy is 
+the closed nature of the models, which are essentially a ‘black-box’. For this reason, initiatives such as 
+`openmod <https://openmod-initiative.org/manifesto.html>`_ have been developed with the goal of creating open energy 
+modelling platforms that are based on `open-source software <https://opensource.com/resources/what-open-source`_ as well as open data.
 
-An initial PyPSA model of the South African power system called PyPSA-ZA was developed by Hörsch and Calitz1 who studied a future 
-renewable energy based South African electricity network for a single reference year (in other words, it was not an intertemporally 
-optimised power system development model – showing an optimised transition over time – it only provided a snapshot of an optimised 
-high renewables system at a particular point in time – 2040, albeit with reasonable spatial (network) resolution.
-PyPSA has also been utilised to build an extensive interconnected power system model of the European power system (see PyPSA-Eur2). 
-This model has been further extended to include full sector coupling of power, transportation and heat demand (see PyPSA-Eur-Sec4). 
-Like the PyPSA-ZA model, the PyPSA-Eur model framework has been designed to handle high spatial resolution (detailed network 
-specification, i.e. grid constraints), but it does not perform multi-year optimisation and instead analyses a single year snapshot. 
-In the African context the project PyPSA meets Africa is currently ongoing and aims to develop an interconnected, high-level, 
-African power system model on the same basis as PyPSA-Eur3
+`PyPSA (Python for Power System Analysis) <https://pypsa.org/>`_ is a diverse toolbox of modules that can be assembled to produce a power / energy 
+system modelling framework to meet specific requirements. As described by `Brown et al <https://arxiv.org/pdf/1707.09913.pdf>`_ 
+PyPSA includes a toolbox of modules for multi-horizon investment planning, unit commitment of conventional generators, 
+time-varying renewable generators, storage units, all combinations of direct and alternating current electricity networks, 
+and the coupling of electricity to other energy sectors, such as gas, heating and transport.
+
+An initial PyPSA-ZA model of the South African power system called PyPSA-ZA was developed by `Hörsch 
+and Calitz <https://arxiv.org/pdf/1710.11199.pdf>`_ who studied a future renewable energy based 
+South African electricity network for a single reference year (in other words, it was not an 
+intertemporally optimised power system development model – showing an optimised transition 
+over time – it only provided a snapshot of an optimised high renewables system at a particular 
+point in time – 2040, albeit with reasonable spatial (network) resolution. The initial PyPSA-ZA model 
+is described and evaluated in the paper 
+`PyPSA-ZA: Investment and operation co-optimization of integrating wind and solar in South Africa at high spatial and temporal detail <https://arxiv.org/abs/1710.11199>`_
+
+`PyPSA <https://pypsa.org/>`_ has also been utilised to build an extensive interconnected power system model of the European power system 
+`PyPSA-Eur <https://github.com/PyPSA/pypsa-eur>`_. This model has been further extended to include full sector 
+coupling of power, transportation and heat demand `PyPSA-Eur-Sec <https://github.com/PyPSA/pypsa-eur-sec>`_. 
+Like the PyPSA-ZA model, the PyPSA-Eur model framework has been designed to handle high spatial resolution 
+(detailed network specification, i.e. grid constraints), but it does not perform multi-year optimisation and instead analyses 
+a single year snapshot. In the African context the project `PyPSA-Meets-Earth <https://github.com/pypsa-meets-earth/pypsa-earth>`_ 
+is currently ongoing and aims to develop an interconnected, high-level, African power system model on the same basis as PyPSA-Eur. 
 Multi-horizon planning functionality, based on the assumption of “perfect foresight”, was only recently added to PyPSA in 2021, 
-and currently PyPSA-Eur, PyPSA-ZA, and PyPSA meets Africa do not yet incorporate this capability. The PyPSA-Eur-Sec model does include myopic expansion planning capability that is based on separating the planning horizon into several shorter periods that are solved as separate optimisations.
+and currently PyPSA-Eur, PyPSA-ZA, and PyPSA-meets-Earth do not yet incorporate this capability. 
+The PyPSA-Eur-Sec model does include myopic expansion planning capability that is based on separating the planning horizon 
+into several shorter periods that are solved as separate optimisations.
 
+Currently, there is no existing `PyPSA <https://pypsa.org/>`_ model 
+for South Africa that can be used to address the multi-year, least cost optimised, transition path to 
+a decarbonised power sector over the coming decades. Therefore, an updated and expanded PyPSA-ZA model 
+is required that is comparable with the existing, mostly proprietary, modelling approaches that are 
+used in the country. 
 
-The PyPSA-ZA model was first developed by ...
-Explain model - single year 2040 higher spatial resolution 27-supply areas, image etc
-Link to paper 
-Branch of PyPSA-ZA original model
+In 2022 `Meridian Economics <https://meridianeconomics.co.za/>`_ has leveraged the experience from 
+`PyPSA-Eur <https://github.com/PyPSA/pypsa-eur>`_, PyPSA-ZA and `PyPSA meets Earth <https://pypsa-meets-earth.github.io/>`_ 
+to significantly shorten the development timeframe for the new model. `Meridian Economics <https://meridianeconomics.co.za/>`_ has undergone extensive work in terms of 
+input datasets, model development, and validation against existing results from commercial tools to establish PyPSA-ZA credibility to ensure that the outcomes can 
+be trusted to support policy decisions. The updated PyPSA-ZA model has the folloowing capabilities:
 
-In 2022 Meridian Economics `<https://meridianeconomics.co.za/>`_ 
+- ``Updated input data``: Includes latest assumptions around technology performance and learning rates.
+- ``Multi-horizon capacity expansion planning``: Myopic and/or perfect foresight expansion capabilities which can solve in five-year time steps up to 2050.
+- ``Validation test case`` : Benchmarked case studies using existing energy planning results in the public domain such as those developed by the `CSIR <https://www.csir.co.za/> `_.
+- ``Solar and wind resource assessment`` : Utilises the `Atlite module <https://github.com/PyPSA/atlite>`_ and `Global Wind Atlas <https://globalwindatlas.info/en>`_ 
+for South Africa’s Renewable Energy Development Zones.
+- ``Model file`` : Input excel spreadsheet for easier model file input.
 
 
 Workflow

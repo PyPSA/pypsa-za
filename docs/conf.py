@@ -47,7 +47,9 @@ extensions = [
     #'sphinxcontrib.tikz',
     #'rinoh.frontend.sphinx',
     "sphinx.ext.imgconverter",  # for SVG conversion
+    "sphinx_subfigure"
 ]
+numfig = True  # optional
 
 autodoc_default_flags = ["members"]
 autosummary_generate = True

@@ -10,8 +10,103 @@
 Tutorial
 ##########################################
 
-How to customise PyPSA-Earth?
+Before getting started with **PyPSA-ZA** it makes sense to be familiar
+with its general modelling framework `PyPSA <https://pypsa.readthedocs.io>`__.
+
+Running the tutorial requires limited computational resources compared to the full model,
+which allows the user to explore most of its functionalities on a local machine.
+.. It takes approximately five minutes to complete and
+.. requires 3 GB of memory along with 1 GB free disk space.
+
+If not yet completed, follow the :ref:`installation` steps first.
+
+The tutorial will cover examples on how to
+
+- configure and customise the PyPSA-ZA model and
+- run the ``snakemake`` workflow step by step from network creation to the solved network.
+
+The configuration of the tutorial is included in the ``config.tutorial.yaml``.
+To run the tutorial, use this as your configuration file ``config.yaml``.
+
+.. code:: bash
+
+    .../pypsa-za % cp config.tutorial.yaml config.yaml
+
+This configuration is set to download a reduced data set via the rules :mod:`retrieve_databundle`,
+:mod:`retrieve_natura_raster`, :mod:`retrieve_cutout` totalling at less than 250 MB.
+The full set of data dependencies would consume 5.3 GB.
+For more information on the data dependencies of PyPSA-ZA, continue reading :ref:`data`.
+
+How to customise PyPSA-ZA?
 =============================
+
+The model can be adapted to only include a select number of nodes (e.g. a single node for the entire South Africa) instead of all Eskom 27-supply regions to limit the spatial scope.
+
+.. literalinclude:: ../config.tutorial.yaml
+   :language: yaml
+   :start-at: countries:
+   :end-before: snapshots:
+
+Likewise, the example's temporal scope can be restricted (e.g. to a single month).
+
+.. literalinclude:: ../config.tutorial.yaml
+   :language: yaml
+   :start-at: snapshots:
+   :end-before: enable:
+
+It is also possible to allow less or more carbon-dioxide emissions. Here, we limit the emissions of Germany 100 Megatonnes per year.
+
+.. literalinclude:: ../config.tutorial.yaml
+   :language: yaml
+   :start-at: electricity:
+   :end-before: exentable_carriers:
+
+PyPSA-Eur also includes a database of existing conventional powerplants.
+We can select which types of powerplants we like to be included:
+
+.. literalinclude:: ../config.tutorial.yaml
+   :language: yaml
+   :start-at: extendable_carriers:
+   :end-before: max_hours:
+
+To accurately model the temporal and spatial availability of renewables such as wind and solar energy, we rely on historical weather data.
+It is advisable to adapt the required range of coordinates to the selection of countries.
+
+.. literalinclude:: ../config.tutorial.yaml
+   :language: yaml
+   :start-at: atlite:
+   :end-before: renewable:
+
+We can also decide which weather data source should be used to calculate potentials and capacity factor time-series for each carrier.
+For example, we may want to use the ERA-5 dataset for solar and not the default SARAH-2 dataset.
+
+.. literalinclude:: ../config.tutorial.yaml
+   :language: yaml
+   :start-at: be-03-2013-era5:
+   :end-at: module:
+
+.. literalinclude:: ../config.tutorial.yaml
+   :language: yaml
+   :start-at: solar:
+   :end-at: cutout:
+
+Finally, it is possible to pick a solver. For instance, this tutorial uses the open-source solvers CBC and Ipopt and does not rely
+on the commercial solvers Gurobi or CPLEX (for which free academic licenses are available).
+
+.. literalinclude:: ../config.tutorial.yaml
+   :language: yaml
+   :start-at: solver:
+   :end-before: plotting:
+
+.. note::
+
+    To run the tutorial, either install CBC and Ipopt (see instructions for :ref:`installation`).
+
+    Alternatively, choose another installed solver in the ``config.yaml`` at ``solving: solver:``.
+
+Note, that we only note major changes to the provided default configuration that is comprehensibly documented in :ref:`config`.
+There are many more configuration options beyond what is adapted for the tutorial!
+
 
 A good starting point to customize your model are settings of the default configuration file `config.default`. You may want to do a reserve copy of your current configuration file and then overwrite it by a default configuration:
 
