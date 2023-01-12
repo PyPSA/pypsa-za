@@ -47,7 +47,7 @@ extensions = [
     #'sphinxcontrib.tikz',
     #'rinoh.frontend.sphinx',
     "sphinx.ext.imgconverter",  # for SVG conversion
-    "sphinx_subfigure"
+    "sphinx_subfigure",
 ]
 numfig = True  # optional
 
