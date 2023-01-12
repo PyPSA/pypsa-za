@@ -561,11 +561,13 @@ def pdbcast(v, h):
     return pd.DataFrame(v.values.reshape((-1, 1)) * h.values,
                         index=v.index, columns=h.index)
 
-def map_generator_parameters():
-    ps_f = dict(PHS_efficiency="Pump Efficiency (%)",
-                PHS_units="Pump Units",
-                PHS_load="Pump Load per unit (MW)",
-                PHS_max_hours="Pumped Storage - Max Storage (GWh)")
+def map_generator_parameters(gens,first_year):
+    ps_f = dict(
+        PHS_efficiency="Pump Efficiency (%)",
+        PHS_units="Pump Units",
+        PHS_load="Pump Load per unit (MW)",
+        PHS_max_hours="Pumped Storage - Max Storage (GWh)"
+    )
     csp_f = dict(CSP_max_hours='CSP Storage (hours)')
     g_f = dict(
         fom="Fixed O&M Cost (R/kW/yr)",
@@ -588,7 +590,37 @@ def map_generator_parameters():
         maint_rate='Typical annual maintenance rate (%)',
         out_rate='Typical annual forced outage rate (%)',
     )
-    return g_f, ps_f, csp_f
+
+    # Calculate fields where pypsa uses different conventions
+    gens['efficiency'] = (3.6/gens.pop(g_f['heat_rate'])).fillna(1)
+    gens['marginal_cost'] = (3.6*gens.pop(g_f['fuel_price'])/gens['efficiency']).fillna(0) + gens.pop(g_f['vom'])
+    gens['capital_cost'] = 1e3*gens.pop(g_f['fom'])
+    gens['ramp_limit_up'] = 60*gens.pop(g_f['max_ramp_up'])/gens[g_f['p_nom']]
+    gens['ramp_limit_down'] = 60*gens.pop(g_f['max_ramp_down'])/gens[g_f['p_nom']]    
+
+    gens = gens.rename(columns={g_f[f]: f for f in {'p_nom', 'name', 'carrier', 'x', 'y','build_year','decom_date','min_stable'}})
+    gens = gens.rename(columns={ps_f[f]: f for f in {'PHS_efficiency','PHS_max_hours'}})    
+    gens = gens.rename(columns={csp_f[f]: f for f in {'CSP_max_hours'}})     
+
+    # ).rename(columns={ps_f[f]: f for f in {'PHS_efficiency','PHS_max_hours'}})
+    # .rename(columns={csp_f[f]: f for f in {'CSP_max_hours'}}))
+
+    gens['build_year'] = gens['build_year'].fillna(first_year).values
+    gens['decom_date'] = gens['decom_date'].replace({'beyond 2050': 2050}).values
+    gens['lifetime'] = gens['decom_date'] - gens['build_year']
+    # gens = gens[gens.lifetime>0].drop(
+    #     [
+    #         'decom_date','Status',
+    #         g_f['maint_rate'],
+    #         g_f['out_rate'],
+    #         g_f['units'],
+    #         g_f['unit_size'],
+    #         g_f['min_stable']
+    #     ]
+    #     ,axis=1
+    # )
+
+    return gens
 
 def clean_pu_profiles(n):
     pu_index = n.generators_t.p_max_pu.columns.intersection(n.generators_t.p_min_pu.columns)
