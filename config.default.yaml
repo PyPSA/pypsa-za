@@ -4,6 +4,27 @@ logging:
   level: INFO
   format: "%(levelname)s:%(name)s:%(message)s"
 
+# When running the model for the first time it is necessary to enable the following scripts:
+# build_natura_raster, build_population, build_topology, build_cutout. For subsequent model
+# runs these scripts can be diabled to save time. Although snakemake will skip the execution
+# of scripts where the outputs are already built, these switches are useful for forced 
+# re-runs of the snakemake workflow, where you may not necessarily want to rebuild everything
+enable:
+  build_natura_raster: true # Rasters natural protection areas onto all cutout regions
+  build_topology: true # Base network topology
+  build_cutout: false #false # Atlite cutout 
+  use_eskom_wind_solar: false # Model defaults to Eskom hourly pu profiles for all wind and solar generators
+  use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"] # Model defaults to excel input hourly pu profiles for all wind and solar generators  
+  build_renewable_profiles: true #false # Enable calculation of renewable profiles
+
+scenario:
+  resarea: [redz]
+  regions: [27-supply]
+  ll: ['copt']
+  clusters: ['']
+  model_file: ['IRP_2019','validation_4']
+  opts: [Co2L-3H,LC-1H]
+
 # General inputs
 data:
   resarea:
@@ -17,18 +38,7 @@ crs:
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
 
 
-# When running the model for the first time it is necessary to enable the following scripts:
-# build_natura_raster, build_population, build_topology, build_cutout. For subsequent model
-# runs these scripts can be diabled to save time. Although snakemake will skip the execution
-# of scripts where the outputs are already built, these switches are useful for forced 
-# re-runs of the snakemake workflow, where you may not necessarily want to rebuild everything
-enable:
-  build_natura_raster: true # Rasters natural protection areas onto all cutout regions
-  build_topology: true # Base network topology
-  build_cutout: false #false # Atlite cutout 
-  use_eskom_wind_solar: false # Model defaults to Eskom hourly pu profiles for all wind and solar generators
-  use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"] # Model defaults to excel input hourly pu profiles for all wind and solar generators  
-  build_renewable_profiles: true #false # Enable calculation of renewable profiles
+
 
 # Specification of relevent years for the model
 years: 

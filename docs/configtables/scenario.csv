@@ -1,0 +1,6 @@
+,Unit,Values,Description
+resarea,--,cf. :ref:`resarea`,"List of ``{resarea}`` wildcards to run."
+regions,--,cf. :ref:`regions`,"List of ``{regions}`` wildcards to run."
+model_file,--,cf. :ref:`model_file`,"List of ``{model_file}`` wildcards to run."
+ll,--,cf. :ref:`ll`,"List of ``{ll}`` wildcards to run."
+opts,--,cf. :ref:`opts`,"List of ``{opts}`` wildcards to run."

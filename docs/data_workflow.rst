@@ -9,87 +9,101 @@
 Data used by the model
 ##########################################
 
-To properly model any region of the Earth, PyPSA-Earth downloads and fetches different data that are explained in detail in this section. Here we'll look into architecture of the data workflow while practical hand-ons are given in the :ref:`Tutorial <tutorial>` section.
+This section explains in detail how PyPSA-ZA downloads and retrieves the various data types.
 
-Two major parts of the energy modeling workflow are preparing of power grid layout and climate inputs. Apart of that, PyPSA-Earth is relying of a number of environmental, economical and technological datasets.
+Preparing the power grid layout and climatic inputs are two essential aspects of the energy modelling workflow. In addition, PyPSA-ZA utilises several environmental, economic, and technological datasets.
 
 1. Grid topology data
 ===================================
 
-OpenStreetMap `OSM <https://www.openstreetmap.org/>`_ data are used to build power grid topology model. OSM is the biggest crowd-sourced collection of geographic information, which is daily updated and includes geolocation references.
+PyPSA-ZA allows the user to select the desired spatial resolution; shape files are presently available for South Africa, the nine provinces of South Africa, the ten supply areas outlined in the Eskom TDP, and the twenty-seven Eskom supply regions.
+These shape files may be found in `data/bundle/supply regions/regions.shp`, where `regions` represents the desired spatial resolution, such as `10-supply`.
 
-.. image:: img/africa_osm_map.png
-    :height: 150 px
-    :align: center
+The grid topology model is constructed using the `build_topology` rule. When the rule `build_topology` is executed, the buses and lines are computed and saved as geojson files in the folders `resources/buses_{regions}.geojson` and `resources/lines_{regions}.geojson` for each region.
 
-The raw OSM data are being loaded when running the `download_osm_data` rule and stored in the folder `data/osm/{region}/pbf/`. Here `region` denotes a continent, e.g. Africa, or a macro region, e.g. Central America, where the countries of interest belong. The pbf-files contain the entire OSM data for the country; the specific network information related to generators, substations, lines and cables are extracted, cleaned and written as a geojsons in the folder `data/osm/{region}/Elements/`. All network data (generators, substations, lines and cables) for each country are stored as geojson files.
-
-The cleaned OSM network data that are the output of the `osm_data_cleaning` rule, which process the raw OSM data to obtain cleaned datasets of all the network assets, namely generators, substations, lines and cables. These data are stored in `/resources/osm/` folder.
 
 2. Climate data
 ===================================
 
-The climate data processing is provided by `atlite <https://atlite.readthedocs.io/en/latest/>`_ package. It extracts all the required whether and climate data to generate the time series of renewable potential by `generate_renewable_profiles` rule. The main data source on climate variables is `ERA5 reanalysis <https://rmets.onlinelibrary.wiley.com/doi/10.1002/qj.3803>`_.
+The climate data processing is provided by the `atlite <https://atlite.readthedocs.io/en/latest/>`_ package and `GWA <https://globalwindatlas.info/en/area/South%20Africa>`_.
 
-.. image:: https://raw.githubusercontent.com/ekatef/assets/5bae4f10773d8787f8c8534deceff271a7e9b444/era5_cropped.png
+The `build_cutout` rule downloads weather data from either `ERA5 <https://www.ecmwf.int/en/forecasts/datasets/reanalysis-datasets/era5>`_ reanalysis weather dataset or `SARAH-2 <https://wui.cmsaf.eu/safira/action/viewProduktSearch>`_
+satellite-based historic weather data. It extracts all the required whether and climate data to generate the time series of renewable potential by `build_renewable_profiles` rule. 
+
+The rule `build_renewable_profiles` corrects for the wind speed at 100m using `GWA <https://globalwindatlas.info/en/area/South%20Africa>`_ data which is provided in `data/bundle/ZAF_wind-speed_100m.tif`.
+
+.. image:: img/buils_renewables_profiles_cap_factor.png
     :height: 150 px
     :align: center
 
 3. General data
 ===================================
 
-There are a number datasets applied in PyPSA-Earth to build a realistic model. Original datasets are stored in the `data/` folder. Currently we are using the following resources.
+There are a number datasets applied in PyPSA-ZA to build a realistic model. Original datasets are stored in the `data/bundle` folder. Currently we are using the following resources.
 
 Environmental
 ------------------------------------
 
-* **copernicus** contains the raw data on the land covering as available from the Copernicus database. 
+* **SAPAD** The South African Protected Areas Database (SAPAD)  
 
 .. image:: img/copernicus.png
     :height: 150 px
     :align: center
 
-It is used in the build_renewable_profiles rule to quantify what are the land regions available for the installation of renewable resources, e.g. renewable assets may not be installed on arable land
+It is used in the `build_natura_raster` rule to quantify what are the land regions available for the installation of renewable resources, e.g. renewable assets may not be installed on arable land. 
 
-* **eez** is the dataset of the Exclusive Economic Zones (EEZ) available from Marine Regions. This file is used in the rule build_shapes to identify the marine region by country and provide shapes of the maritime regions to be possibly used to estimate off-shore renewable potential, for example.
+* **SACAD** The South African Conservation Areas Database (SACAD)  
 
-* **gebco** gridded bathymetric data which can be translated into depths and shapes of underwater terrain. 
+.. image:: img/copernicus.png
+    :height: 150 px
+    :align: center
+
+It is used in the `build_natura_raster` rule to quantify what are the land regions available for the installation of renewable resources, e.g. renewable assets may not be installed on arable land
+
+* **redz** A dataset of the Renewable Energy Development Zones (REDZs) containing 8 priority areas for investment of wind and solar PV development available from the `Department of Forestry, Fishers and the Environment <https://egis.environment.gov.za/redz>`_ of the Republic of South Africa.
+
+The dataset is used to restrict renewable energy expansion to the REDZs regions in the rule `build_renewable_profiles`.
+
+* **corridors** A dataset of REDZs Strategic Transmission Corridors containing 5 priority areas for the investement of new electricity transmission and distribution infrustructure available from the `Department of Forestry, Fishers and the Environment<https://egis.environment.gov.za/egi>`_
+
+The dataset is used to restrict renewable energy expansion to the strategic transmission corridors regions in the rule `build_renewable_profiles`.
 
 .. image:: img/gebco_2021_grid_image.jpg
     :height: 150 px
     :align: center
 
-These data are used in the `build_renewable_profiles` rule. `GEBCO <https://www.gebco.net/>`_ stands for General Bathymetric Chart of the Oceans. It's curated by a non-profit making organisation which relies largely on the voluntary contributions of an enthusiastic international team of geoscientists and hydrographers.
-
-* **hydrobasins** datasets on watershed boundaries and basins, as available from HydroBASINS. These data are used to estimate the hydropower generation in the `build_renewable_profiles` rule.
-
-* **landcover** describes the shapes of world protected areas that are needed to identify in what areas no (renewable) assets can be installed. Currently are used to generate a `natura.tiff` raster. Will be deprecated once the global `natura.tiff` will be available.
+* **salandcover** A dataset of the `South African National Land Cover <https://egis.environment.gov.za/sa_national_land_cover_datasets>`_
 
 Economical
 ------------------------------------
 
-* **costs.csv** file contains the default costs of the technologies along with their typical lifetime and efficiency values. The dataset is intended to give a starting point for running the model while regional adjustments may be needed. 
+* **costs.csv** spreadsheet in `model_file.xlsx` file which contains the default costs of the technologies along with their typical lifetime and efficiency values. The dataset is intended to give a starting point for running the model while user specific adjustments may be made. 
 
-* **gadm** folder contains data of the shapes of administrative zones by country (e.g. regions, districts, provinces, ...), depending on the level of resolution desired by the configuration file. The data in this folder are automatically populated by the `build_shapes` rule that download such data from the gadm website.
-
-* **GDP** raster dataset of the Gross Domestic Product (GDP) by arcs of the world, as available from `DRYAD <https://datadryad.org/stash/dataset/doi:10.5061/dryad.dk1j0>`_.
-
-* **WorldPop** raster dataset of the population by arc as automatically by build_shapes rule from WorldPop
+* **ZAF15adjv4.tif** raster dataset of the population located in `data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif`
 
 Technological
 ------------------------------------
 
-* **eia_hydro_annual_generation.csv** contains data on total energy production of existing plants as reported per country by the open US Energy Information Administration `EIA platforms <https://www.eia.gov/international/data/world>`_. Is used to calibrate the runoff time series are obtained from the global reanalysis data.
+* **EIA_hydro_generation_2011_2014.csv** contains data on total energy production of existing plants as reported per country by the open US Energy Information Administration `EIA platforms <https://www.eia.gov/international/data/world>`_. It is used to calibrate the runoff time series obtained from the global reanalysis data.
 
 4. Pre-calculated datasets
 ===================================
 
 There are some datasets which were prepared to ensure smooth run of the model. However, they may (and in some cases) must be replaced by custom ones. 
 
-* **natura.tiff** contains geo-spatial data on location of protected and reserved areas and may be used as mask the exclude such areas when calculating the renewable potential by `build_renewable_profiles` rule. The `natura` flag in the configuration file allows to switch-on this option while presence of the `natura.tiff` in the `resources` folder is needed to run the model. 
+* **natura.tiff** contains geo-spatial data on location of protected and conservation areas and may be used as mask the exclude such areas when calculating the renewable potential by `build_renewable_profiles` rule. The `natura` flag in the configuration file allows to switch-on this option while presence of the `natura.tiff` in the `resources` folder is needed to run the model. 
 
-Currently the pre-build file is calculated for Africa, global `natura.tiff` raster is under development. 
+Currently the pre-build file is calculated for South Africa using the `SAPAD` and `SACAD` datasets. 
 
-* **electricity demand profiles** are provided by PyPSA-Earth as globally hourly demand loads corresponding to Shared Socioeconomic Pathways `SSP <http://dx.doi.org/https://doi.org/10.1016/j.gloenvcha.2016.05.009>`_ for 2030, 2040, 2050 and 2100 and weather conditions years of 2011, 2013 and 2018. Pre-calculated data on electricity demand are placed in `data/{ssp_scenario_id}/{ssp_year}/era5_2013/{continent_name}.nc` folder and loaded automatically during the model run.
+* **SystemEnergy2009_22.csv** is the electricity demand profile provided from the Eskom data portal. This pre-downloaded data on electricity demand is placed in `data/bundle/SystemEnergy2009_22.csv`.
 
-The demand time series were modeled by `synde package <https://github.com/euronion/synde>`_  which implements a workflow management system to extract the demand data created with the open source Global-Energy GIS `GEGIS <http://dx.doi.org/10.1016/j.esr.2020.100606>`_ package. GEGIS produces hourly demand time series by applying machine learning methods using as predictors temperature profiles, population, GDP.
+* **eskom_pu_profiles.csv** is Eskom hourly pu profiles for all wind and solar generators in South Africa. The `use_eskom_wind_solar` flag in the configuration file allows to switch-on this option. This data is located in `data/eskom_pu_profiles.csv`
+
+* **num_lines.xlsx** is the number of high voltage transmission lines (i.e 275kV, 400kV and 765kV) between neighbouring regions. 
+
+* **Eskom EAF data.xlsx** is daily Energy Availability Factor of `Eskom <https://www.eskom.co.za/dataportal/>`_ plants. It is the difference between the maximum availability and all unavailabilities (PCLF, UCLF & OCLF) expressed as a percentage. This excludes renewables, IPPs and international imports. This  pre-downloaded data is placed in `data/Eskom EAF data.xlsx`
+
+5. Scenario generation spreadsheet
+===================================
+model_file="model_file.xlsx",
+
