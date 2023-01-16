@@ -1,4 +1,65 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
+# SPDX-FileCopyrightText: : 2017-2022 The PyPSA-Eur and PyPSA-ZA Authors
+#
+# SPDX-License-Identifier: MIT
+
+"""
+Creates the network topology from a `ENTSO-E map extract.
+
+<https://github.com/PyPSA/GridKit/tree/master/entsoe>`_ (March 2022) as a PyPSA
+network.
+
+Relevant Settings
+-----------------
+
+.. code:: yaml
+
+    snapshots:
+
+    countries:
+
+    electricity:
+        voltages:
+
+    lines:
+        types:
+        s_max_pu:
+        under_construction:
+
+    links:
+        p_max_pu:
+        under_construction:
+        include_tyndp:
+
+    transformers:
+        x:
+        s_nom:
+        type:
+
+.. seealso::
+    Documentation of the configuration file ``config.yaml`` at
+    :ref:`snapshots_cf`, :ref:`toplevel_cf`, :ref:`electricity_cf`, :ref:`load_cf`,
+    :ref:`lines_cf`, :ref:`links_cf`, :ref:`transformers_cf`
+
+Inputs
+------
+
+- ``data/bundle/supply_regions/{regions}.shp``:  Shape file for different supply regions.
+- ``data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif``: Raster file of South African population from 
+- ``data/num_lines.xlsx``: confer :ref:`links`
+
+
+Outputs
+-------
+
+- ``networks/base.nc``
+
+    .. image:: ../img/base.png
+        :scale: 33 %
+- ``resources/buses_{regions}.geojson``
+- ``resources/lines_{regions}.geojson``
+
+"""
 
 import networkx as nx
 import pandas as pd
