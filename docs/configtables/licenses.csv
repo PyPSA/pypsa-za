@@ -1,0 +1,14 @@
+"Files","BY","NC","SA","Mark Changes",Detail
+"supply_regions/*","x",,,"x",https://land.copernicus.eu/pan-european/corine-land-cover/clc-2012?tab=metadata
+"SAPAD_OR_2017_Q2/*","x","x","x",,http://www.marineregions.org/disclaimer.php
+"SACAD_OR_2017_Q2/*","x",,,,https://www.eea.europa.eu/data-and-maps/data/natura-10#tab-metadata
+"REDZ_DEA_Unpublished_Draft_2015/*",,,,,http://www.naturalearthdata.com/about/terms-of-use/
+"Phase2_REDZs/*","x","x",,"x",https://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/administrative-units-statistical-units
+"Power_corridors","x",,"x",, RSA DEA, REDZs Strategic Transmission Corridors (Apr 2017)
+"SystemEnergy2009_13.csv","x",,,,https://www.eia.gov/about/copyrights_reuse.php
+"ZAF_wind-speed_100m.tif","x",,,,https://www.gebco.net/data_and_products/gridded_bathymetry_data/documents/gebco_2014_historic.pdf
+"Supply_area_normalised power feed-in for PV.xlsx ","x",,,D. S. Bofinger, B. Zimmermann, A.-K. Gerlach, D. T. Bischof-Niemz, C. Mushwana, Wind and Solar PV Resource Aggregation Study for South Africa. (2016).,
+"Supply_area_normalised power feed-in for Wind.xlsx","x","x",,,D. S. Bofinger, B. Zimmermann, A.-K. Gerlach, D. T. Bischof-Niemz, C. Mushwana, Wind and Solar PV Resource Aggregation Study for South Africa. (2016).
+costs.csv","x",,,"x",https://ec.europa.eu/eurostat/about/policies/copyright
+"EIA_hydro_generation","x",,,"x",https://ec.europa.eu/eurostat/about/policies/copyright
+"time_series_60min _singleindex_filtered.csv","x",,,,https://data.open-power-system-data.org/time_series/2019-06-05/README.md
