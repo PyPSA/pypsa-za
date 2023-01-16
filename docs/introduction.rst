@@ -36,7 +36,11 @@ Explain model - single year 2040 higher spatial resolution 27-supply areas, imag
 Link to paper 
 Branch of PyPSA-ZA original model
 
-In 2022 Meridian Economics `<https://meridianeconomics.co.za/>`_ 
+In 2022 Meridian Economics `<https://meridianeconomics.co.za/>`_ continued the development of the PyPSA-ZA model into its current
+form. As part of this project the following features were added to the original PyPSA-ZA model:
+
+
+
 
 
 Workflow

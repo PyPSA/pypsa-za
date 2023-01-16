@@ -1,4 +1,4 @@
-Date Time Hour Beginning,onwind,solar,CSP,hydro,imports,biomass
+Date Time Hour Beginning,onwind,solar,CSP,hydro,hydro-import,biomass
 time (SAST),normalised feed-in [MW/MW],normalised feed-in [MW/MW],normalised feed-in [MW/MW],normalised feed-in [MW/MW],normalised feed-in [MW/MW],normalised feed-in [MW/MW]
 2018-04-01 00:00:00,0.218972720097029,0,0.0585166666666667,0.6,0.634560906515581,0.575711662075298
 2018-04-01 01:00:00,0.1891294303371,0,0.130436666666667,0.6,0.626628895184136,0.56951331496786
