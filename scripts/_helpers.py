@@ -598,30 +598,20 @@ def map_generator_parameters(gens,first_year):
     gens['ramp_limit_up'] = 60*gens.pop(g_f['max_ramp_up'])/gens[g_f['p_nom']]
     gens['ramp_limit_down'] = 60*gens.pop(g_f['max_ramp_down'])/gens[g_f['p_nom']]    
 
-    gens = gens.rename(columns={g_f[f]: f for f in {'p_nom', 'name', 'carrier', 'x', 'y','build_year','decom_date','min_stable'}})
+    gens = gens.rename(
+        columns={g_f[f]: f for f in {'p_nom', 'name', 'carrier', 'x', 'y','build_year','decom_date','min_stable'}})
     gens = gens.rename(columns={ps_f[f]: f for f in {'PHS_efficiency','PHS_max_hours'}})    
     gens = gens.rename(columns={csp_f[f]: f for f in {'CSP_max_hours'}})     
 
-    # ).rename(columns={ps_f[f]: f for f in {'PHS_efficiency','PHS_max_hours'}})
-    # .rename(columns={csp_f[f]: f for f in {'CSP_max_hours'}}))
-
     gens['build_year'] = gens['build_year'].fillna(first_year).values
-    gens['decom_date'] = gens['decom_date'].replace({'beyond 2050': 2050}).values
+    gens['decom_date'] = gens['decom_date'].replace({'beyond 2050': 2051}).values
     gens['lifetime'] = gens['decom_date'] - gens['build_year']
-    # gens = gens[gens.lifetime>0].drop(
-    #     [
-    #         'decom_date','Status',
-    #         g_f['maint_rate'],
-    #         g_f['out_rate'],
-    #         g_f['units'],
-    #         g_f['unit_size'],
-    #         g_f['min_stable']
-    #     ]
-    #     ,axis=1
-    # )
 
     return gens
 
+def remove_leap_day(df):
+    return df[~((df.index.month == 2) & (df.index.day == 29))]
+    
 def clean_pu_profiles(n):
     pu_index = n.generators_t.p_max_pu.columns.intersection(n.generators_t.p_min_pu.columns)
     for carrier in n.generators_t.p_min_pu.columns:

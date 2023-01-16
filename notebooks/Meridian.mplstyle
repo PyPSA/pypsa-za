@@ -15,10 +15,10 @@ ytick.left: True
 ytick.right: False
 figure.figsize: 6.692913385826771 ,4.37007874015748
 axes.labelpad: 14.17325
-xtick.major.pad: 7
-ytick.major.pad: 7
-xtick.minor.pad: 7
-ytick.minor.pad: 7
+xtick.major.pad: 5
+ytick.major.pad: 5
+xtick.minor.pad: 5
+ytick.minor.pad: 5
 axes.spines.bottom: True
 axes.spines.left: True
 axes.spines.right: False

@@ -1,5 +1,49 @@
 # coding: utf-8
 
+"""
+Creates the network topology (buses and lines).
+
+
+Relevant Settings
+-----------------
+
+.. code:: yaml
+
+    snapshots:
+
+    electricity:
+        voltages:
+
+    lines:
+        types:
+        s_max_pu:
+        under_construction:
+
+    links:
+        p_max_pu:
+        under_construction:
+        include_tyndp:
+
+.. seealso::
+    Documentation of the configuration file ``config.yaml`` at
+    :ref:`snapshots_cf`, :ref:`toplevel_cf`, :ref:`electricity_cf`, :ref:`load_cf`,
+    :ref:`lines_cf`, :ref:`links_cf`, :ref:`transformers_cf`
+
+Inputs
+------
+
+- ``data/bundle/supply_regions/{regions}.shp``:  Shape file for different supply regions.
+- ``data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif``: Raster file of South African population from 
+- ``data/num_lines.xlsx``: confer :ref:`links`
+
+
+Outputs
+-------
+- ``resources/buses_{regions}.geojson``
+- ``resources/lines_{regions}.geojson``
+
+"""
+
 import networkx as nx
 import pandas as pd
 import geopandas as gpd
@@ -7,11 +51,10 @@ from shapely.geometry import LineString
 import numpy as np
 import rasterstats
 from operator import attrgetter
-import pypsa
 from vresutils.costdata import annuity
 from vresutils.shapes import haversine
 import os
-
+import pypsa
 from _helpers import save_to_geojson
 
 def convert_lines_to_gdf(lines,centroids):
@@ -76,12 +119,13 @@ def build_topology():
     # Initialize buses dataframe
     line_config = snakemake.config['lines']
     v_nom = line_config['v_nom']
-    buses = (regions
-             .assign(
-                 x=centroids.map(attrgetter('x')),
-                 y=centroids.map(attrgetter('y')),
-                 v_nom=v_nom)
-            )
+    buses = (
+        regions.assign(
+            x=centroids.map(attrgetter('x')),
+            y=centroids.map(attrgetter('y')),
+            v_nom=v_nom
+        )
+    )
 
     # Calculate population in each region
     population = pd.DataFrame(rasterstats.zonal_stats(regions['geometry'], snakemake.input.population, stats='sum'))['sum']
@@ -89,15 +133,19 @@ def build_topology():
     buses['population'] = population
 
     # Load num_parallel data and calculate num_parallel column for lines dataframe
-    num_lines = pd.read_excel(snakemake.input.num_lines,
-                        sheet_name = snakemake.wildcards.regions, 
-                        index_col=0).set_index(['bus0', 'bus1'])
+    num_lines = pd.read_excel(
+        snakemake.input.num_lines,
+        sheet_name = snakemake.wildcards.regions, 
+        index_col=0
+    ).set_index(['bus0', 'bus1'])
     num_parallel = sum(num_lines['num_parallel_{}'.format(int(v))] * (v/v_nom)**2
                     for v in (275, 400, 765))
     if not lines.empty:
-        lines = (lines
-                    .join(num_parallel.rename('num_parallel'), on=['bus0', 'bus1'])
-                    .join(num_parallel.rename("num_parallel_i"), on=['bus1', 'bus0']))
+        lines = (
+            lines
+                .join(num_parallel.rename('num_parallel'), on=['bus0', 'bus1'])
+                .join(num_parallel.rename("num_parallel_i"), on=['bus1', 'bus0'])
+        )
 
         lines['num_parallel'] = (lines['num_parallel'].fillna(lines.pop('num_parallel_i'))) #TODO removed line_config['s_nom_factor'] seems double counting the s_nom_factor of 0.7
         lines.reset_index(drop=True,inplace=True)
@@ -109,13 +157,17 @@ def build_topology():
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('build_topology', 
-                            **{'costs':'ambitions',
-                            'regions':'27-supply',
-                            'resarea':'redz',
-                            'll':'copt',
-                            'opts':'LC-24H',
-                            'attr':'p_nom'})
+        snakemake = mock_snakemake(
+            'build_topology', 
+            **{
+                'costs':'ambitions',
+                'regions':'27-supply',
+                'resarea':'redz',
+                'll':'copt',
+                'opts':'LC-24H',
+                'attr':'p_nom'
+            }
+        )
 
     buses, lines = build_topology()
     save_to_geojson(buses,snakemake.output.buses)

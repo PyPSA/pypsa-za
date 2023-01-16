@@ -62,14 +62,16 @@ import numpy as np
 import pandas as pd
 import pypsa
 from pypsa.linopt import get_var, write_objective, define_constraints, linexpr
-from _helpers import configure_logging, clean_pu_profiles
+from _helpers import configure_logging, clean_pu_profiles, remove_leap_day
 from add_electricity import load_costs, update_transmission_costs
+from concurrent.futures import ProcessPoolExecutor
+import tsam.timeseriesaggregation as tsam
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning) # Comment out for debugging and development
 
 idx = pd.IndexSlice
 logger = logging.getLogger(__name__)
-
-def remove_leap_day(df):
-    return df[~((df.index.month == 2) & (df.index.day == 29))]
 
 def calc_new_build_constraints(n, model_setup):
     build_constraints = (pd.read_excel(snakemake.input.model_file, 
@@ -88,7 +90,7 @@ def add_global_annual_build_limits(n,model_setup):
                                 index_col=[0,1,2])).loc[model_setup['new_build_limits']]
 
     max_build = build_constraints.loc['max_installed_limit'].fillna(100000)
-    min_build = build_constraints.loc['min_installed_limit']
+    min_build = build_constraints.loc['min_installed_limit'].fillna(0)
     
     gen_carriers = [c for c in n.generators[n.generators.p_nom_extendable].carrier.unique() if c in max_build.index]
     st_carriers = [c for c in n.storage_units[n.storage_units.p_nom_extendable].carrier.unique() if c in max_build.index]
@@ -142,7 +144,6 @@ def add_wind_and_solar_limits(n):
               sense="<=",
               type="tech_capacity_expansion_limit",
               constant=max_cap)
-
 
     n.add("GlobalConstraint",
             "TechLimit_total_solar",
@@ -266,57 +267,60 @@ def average_every_nhours(n, offset):
                 pnl[k] = resampled
     return m
 
+def single_year_segmentation(n, y, segments, config, fillna_default):
+    p_pu={}
+    p_pu_norm={}
+    for i in ['min','max']:
+        p_pu[i] = n.generators_t['p_'+i+'_pu'].loc[y]
+        p_pu[i].columns += '_'+i
+        p_pu_norm[i] = p_pu[i].max()
+        p_pu[i] = (p_pu[i]/p_pu_norm[i]).fillna(fillna_default[i])     
+
+    load_norm = n.loads_t.p_set.loc[y].max()
+    load = n.loads_t.p_set.loc[y] / load_norm
+
+    inflow_norm = n.storage_units_t.inflow.loc[y].max()
+    inflow = (n.storage_units_t.inflow.loc[y] / inflow_norm).fillna(0)
+
+    raw = pd.concat([p_pu['max'], p_pu['min'], load, inflow], axis=1, sort=False)
+
+    agg = tsam.TimeSeriesAggregation(
+        raw,
+        hoursPerPeriod=len(raw),
+        noTypicalPeriods=1,
+        noSegments=int(segments),
+        segmentation=True,
+        solver=config['solver'],
+    )
+
+    segmented = agg.createTypicalPeriods()
+    weightings = segmented.index.get_level_values("Segment Duration")
+    cumsum = np.cumsum(weightings[:-1])
+    if np.floor(y/4)-y/4 == 0:
+            cumsum = np.where(cumsum >= 1416, cumsum + 24, cumsum)
+    offsets = np.insert(cumsum, 0, 0)
+    start_snapshot = n.snapshots[n.snapshots.get_level_values(1).year == y]
+    snapshots = [start_snapshot.get_level_values(1)[0] + pd.Timedelta(hours=offset) for offset in offsets]
+        
+    segmented[p_pu['max'].columns]*=p_pu_norm['max']
+    segmented[p_pu['min'].columns]*=p_pu_norm['min']
+    segmented[load.columns]*=load_norm
+    segmented[inflow.columns]*=inflow_norm
+    logger.info(f"Segmentation complete for period: {y}")
+
+    return snapshots, weightings, segmented, y
 
 def apply_time_segmentation(n, segments, config):
     
     logger.info(f"Aggregating time series to {segments} segments.")
-    try:
-        import tsam.timeseriesaggregation as tsam
-    except:
-        raise ModuleNotFoundError(
-            "Optional dependency 'tsam' not found." "Install via 'pip install tsam'"
-        )
-
     fillna_default={'min':0,'max':1}
-    for y in n.investment_periods:
-        p_pu={}
-        p_pu_norm={}
-        for i in ['min','max']:
-            p_pu[i] = n.generators_t['p_'+i+'_pu'].loc[y]
-            p_pu[i].columns += '_'+i
-            p_pu_norm[i] = p_pu[i].max()
-            p_pu[i] = (p_pu[i]/p_pu_norm[i]).fillna(fillna_default[i])     
-
-        load_norm = n.loads_t.p_set.loc[y].max()
-        load = n.loads_t.p_set.loc[y] / load_norm
-
-        inflow_norm = n.storage_units_t.inflow.loc[y].max()
-        inflow = (n.storage_units_t.inflow.loc[y] / inflow_norm).fillna(0)
-
-        raw = pd.concat([p_pu['max'], p_pu['min'], load, inflow], axis=1, sort=False)
-
-        agg = tsam.TimeSeriesAggregation(
-            raw,
-            hoursPerPeriod=len(raw),
-            noTypicalPeriods=1,
-            noSegments=int(segments),
-            segmentation=True,
-            solver=config['solver'],
-        )
-
-        segmented = agg.createTypicalPeriods()
-
-        weightings = segmented.index.get_level_values("Segment Duration")
-        offsets = np.insert(np.cumsum(weightings[:-1]), 0, 0)
-        
-        start_snapshot = n.snapshots[n.snapshots.get_level_values(1).year.isin([y])].get_level_values(1)[0]
-        snapshots = [start_snapshot  + pd.Timedelta(f"{offset}h") for offset in offsets]
-        
-        segmented[p_pu['max'].columns]*=p_pu_norm['max']
-        segmented[p_pu['min'].columns]*=p_pu_norm['min']
-        segmented[load.columns]*=load_norm
-        segmented[inflow.columns]*=inflow_norm
-
+    years= n.investment_periods.to_list()
+    
+    with ProcessPoolExecutor(max_workers=config['nprocesses']) as executor:
+        futures = [executor.submit(single_year_segmentation, n, year, segments, config, fillna_default) for year in years]
+    results = [future.result() for future in futures]
+    
+    for snapshots, weightings, segmented, y in results:
         if y == n.investment_periods[0]:
             stacked_snapshots = pd.DatetimeIndex(snapshots)
             stacked_weightings = pd.Series(weightings, index=snapshots, name="weightings", dtype="float64")
@@ -325,8 +329,8 @@ def apply_time_segmentation(n, segments, config):
             stacked_snapshots = stacked_snapshots.union(pd.DatetimeIndex(snapshots))
             stacked_weightings = pd.concat([stacked_weightings, 
                 pd.Series(weightings, index=snapshots, name="weightings", dtype="float64")])
-            stacked_segmented = pd.concat([stacked_segmented,segmented])
-        logger.info(f"Segmentation complete for period: {y}")
+            stacked_segmented = pd.concat([stacked_segmented,segmented]) 
+
     snapshots = pd.MultiIndex.from_arrays([stacked_snapshots.year, stacked_snapshots])
     stacked_segmented.index = snapshots
     stacked_weightings.index = snapshots
@@ -343,10 +347,6 @@ def apply_time_segmentation(n, segments, config):
 
     return n
 
-# def apply_tsam_periods(n, periods, config):
-#     n = cluster_snapshots(n, normed=False, noTypicalPeriods=int(periods))
-#     return n
-
 def set_line_nom_max(n, s_nom_max_set=np.inf, p_nom_max_set=np.inf):
     n.lines.s_nom_max.clip(upper=s_nom_max_set, inplace=True)
     n.links.p_nom_max.clip(upper=p_nom_max_set, inplace=True)
@@ -355,18 +355,23 @@ def set_line_nom_max(n, s_nom_max_set=np.inf, p_nom_max_set=np.inf):
 if __name__ == "__main__":
     if 'snakemake' not in globals():
         from _helpers import mock_snakemake
-        snakemake = mock_snakemake('prepare_network', 
-                            **{'model_file':'CSIR-ambitions-2022',
-                            'regions':'RSA',
-                            'resarea':'redz',
-                            'll':'copt',
-                            'opts':'LC-1H'})
+        snakemake = mock_snakemake(
+            'prepare_network', 
+            **{
+                'model_file':'validation-6',
+                'regions':'RSA',
+                'resarea':'redz',
+                'll':'copt',
+                'opts':'LC-3000SEG'
+            }
+        )
     configure_logging(snakemake)
 
-    model_setup = (pd.read_excel(snakemake.input.model_file, 
-                                sheet_name='model_setup',
-                                index_col=[0])
-                                .loc[snakemake.wildcards.model_file])
+    model_setup = pd.read_excel(
+        snakemake.input.model_file, 
+        sheet_name='model_setup',
+        index_col=[0]
+    ).loc[snakemake.wildcards.model_file]
 
     opts = snakemake.wildcards.opts.split("-")
     n = pypsa.Network(snakemake.input[0])
