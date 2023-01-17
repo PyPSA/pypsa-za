@@ -31,7 +31,7 @@ intertemporally optimised power system development model – showing an optimise
 over time – it only provided a snapshot of an optimised high renewables system at a particular 
 point in time – 2040, albeit with reasonable spatial (network) resolution. The initial PyPSA-ZA model 
 is described and evaluated in the paper 
-`PyPSA-ZA: Investment and operation co-optimization of integrating wind and solar in South Africa at high spatial and temporal detail <https://arxiv.org/abs/1710.11199>`_
+`PyPSA-ZA: Investment and operation co-optimization of integrating wind and solar in South Africa at high spatial and temporal detail <https://arxiv.org/abs/1710.11199>`_.
 
 `PyPSA <https://pypsa.org/>`_ has also been utilised to build an extensive interconnected power system model of the European power system 
 `PyPSA-Eur <https://github.com/PyPSA/pypsa-eur>`_. This model has been further extended to include full sector 
@@ -53,45 +53,15 @@ used in the country.
 
 In 2022 `Meridian Economics <https://meridianeconomics.co.za/>`_ leveraged the experience from 
 `PyPSA-Eur <https://github.com/PyPSA/pypsa-eur>`_, PyPSA-ZA and `PyPSA meets Earth <https://pypsa-meets-earth.github.io/>`_ 
-to significantly shorten the development timeframe for the new model. `Meridian Economics <https://meridianeconomics.co.za/>`_ has undergone extensive work in terms of 
+to significantly shorten the development time frame for the new model. `Meridian Economics <https://meridianeconomics.co.za/>`_ has undergone extensive work in terms of 
 input datasets, model development, and validation against existing results from commercial tools to establish PyPSA-ZA credibility to ensure that the outcomes can 
-be trusted to support policy decisions. The updated PyPSA-ZA model has the folloowing capabilities:
+be trusted to support policy decisions. The updated PyPSA-ZA model has the following capabilities:
 
 - ``Updated input data``: Includes latest assumptions around technology performance and learning rates.
 - ``Multi-horizon capacity expansion planning``: Myopic and/or perfect foresight expansion capabilities which can solve in five-year time steps up to 2050.
-- ``Validation test case`` : Benchmarked case studies using existing energy planning results in the public domain such as those developed by the `CSIR <https://www.csir.co.za/> `_.
-- ``Solar and wind resource assessment`` : Utilises the `Atlite module <https://github.com/PyPSA/atlite>`_ and `Global Wind Atlas <https://globalwindatlas.info/en>`_ 
-for South Africa’s Renewable Energy Development Zones.
-- ``Model file`` : Input excel spreadsheet for easier model file input.
-
-
-Workflow
-========
-
-The generation of the model is controlled by the workflow management system `Snakemake <https://snakemake.bitbucket.io/>`_. In a nutshell,
-the ``Snakefile`` declares for each python script in the ``scripts`` directory a rule which describes which files the scripts consume and
-produce (their corresponding input and output files). The ``snakemake`` tool then runs the scripts in the correct order according to the
-rules' input/output dependencies. Moreover, it is able to track, what parts of the workflow have to be regenerated, when a data file or a
-script is modified/updated. For example, by executing the following snakemake routine
-
-.. code:: bash
-
-    .../pypsa-za % snakemake -j results/networks/solved_CSIR-ambitions_9-supply_redz_lcopt_LC-1H.nc
-
-the following workflow is automatically executed.
-
-.. image:: img/workflow.png
-    :align: center
-
-The **blocks** represent the individual rules which are required to create the file ``results/networks/solved_CSIR-ambitions_9-supply_redz_lcopt_LC-1H.nc``.
-Each rule requires scripts (e.g. Python) to convert inputs to outputs.
-The **arrows** indicate the outputs from preceding rules which a particular rule takes as input data.
-
-.. note::
-    For reproducibility purposes, the image can be obtained through
-    ``snakemake --dag results/networks/solved_CSIR-ambitions_9-supply_redz_lcopt_LC-1H.nc | dot -Tpng -o workflow.png``
-    using `Graphviz <https://graphviz.org/>`_
-
+- ``Validation test case`` : Benchmarked case studies using existing energy planning results in the public domain such as those developed by the `CSIR <https://www.csir.co.za/>`_.
+- ``Solar and wind resource assessment`` : Utilises the `Atlite module <https://github.com/PyPSA/atlite>`_ and `Global Wind Atlas <https://globalwindatlas.info/en>`_ to generate renewable potentials for South Africa’s Renewable Energy Development Zones.
+- ``Model file`` : Input excel spreadsheet for easier model input.
 
 Folder structure
 ================
@@ -113,7 +83,7 @@ License
 
 PyPSA-ZA work is released under multiple licenses:
 
-* All original source code is licensed as free software under `GPL-3.0 License <https://github.com/pypsa-meets-earth/pypsa-earth/blob/main/LICENSE>`_.
+* All original source code is licensed as free software under `MIT License <https://github.com/PyPSA/pypsa-eur/blob/master/LICENSES/MIT.txt>`_.
 * The documentation is licensed under `CC-BY-4.0 <https://creativecommons.org/licenses/by/4.0/>`_.
 * Configuration files are mostly licensed under `CC0-1.0 <https://creativecommons.org/publicdomain/zero/1.0/>`_.
 * Data files are licensed under different licenses as noted below.

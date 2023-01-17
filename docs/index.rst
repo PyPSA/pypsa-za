@@ -6,23 +6,25 @@
 PyPSA-ZA: An open Optimisation Model of the South African Power System
 =======================================================================
 
-PyPSA-ZA is an open model dataset of the South African power system at four spatial resolutions namely;
+PyPSA-ZA is an open model dataset of the South African power system at three spatial resolutions namely;
 
-- ``RSA``: A single node for the entire South Africa.
-- ``9-supply``: 9 nodes based on the South African provinces.
-- ``10-supply``: 10 nodes based on the Eskom Transmission Develepment Plan regions.
+- ``1-supply``: A single node for the entire South Africa.
+- ``11-supply``: 11 nodes based on the `Eskom Generation Connection Capacity Assessment of the 2024 Transmission Network (GCCA – 2024)  <https://www.eskom.co.za/eskom-divisions/tx/gcca/>`_ regions.
 - ``27-supply``: 27 nodes based on Eskom 27 supply regions.
 
-.. image:: img/validation-4_RSA_redz_lcopt_LC_p_nom_ext.png
-   :width: 250
+.. image:: img/1-supply.png
+   :width: 500
+   :align: center
    :alt: 1-supply
 
-.. image:: img/validation-4_RSA_redz_lcopt_LC_p_nom_ext.png
-   :width: 250
+.. image:: img/11-supply.png
+   :width: 500
+   :align: center
    :alt: 9-supply
 
-.. image:: img/validation-4_RSA_redz_lcopt_LC_p_nom_ext.png
-   :width: 250
+.. image:: img/27-supply.png
+   :width: 500
+   :align: center
    :alt: 27-supply
 
 PyPSA-ZA is a high temporal resolution multi-horizon expansion planning model for a least cost optimised transition path to 
@@ -38,6 +40,10 @@ This project is currently maintained by `Meridian Economics <https://meridianeco
 at the `Council for Scientific and Industrial Research (CSIR) <https://www.csir.co.za/>`_ as part of the `CoNDyNet project <https://fias.institute/en/projects/condynet/>`_, which is supported by the 
 `German Federal Ministry of Education and Research <https://www.bmbf.de/bmbf/en/home/home_node.html>`_ under grant no. 03SF0472C.
 
+The model is currently under development and has been validated for the single node (`1-supply`), for more information on the capability of the moel please see the :ref:`release-notes`. 
+
+.. note::
+  Credits to `PyPSA-Eur <https://github.com/PyPSA/pypsa-eur>`_ and `PyPSA-Meets-Earth <https://github.com/pypsa-meets-earth/pypsa-earth>`_ developers for the initial drafting of the documentation here reported and adapted where necessary
 
 =============
 Documentation
@@ -47,6 +53,7 @@ Documentation
 
 * :doc:`introduction`
 * :doc:`installation`
+* :doc:`workflow`
 * :doc:`tutorials`
 * :doc:`data_workflow`
 
@@ -56,7 +63,8 @@ Documentation
    :caption: Getting Started
 
    introduction
-   installation  
+   installation
+   workflow  
    tutorials
    data_workflow    
 
@@ -75,20 +83,17 @@ Documentation
    configuration
    costs
 
-**Work flow and API**
+**API**
 
-* :doc:`structure`
-* :doc:`rules_overview`
 * :doc:`api_reference`
 
 .. toctree::
    :hidden:
    :maxdepth: 2
-   :caption: Work flow and API
+   :caption: API
 
-   structure
-   rules_overview
    api_reference
+
 
 **Help and References**
 

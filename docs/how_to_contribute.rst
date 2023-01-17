@@ -9,10 +9,9 @@
 Сontribute
 ##########################################
 
-Contributions are welcome, and they are greatly appreciated! 
-Every little bit helps, and you always earn credits.
+We welcome and really value contributions! Every contribution is valuable, and you always get credits.
 
-You can contribute on the code side in many ways:
+Contributions to the code can be made in several ways:
 
 - submit feedback,
 - add new features,
@@ -37,7 +36,7 @@ and aim for `REUSE compliance <https://reuse.software/>`_):
 
 Add a new test if you want to contribute new functionality to the config.
 We perform currently *multiple* integration tests which means various workflows need to work.
-All test configs are build by updating the ``config.tutorial.yaml`` with the configs in ``pypysa-earth/test/*.yaml``.
+All test configs are build by updating the ``config.tutorial.yaml`` with the configs in ``pypysa-za/test/*.yaml``.
 
   * You can test your contribution locally with ``snakemake --cores 4 run_tests``. This will build test configs and executes them.
   * Run ``snakemake -j1 build_test_configs`` to build and analyse locally the test configs.
@@ -51,20 +50,5 @@ To contribute a test:
 
 No-Code
 ========
-Instead of contributing code there are alternatives to support the PyPSA-Earth goals.
-You can fund projects, supervise people, support us with outreach activities or events.
-Check out our `website <https://pypsa-meets-earth.github.io>`_ for more details.
-
-
-Join us and get involved
-========================
-
-Any person/ group is welcome to join us. Be it research leader, researcher, undergraduate, or industry professional.
-A simple way to explore opportunities for collaboration is to join our meetings. All of them are **OPEN**.
-
-- `List of meetings and times <https://github.com/pypsa-meets-earth/pypsa-earth#get-involved>`_
-
-- **Discord**
-  
-  - Chat with the community, team up on features, exchange with developers, code in voice channels
-  - `Discord invitation link <https://discord.gg/AnuJBk23FU>`_
+Instead of contributing code there are alternatives to support the PyPSA-ZA goals.
+You can fund projects, supervise students, support us with outreach activities or events.

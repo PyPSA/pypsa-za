@@ -21,7 +21,7 @@ Detailed explanations of how wildcards work in ``snakemake`` can be found in the
 .. _resarea:
 
 The ``{resarea}`` wildcard
-========================
+==========================
 
 The ``{resarea}`` wildcard specifies whether to contrain renewable generators to `Renewable Energy Development Zones <https://egis.environment.gov.za/redz>`_  or strategic transmission corridors.
 
@@ -33,7 +33,7 @@ The ``{resarea}`` wildcard specifies whether to contrain renewable generators to
 .. _model_file:
 
 The ``{model_file}`` wildcard
-===========================
+=============================
 
 The ``{model_file}`` wildcard specifies the technology cost assumptions to use from the input spreadsheet.  
 Cost assumptions in model_file.xlsx

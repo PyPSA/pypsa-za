@@ -1,0 +1,106 @@
+﻿scenario,technology,parameter,2019,2020,2025,2030,2035,2040,2045,2050,unit
+csir_ambitions_2019,coal,CO2 intensity,0.354,0.354,0.354,0.354,0.354,0.354,0.354,0.354,tCO2/MWth
+csir_ambitions_2019,CSP,CO2 intensity,0,0,0,0,0,0,0,0,tCO2/MWth
+csir_ambitions_2019,diesel,CO2 intensity,0.248,0.248,0.248,0.248,0.248,0.248,0.248,0.248,tCO2/MWth
+csir_ambitions_2019,gas,CO2 intensity,0.187,0.187,0.187,0.187,0.187,0.187,0.187,0.187,tCO2/MWth
+csir_ambitions_2019,solar,discount rate,8.2%,8.2%,8.2%,8.2%,8.2%,8.2%,8.2%,8.2%,per unit
+csir_ambitions_2019,solar-rooftop,discount rate,8.2%,8.2%,8.2%,8.2%,8.2%,8.2%,8.2%,8.2%,per unit
+csir_ambitions_2019,solar-utility,discount rate,8.2%,8.2%,8.2%,8.2%,8.2%,8.2%,8.2%,8.2%,per unit
+csir_ambitions_2019,biomass,heat_rate,12.386,12.386,12.386,12.386,12.386,12.386,12.386,12.386,GJ/MWh
+csir_ambitions_2019,CCGT,heat_rate,7.395,7.395,7.395,7.395,7.395,7.395,7.395,7.395,GJ/MWh
+csir_ambitions_2019,coal,heat_rate,9.812,9.812,9.812,9.812,9.812,9.812,9.812,9.812,GJ/MWh
+csir_ambitions_2019,CSP,heat_rate,,,,,,,,,GJ/MWh
+csir_ambitions_2019,diesel,heat_rate,11.519,11.519,11.519,11.519,11.519,11.519,11.519,11.519,GJ/MWh
+csir_ambitions_2019,geothermal,heat_rate,,,,,,,,,GJ/MWh
+csir_ambitions_2019,nuclear,heat_rate,10.657,10.657,10.657,10.657,10.657,10.657,10.657,10.657,GJ/MWh
+csir_ambitions_2019,OCGT,heat_rate,11.519,11.519,11.519,11.519,11.519,11.519,11.519,11.519,GJ/MWh
+csir_ambitions_2019,battery inverter,efficiency,89%,89%,89%,89%,89%,89%,89%,89%,per unit
+csir_ambitions_2019,biomass,efficiency,29%,29%,29%,29%,29%,29%,29%,29%,per unit
+csir_ambitions_2019,CCGT,efficiency,49%,49%,49%,49%,49%,49%,49%,49%,per unit
+csir_ambitions_2019,coal,efficiency,37%,37%,37%,37%,37%,37%,37%,37%,per unit
+csir_ambitions_2019,CSP,efficiency,,,,,,,,,per unit
+csir_ambitions_2019,diesel,efficiency,31%,31%,31%,31%,31%,31%,31%,31%,per unit
+csir_ambitions_2019,geothermal,efficiency,,,,,,,,,per unit
+csir_ambitions_2019,nuclear,efficiency,34%,34%,34%,34%,34%,34%,34%,34%,per unit
+csir_ambitions_2019,OCGT,efficiency,31%,31%,31%,31%,31%,31%,31%,31%,per unit
+csir_ambitions_2019,hydro,efficiency,90%,90%,90%,90%,90%,90%,90%,90%,per unit
+csir_ambitions_2019,onwind,efficiency,,,,,,,,,per unit
+csir_ambitions_2019,PHS,efficiency,75%,75%,75%,75%,75%,75%,75%,75%,per unit
+csir_ambitions_2019,ror,efficiency,90%,90%,90%,90%,90%,90%,90%,90%,per unit
+csir_ambitions_2019,solar,efficiency,,,,,,,,,per unit
+csir_ambitions_2019,solar-rooftop,efficiency,,,,,,,,,per unit
+csir_ambitions_2019,solar-utility,efficiency,,,,,,,,,per unit
+csir_ambitions_2019,battery inverter,FOM,697,697,697,697,697,697,697,697,ZAR/kWel
+csir_ambitions_2019,biomass,FOM,2028,2028,2028,2028,2028,2028,2028,2028,ZAR/kWel
+csir_ambitions_2019,CCGT,FOM,203,203,203,203,203,203,203,203,ZAR/kWel
+csir_ambitions_2019,coal,FOM,1133,1133,1133,1133,1133,1133,1133,1133,ZAR/kWel
+csir_ambitions_2019,CSP,FOM,1203,1203,1203,1203,1203,1203,1203,1203,%/year
+csir_ambitions_2019,diesel,FOM,2.6,2.6,2.6,2.6,2.6,2.6,2.6,2.6,%/year
+csir_ambitions_2019,HVAC overhead,FOM,2,2,2,2,2,2,2,2,%/year
+csir_ambitions_2019,HVDC inverter pair,FOM,2,2,2,2,2,2,2,2,%/year
+csir_ambitions_2019,HVDC overhead,FOM,2,2,2,2,2,2,2,2,%/year
+csir_ambitions_2019,HVDC submarine,FOM,2,2,2,2,2,2,2,2,%/year
+csir_ambitions_2019,hydro,FOM,484,484,484,484,484,484,484,484,ZAR/kWel
+csir_ambitions_2019,nuclear,FOM,1187,1187,1187,1187,1187,1187,1187,1187,ZAR/kWel
+csir_ambitions_2019,OCGT,FOM,196,196,196,196,196,196,196,196,ZAR/kWel
+csir_ambitions_2019,onwind,FOM,742,742,742,742,742,742,742,742,ZAR/kWel
+csir_ambitions_2019,PHS,FOM,222,222,222,222,222,222,222,222,ZAR/kWel
+csir_ambitions_2019,ror,FOM,484,484,484,484,484,484,484,484,ZAR/kWel
+csir_ambitions_2019,solar,FOM,328,328,328,328,328,328,328,328,ZAR/kWel
+csir_ambitions_2019,solar-rooftop,FOM,328,328,328,328,328,328,328,328,ZAR/kWel
+csir_ambitions_2019,solar-utility,FOM,328,328,328,328,328,328,328,328,ZAR/kWel
+csir_ambitions_2019,biomass,fuel,36,36,36,36,36,36,36,36,R/GJ
+csir_ambitions_2019,coal,fuel,33.8,33.8,33.8,33.8,33.8,33.8,33.8,33.8,R/GJ
+csir_ambitions_2019,CSP,fuel,0,0,0,0,0,0,0,0,R/GJ
+csir_ambitions_2019,diesel,fuel,277.8,277.8,277.8,277.8,277.8,277.8,277.8,277.8,R/GJ
+csir_ambitions_2019,gas,fuel,150,150,150,150,150,150,150,150,R/GJ
+csir_ambitions_2019,nuclear,fuel,9.1,9.1,9.1,9.1,9.1,9.1,9.1,9.1,R/GJ
+csir_ambitions_2019,uranium,fuel,,,,,,,,,R/GJ
+csir_ambitions_2019,battery inverter,investment,12286.03,11397.08,8587.84,7192.40,6742.88,6293.35,5843.83,5394.30,ZAR/kWel
+csir_ambitions_2019,battery storage,investment,0,0,0,0,0,0,0,0,ZAR/kWh
+csir_ambitions_2019,biomass,investment,52708,52708,52708,52708,52708,52708,52708,52708,ZAR/kWel
+csir_ambitions_2019,CCGT,investment,12199,12199,12199,12199,12199,12199,12199,12199,ZAR/kWel
+csir_ambitions_2019,coal,investment,48188,48188,48188,48188,48188,48188,48188,48188,ZAR/kWel
+csir_ambitions_2019,CSP,investment,126013,120572,98228,83708,74928,70234,67922,66343,ZAR/kWel
+csir_ambitions_2019,diesel,investment,400,400,400,400,400,400,400,400,ZAR/kWel
+csir_ambitions_2019,HVAC overhead,investment,6000,6000,6000,6000,6000,6000,6000,6000,ZAR/MW/km
+csir_ambitions_2019,HVDC inverter pair,investment,,,,,,,,,ZAR/MW
+csir_ambitions_2019,HVDC overhead,investment,6000,6000,6000,6000,6000,6000,6000,6000,ZAR/MW/km
+csir_ambitions_2019,HVDC submarine,investment,,,,,,,,,ZAR/MW/km
+csir_ambitions_2019,hydro,investment,74340,74340,74340,74340,74340,74340,74340,74340,ZAR/kWel
+csir_ambitions_2019,nuclear,investment,94145,93964,93057,92150,91968,91968,91968,91968,ZAR/kWel
+csir_ambitions_2019,OCGT,investment,10754,10754,10754,10754,10754,10754,10754,10754,ZAR/kWel
+csir_ambitions_2019,onwind,investment,14691,14431,13131,11831,11190,10544,9893,9238,ZAR/kWel
+csir_ambitions_2019,PHS,investment,30777,30777,30777,30777,30777,30777,30777,30777,ZAR/kWel
+csir_ambitions_2019,ror,investment,74340,74340,74340,74340,74340,74340,74340,74340,ZAR/kWel
+csir_ambitions_2019,solar,investment,8746,8206,6671,5136,4402,3844,3506,3238,ZAR/kWel
+csir_ambitions_2019,solar-rooftop,investment,8746,8206,6671,5136,4402,3844,3506,3238,ZAR/kWel
+csir_ambitions_2019,solar-utility,investment,8746,8206,6671,5136,4402,3844,3506,3238,ZAR/kWel
+csir_ambitions_2019,battery inverter,lifetime,20,20,20,20,20,20,20,20,years
+csir_ambitions_2019,battery storage,lifetime,20,20,20,20,20,20,20,20,years
+csir_ambitions_2019,biomass,lifetime,30,30,30,30,30,30,30,30,years
+csir_ambitions_2019,CCGT,lifetime,30,30,30,30,30,30,30,30,years
+csir_ambitions_2019,coal,lifetime,50,50,50,50,50,50,50,50,years
+csir_ambitions_2019,CSP,lifetime,30,30,30,30,30,30,30,30,years
+csir_ambitions_2019,diesel,lifetime,30,30,30,30,30,30,30,30,years
+csir_ambitions_2019,HVAC overhead,lifetime,40,40,40,40,40,40,40,40,years
+csir_ambitions_2019,HVDC inverter pair,lifetime,40,40,40,40,40,40,40,40,years
+csir_ambitions_2019,HVDC overhead,lifetime,40,40,40,40,40,40,40,40,years
+csir_ambitions_2019,HVDC submarine,lifetime,40,40,40,40,40,40,40,40,years
+csir_ambitions_2019,hydro,lifetime,60,60,60,60,60,60,60,60,years
+csir_ambitions_2019,nuclear,lifetime,60,60,60,60,60,60,60,60,years
+csir_ambitions_2019,OCGT,lifetime,30,30,30,30,30,30,30,30,years
+csir_ambitions_2019,onwind,lifetime,20,20,20,20,20,20,20,20,years
+csir_ambitions_2019,PHS,lifetime,50,50,50,50,50,50,50,50,years
+csir_ambitions_2019,ror,lifetime,60,60,60,60,60,60,60,60,years
+csir_ambitions_2019,solar,lifetime,25,25,25,25,25,25,25,25,years
+csir_ambitions_2019,solar-rooftop,lifetime,25,25,25,25,25,25,25,25,years
+csir_ambitions_2019,solar-utility,lifetime,25,25,25,25,25,25,25,25,years
+csir_ambitions_2019,CCGT,VOM,27,27,27,27,27,27,27,27,ZAR/MWhel
+csir_ambitions_2019,coal,VOM,98,98,98,98,98,98,98,98,ZAR/MWhel
+csir_ambitions_2019,CSP,VOM,1,1,1,1,1,1,1,1,ZAR/MWhel
+csir_ambitions_2019,diesel,VOM,3,3,3,3,3,3,3,3,EUR/MWhel
+csir_ambitions_2019,nuclear,VOM,45,45,45,45,45,45,45,45,ZAR/MWhel
+csir_ambitions_2019,OCGT,VOM,3,3,3,3,3,3,3,3,ZAR/MWhel
+csir_ambitions_2019,onwind,VOM,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,ZAR/MWhel
+csir_ambitions_2019,solar,VOM,0,0,0,0,0,0,0,0,ZAR/MWhel

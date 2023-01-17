@@ -1,3 +1,5 @@
+.. _installation:
+
 ##########################################
 Installation
 ##########################################
@@ -116,27 +118,3 @@ Before first use, create a ``config.yaml`` by copying the example.
 
 Users are advised to regularly check their own ``config.yaml`` against changes in the ``config.default.yaml``
 when pulling a new version from the remote repository.
-
-Customize the scenario excel input file
-=======================================
-
-In order to make the PyPSA-ZA model accessible to a larger audience than just developers and users 
-who do not know Python, the input data into PyPSA-ZA is entered via an Excel spreadsheet to aid with 
-scenario configuration. The excel spreadsheet `model_file.xlsx` is located in the root directory and consists of 
-the following sheets:
-
-``model_setup``: Summarizes the capacity from eskom and non-eskom generators, new build limits, projections on annual demand, 
-coal fleat Energy Availability Factor (EAF) and reserves(total and fast)
-
-``existing_eskom``: Gives the capacity of conventional and non-conventional Eskom generators, decommissioning rates, 
-
-``existing_non-eskom``: Gives the capacity of conventional and non-conventional non-eskom generators, decommissioning rates,
-
-``new_build_limits``: Gives the `max_installed_limit` and `min_installed_limit` in MW assumed for a scenario for all conventional and non-conventional 
-carriers for each year in the planning horizon. A `max_installed_limit` is given as `0`for a given year for a carrier implies that the there is no new 
-build for that particilar year for the carrier.
-
-``projected_parameters``:
-
-``costs``: 
-

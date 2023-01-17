@@ -33,7 +33,7 @@ satellite-based historic weather data. It extracts all the required whether and 
 The rule `build_renewable_profiles` corrects for the wind speed at 100m using `GWA <https://globalwindatlas.info/en/area/South%20Africa>`_ data which is provided in `data/bundle/ZAF_wind-speed_100m.tif`.
 
 .. image:: img/buils_renewables_profiles_cap_factor.png
-    :height: 150 px
+    :width: 80%
     :align: center
 
 3. General data
@@ -64,12 +64,13 @@ It is used in the `build_natura_raster` rule to quantify what are the land regio
 
 The dataset is used to restrict renewable energy expansion to the REDZs regions in the rule `build_renewable_profiles`.
 
-* **corridors** A dataset of REDZs Strategic Transmission Corridors containing 5 priority areas for the investement of new electricity transmission and distribution infrustructure available from the `Department of Forestry, Fishers and the Environment<https://egis.environment.gov.za/egi>`_
+* **corridors** A dataset of REDZs Strategic Transmission Corridors containing 5 priority areas for the investement of new 
+electricity transmission and distribution infrustructure available from the `Department of Forestry Fishers and the Environment <https://egis.environment.gov.za/egi>`_
 
 The dataset is used to restrict renewable energy expansion to the strategic transmission corridors regions in the rule `build_renewable_profiles`.
 
 .. image:: img/gebco_2021_grid_image.jpg
-    :height: 150 px
+    :width: 150%
     :align: center
 
 * **salandcover** A dataset of the `South African National Land Cover <https://egis.environment.gov.za/sa_national_land_cover_datasets>`_

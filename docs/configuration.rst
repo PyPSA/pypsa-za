@@ -37,11 +37,11 @@ Top-level configuration
    :language: yaml
    :lines: 1-5,25-31
 
-
-.. csv-table::
-   :header-rows: 1
-   :widths: 25,7,22,30
-   :file: configtables/toplevel.csv
+..
+   .. csv-table::
+      :header-rows: 1
+      :widths: 25,7,22,30
+      :file: configtables/toplevel.csv
 
 .. _scenario:
 
@@ -79,7 +79,7 @@ An exemplary dependency graph (starting from the simplification rules) then look
 .. _snapshots_cf:
 
 ``snapshots``- now specified in model_file.xlsx
-=============
+===============================================
 
 Specifies the temporal range to build an energy system model for as arguments to `pandas.date_range <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.date_range.html>`_
 

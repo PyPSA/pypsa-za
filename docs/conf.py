@@ -87,7 +87,7 @@ copyright = f"{datetime.datetime.today().year}, {author}"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en_GB"
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -156,7 +156,7 @@ html_theme_options = {
 # of the sidebar.
 # html_logo = None
 
-# The name of an image file (within the static path) to use as favicon of the
+# The name of an image file (within the static ) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
 # html_favicon = None
