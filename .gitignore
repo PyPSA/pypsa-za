@@ -13,3 +13,4 @@ logs/*
 
 data/bundle/*
 notebooks/network_playground.ipynb
+~$model_file.xlsx

@@ -1,0 +1,11 @@
+wildcard,simulation_years,existing_eskom,existing_non_eskom,new_build_limits,projected_parameters,costs
+val-LC-UNC,"""2020,2022,2024,2026,2028,2030,2032,2034,2036,2038,2040,2042,2044,2046,2048,2050""",base,base,base,ambitions,ambitions_2019
+val-LC-UNC-1,"""2020,2022,2024,2026,2028,2030,2032,2034,2036,2038,2040,2042,2044,2046,2048,2050""",LC-Retirement,base,base,ambitions,ambitions_2019
+val-LC-UNC-2,"""2020,2025,2030,2035,2040,2045,2050""",base,base,base,ambitions,ambitions_2019
+val-2Gt-UNC,"""2020,2022,2024,2026,2028,2030,2032,2034,2036,2038,2040,2042,2044,2046,2048,2050""",2Gt,2Gt,base,ambitions,ambitions_2019
+val-2Gt-UNC-1,"""2020,2025,2030,2035,2040,2045,2050""",2Gt,2Gt,base,ambitions,ambitions_2019
+val-LC-SMOOTH,"""2020,2022,2024,2026,2028,2030,2032,2034,2036,2038,2040,2042,2044,2046,2048,2050""",base,base,ambitions_LC_SMOOTH,ambitions,ambitions_2019
+val-LC-SMOOTH-1,"""2020,2022,2024,2026,2028,2030,2032,2034,2036,2038,2040,2042,2044,2046,2048,2050""",LC-Retirement,base,ambitions_LC_SMOOTH,ambitions,ambitions_2019
+val-LC-SMOOTH-2,"""2020,2025,2030,2035,2040,2045,2050""",LC-Retirement,base,ambitions_LC_SMOOTH,ambitions,ambitions_2019
+val-2Gt-SMOOTH,"""2020,2022,2024,2026,2028,2030,2032,2034,2036,2038,2040,2042,2044,2046,2048,2050""",2Gt,2Gt,ambitions_2Gt_SMOOTH,ambitions,ambitions_2019
+val-2Gt-SMOOTH-1,"""2020,2025,2030,2035,2040,2045,2050""",2Gt,2Gt,ambitions_2Gt_SMOOTH,ambitions,ambitions_2019

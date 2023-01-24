@@ -1,0 +1,104 @@
+,Power Station Name,Grouping,Carrier,Type,Status,Capacity (MW),Unit size (MW),Number units,Future Commissioning Date,Decommissioning Date,Heat Rate (GJ/MWh),Fuel Price (R/GJ),Max Ramp Up (MW/min),Max Ramp Down (MW/min),Min Stable Level (%),Variable O&M Cost (R/MWh),Fixed O&M Cost (R/kW/yr),Pump Efficiency (%),Pump Units,Pump Load per unit (MW),Pumped Storage - Max Storage (GWh),CSP Storage (hours),GPS Latitude,GPS Longitude
+base,Aries Solar Energy Facility,REIPPPP_BW1,solar,Generator,Existing,9.65,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-29.35015,21.15396
+base,Cookhouse Wind Farm,REIPPPP_BW1,onwind,Generator,Existing,135.8,-,-,-,2034,-,-,-,-,0%,1513,0,-,-,-,-,-,-32.74606365,25.80701715
+base,Dassieklip Wind Energy Facility,REIPPPP_BW1,onwind,Generator,Existing,27,-,-,-,2034,-,-,-,-,0%,1513,0,-,-,-,-,-,-34.23237,19.42878
+base,De Aar Solar Power,REIPPPP_BW1,solar,Generator,Existing,45.6,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-30.65995,24.01981
+base,Dorper Wind Farm,REIPPPP_BW1,onwind,Generator,Existing,97.53,-,-,-,2034,-,-,-,-,0%,1513,0,-,-,-,-,-,-31.39628175,26.35379497
+base,Greefspan PV Power Plant,REIPPPP_BW1,solar,Generator,Existing,9.9,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-29.11513585,23.7490966
+base,Herbert PV Power Plant,REIPPPP_BW1,solar,Generator,Existing,19.9,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-29.11513585,23.7490966
+base,Jeffreys Bay Wind Farm,REIPPPP_BW1,onwind,Generator,Existing,135.11,-,-,-,2034,-,-,-,-,0%,1513,0,-,-,-,-,-,-34.05048675,24.90607333
+base,Kalkbult,REIPPPP_BW1,solar,Generator,Existing,72.4,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-30.43789782,24.47044094
+base,Kaxu Solar One,REIPPPP_BW1,CSP,Generator,Existing,100,-,-,-,2045,-,-,-,-,0%,3554,0,-,-,-,-,3,-28.5252,19.3535
+base,Khi Solar One,REIPPPP_BW1,CSP,Generator,Existing,50,,,-,2045,-,-,-,-,0%,3554,0,-,-,-,-,6,-28.3214,21.439
+base,Konkoonsies Solar Energy Facility,REIPPPP_BW1,solar,Generator,Existing,9.65,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-29.16209115,19.38626431
+base,Kouga Wind Farm,REIPPPP_BW1,onwind,Generator,Existing,77.7,-,-,-,2034,-,-,-,-,0%,1513,0,-,-,-,-,-,-34.00160661,24.74162863
+base,Lesedi Power Company,REIPPPP_BW1,solar,Generator,Existing,64,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-28.30952211,23.10406337
+base,Letsatsi Power Company,REIPPPP_BW1,solar,Generator,Existing,64,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-29.11213617,26.21566471
+base,Metrowind Van Stadens Wind Farm,REIPPPP_BW1,onwind,Generator,Existing,27,-,-,-,2034,-,-,-,-,0%,1513,0,-,-,-,-,-,-33.80478499,25.49049171
+base,Mulilo Renewable Energy Solar PV De Aar,REIPPPP_BW1,solar,Generator,Existing,10,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-30.65995,24.01981
+base,Mulilo Renewable Energy Solar PV Prieska,REIPPPP_BW1,solar,Generator,Existing,19.12,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-29.96469912,22.33943836
+base,Nobelsfontein Phase 1,REIPPPP_BW1,onwind,Generator,Existing,73.8,-,-,-,2034,-,-,-,-,0%,1513,0,-,-,-,-,-,-31.42224223,23.11492014
+base,REISA,REIPPPP_BW1,solar,Generator,Existing,75,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-27.75808649,23.01589583
+base,RustMo1 Solar Farm,REIPPPP_BW1,solar,Generator,Existing,6.93,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-25.65326661,27.24975906
+base,Droogfontein Solar Power,REIPPPP_BW1,solar,Generator,Existing,45.4,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-28.72506215,24.751701
+base,Slimsun Swartland Solar Park,REIPPPP_BW1,solar,Generator,Existing,5,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-33.4578,18.72332
+base,Solar Capital De Aar,REIPPPP_BW1,solar,Generator,Existing,75,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-30.65995,24.01981
+base,Soutpan Solar Park,REIPPPP_BW1,solar,Generator,Existing,27.94,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-23.36940101,29.32179917
+base,Touwsrivier Project,REIPPPP_BW1,solar,Generator,Existing,36,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-33.33942927,20.02925811
+base,Umoya Energy Wind Farm,REIPPPP_BW1,onwind,Generator,Existing,65.4,-,-,-,2034,-,-,-,-,0%,1513,0,-,-,-,-,-,-33.02855397,18.30753655
+base,Witkop Solar Park,REIPPPP_BW1,solar,Generator,Existing,29.68,-,-,-,2039,-,-,-,-,0%,3649,0,-,-,-,-,-,-23.90234452,29.45076171
+base,Amakhala Emoyeni,REIPPPP_BW2,onwind,Generator,Existing,131.05,-,-,-,2037,-,-,-,-,0%,1186,0,-,-,-,-,-,-32.68783624,26.10644083
+base,Aurora Wind Power,REIPPPP_BW2,onwind,Generator,Existing,90.82,-,-,-,2037,-,-,-,-,0%,1186,0,-,-,-,-,-,-32.90788192,17.99584671
+base,Aurora_Rietvlei Solar Power,REIPPPP_BW2,solar,Generator,Existing,8.9,-,-,-,2042,-,-,-,-,0%,2176,0,-,-,-,-,-,-32.70958327,18.48538198
+base,Bokpoort CSP project,REIPPPP_BW2,CSP,Generator,Existing,50,-,-,-,2048,-,-,-,-,0%,3324,0,-,-,-,-,9,-28.87785503,21.91997588
+base,Boshoff Solar Park,REIPPPP_BW2,solar,Generator,Existing,57,-,-,-,2042,-,-,-,-,0%,2176,0,-,-,-,-,-,-28.53924889,25.21310591
+base,Chaba Wind Farm,REIPPPP_BW2,onwind,Generator,Existing,21,-,-,-,2036,-,-,-,-,0%,1186,0,-,-,-,-,-,-32.58791094,27.8791875
+base,Dreunberg,REIPPPP_BW2,solar,Generator,Existing,69.6,-,-,-,2042,-,-,-,-,0%,2176,0,-,-,-,-,-,-30.99735285,26.3301982
+base,Gouda Wind Project,REIPPPP_BW2,onwind,Generator,Existing,135.5,-,-,-,2037,-,-,-,-,0%,1186,0,-,-,-,-,-,-33.29437161,19.04399843
+base,Grassridge Wind Farm,REIPPPP_BW2,onwind,Generator,Existing,59.8,-,-,-,2037,-,-,-,-,0%,1186,0,-,-,-,-,-,-33.79566844,25.67222108
+base,Jasper Power Company,REIPPPP_BW2,solar,Generator,Existing,75,-,-,-,2042,-,-,-,-,0%,2176,0,-,-,-,-,-,-28.30952211,23.10406337
+base,Linde,REIPPPP_BW2,solar,Generator,Existing,36.8,-,-,-,2042,-,-,-,-,0%,2176,0,-,-,-,-,-,-31.04520663,24.44183386
+base,Neusberg Hydro Electrical Project,REIPPPP_BW2,hydro,Generator,Existing,10,-,-,-,beyond 2050,-,-,-,-,0%,1363,0,-,-,-,-,-,-28.75269659,20.5335003
+base,Sishen Solar Facility,REIPPPP_BW2,solar,Generator,Existing,74,-,-,-,2042,-,-,-,-,0%,2176,0,-,-,-,-,-,-27.75808649,23.01589583
+base,Solar Capital De Aar 3,REIPPPP_BW2,solar,Generator,Existing,75,-,-,-,2042,-,-,-,-,0%,2176,0,-,-,-,-,-,-30.65995,24.01981
+base,Stortemelk Hydro,REIPPPP_BW2,hydro,Generator,Existing,4.22,-,-,-,beyond 2050,-,-,-,-,0%,1363,0,-,-,-,-,-,-28.51415415,28.41014382
+base,Tsitsikamma Community Wind Farm,REIPPPP_BW2,onwind,Generator,Existing,93.68,-,-,-,2037,-,-,-,-,0%,1186,0,-,-,-,-,-,-34.01510678,24.34462169
+base,Upington Airport,REIPPPP_BW2,solar,Generator,Existing,8.9,-,-,-,2042,-,-,-,-,0%,2176,0,-,-,-,-,-,-28.41492673,21.2219053
+base,Vredendal Solar Park,REIPPPP_BW2,solar,Generator,Existing,8.8,-,-,-,2042,-,-,-,-,0%,2176,0,-,-,-,-,-,-31.65563733,18.5161484
+base,Waainek Wind Farm,REIPPPP_BW2,onwind,Generator,Existing,23.28,-,-,-,2037,-,-,-,-,0%,1186,0,-,-,-,-,-,-33.30901038,26.53167687
+base,!XiNa Solar One,REIPPPP_BW3,CSP,Generator,Existing,100,-,-,-,2049,-,-,-,-,0%,3114,0,-,-,-,-,6,-29.16209115,19.38626431
+base,Adams Solar PV 2,REIPPPP_BW3,solar,Generator,Existing,75,-,-,-,2043,-,-,-,-,0%,2176,0,-,-,-,-,-,-27.20248968,22.84678257
+base,ENERGY Joburg Landfill Gas to Electircity Project,REIPPPP_BW3,biomass,Generator,Existing,7.56,-,-,-,2049,-,0,-,-,0%,1109,0,-,-,-,-,-,-26.19495424,28.0325284
+base,Karoshoek Solar One,REIPPPP_BW3,CSP,Generator,Existing,100,-,-,-,2049,-,-,-,-,0%,3114,0,-,-,-,-,6,-28.41492673,21.2219053
+base,Khobab Wind Farm,REIPPPP_BW3,onwind,Generator,Existing,137.74,-,-,-,2038,-,-,-,-,0%,868,0,-,-,-,-,-,-30.91810861,19.44104346
+base,Loeriesfontein 2 Wind Farm,REIPPPP_BW3,onwind,Generator,Existing,138.23,-,-,-,2038,-,-,-,-,0%,868,0,-,-,-,-,-,-30.91810861,19.44104346
+base,Longyuan Mulilo De Aar Maanhaarberg Wind Energy Facility,REIPPPP_BW3,onwind,Generator,Existing,96.48,-,-,-,2038,-,-,-,-,0%,868,0,-,-,-,-,-,-30.65995,24.01981
+base,Longyuan Mulilo Green Energy De Aar 2 North Wind Energy Facility,REIPPPP_BW3,onwind,Generator,Existing,138.96,-,-,-,2038,-,-,-,-,0%,868,0,-,-,-,-,-,-30.65995,24.01981
+base,Mkuze,REIPPPP_BW3,biomass,Generator,Planned,16.5,-,32,-,beyond 2050,-,1650,-,-,0%,1500,0,-,6,4,,,-27.61803715,32.03451293
+base,Mulilo Prieska PV,REIPPPP_BW3,solar,Generator,Existing,75,-,-,-,2043,-,-,-,-,0%,1165,0,-,-,-,-,-,-29.96469912,22.33943836
+base,Mulilo Sonnedix Prieska PV,REIPPPP_BW3,solar,Generator,Existing,75,-,-,-,2043,-,-,-,-,0%,1165,0,-,-,-,-,-,-29.96469912,22.33943836
+base,Nojoli Wind Farm,REIPPPP_BW3,onwind,Generator,Existing,86.6,-,-,-,2038,-,-,-,-,0%,868,0,-,-,-,-,-,-32.74606365,25.80701715
+base,Noupoort Wind Farm,REIPPPP_BW3,onwind,Generator,Existing,79.05,-,-,-,2038,-,-,-,-,0%,868,0,-,-,-,-,-,-31.18385097,24.94597311
+base,Paleisheuwel,REIPPPP_BW3,solar,Generator,Existing,75,-,-,-,2043,-,-,-,-,0%,1165,0,-,-,-,-,-,-32.19669208,18.89502901
+base,Pulida Solar Park,REIPPPP_BW3,solar,Generator,Existing,75,-,-,-,2043,-,-,-,-,0%,1165,0,-,-,-,-,-,-29.13329593,24.79880592
+base,Red Cap Gibson Bay,REIPPPP_BW3,onwind,Generator,Existing,108.25,-,-,-,2038,-,-,-,-,0%,868,0,-,-,-,-,-,-34.00160661,24.74162863
+base,Tom Burke Solar Park,REIPPPP_BW3,solar,Generator,Existing,60,-,-,-,2043,-,-,-,-,0%,1165,0,-,-,-,-,-,-23.67193834,27.63573491
+base,Kathu Solar Park,REIPPPP_BW3.5,CSP,Generator,Existing,100,-,-,-,beyond 2050,-,-,-,-,0%,2902,0,-,-,-,-,6,-27.75808649,23.01589583
+base,Redstone Solar Thermal Power Plant,REIPPPP_BW3.5,CSP,Generator,Under construction,100,-,-,2024,beyond 2050,-,-,-,-,0%,2902,0,-,-,-,-,9,-28.30952211,23.10406337
+base,Aggeneys Solar,REIPPPP_BW4,solar,Generator,Existing,40,-,-,-,2046,-,-,-,-,0%,872,0,-,-,-,-,-,-29.22015953,18.9152031
+base,Boikanyo Solar,REIPPPP_BW4,solar,Generator,Existing,55,-,-,-,2046,-,-,-,-,0%,872,0,-,-,-,-,-,-29.11513585,23.7490966
+base,Bokamoso,REIPPPP_BW4,solar,Generator,Existing,67.9,-,-,-,2046,-,-,-,-,0%,872,0,-,-,-,-,-,-26.85400239,26.64211071
+base,Copperton Windfarm,REIPPPP_BW4,onwind,Generator,Existing,102,-,-,-,2041,-,-,-,-,0%,687,0,-,-,-,-,-,-29.96469912,22.33943836
+base,De Wildt,REIPPPP_BW4,solar,Generator,Existing,50,-,-,-,2046,-,-,-,-,0%,872,0,-,-,-,-,-,-25.60966873,27.80765416
+base,Dyason's Klip 1,REIPPPP_BW4,solar,Generator,Existing,75,-,-,-,2046,-,-,-,-,0%,872,0,-,-,-,-,-,-28.41492673,21.2219053
+base,Dyason's Klip 2,REIPPPP_BW4,solar,Generator,Existing,75,-,-,-,2046,-,-,-,-,0%,872,0,-,-,-,-,-,-28.41492673,21.2219053
+base,Excelsior Wind Energy Facility,REIPPPP_BW4,onwind,Generator,Existing,31.9,-,-,-,2041,-,-,-,-,0%,687,0,-,-,-,-,-,-34.02467796,20.4318549
+base,Garob Wind Farm,REIPPPP_BW4,onwind,Generator,Existing,135.93,-,-,-,2041,-,-,-,-,0%,687,0,-,-,-,-,-,-29.96469912,22.33943836
+base,Golden Valley Wind,REIPPPP_BW4,onwind,Generator,Existing,117.72,-,-,-,2041,-,-,-,-,0%,687,0,-,-,-,-,-,-32.74606365,25.80701715
+base,Kangnas Wind Farm,REIPPPP_BW4,onwind,Generator,Existing,136.7,-,-,-,2041,-,-,-,-,0%,687,0,-,-,-,-,-,-29.66569573,17.88776436
+base,Konkoonsies II Solar PV Facility,REIPPPP_BW4,solar,Generator,Existing,75,-,-,-,2046,-,-,-,-,0%,872,0,-,-,-,-,-,-29.16209115,19.38626431
+base,Kruisvallei Hydro,REIPPPP_BW4,hydro,Generator,Existing,3.8,-,-,-,beyond 2050,-,-,-,-,0%,1240,0,-,-,-,-,-,-28.24250307,28.30768328
+base,Matla A Bokone Solar,REIPPPP_BW4,solar,Generator,Existing,75,-,-,-,2046,-,-,-,-,0%,872,0,-,-,-,-,-,-28.72506215,24.751701
+base,Ngodwana Energy,REIPPPP_BW4,biomass,Generator,Existing,25,-,32,-,beyond 2050,-,1650,-,-,0%,1500,0,-,6,4,,,-25.48089837,30.97430484
+base,Nxuba Wind Farm,REIPPPP_BW4,onwind,Generator,Existing,138.9,-,-,-,2041,-,-,-,-,0%,687,0,-,-,-,-,-,-32.74606365,25.80701715
+base,Oyster Bay Wind Farm,REIPPPP_BW4,onwind,Generator,Existing,140,-,-,-,2041,-,-,-,-,0%,687,0,-,-,-,-,-,-34.00160661,24.74162863
+base,Perdekraal East Wind Farm,REIPPPP_BW4,onwind,Generator,Existing,107.76,-,-,-,2041,-,-,-,-,0%,687,0,-,-,-,-,-,-33.33942927,20.02925811
+base,Roggeveld Wind Farm,REIPPPP_BW4,onwind,Generator,Existing,140,-,-,-,2041,-,-,-,-,0%,687,0,-,-,-,-,-,-32.40945174,20.66983649
+base,Sirius Solar PV Project One,REIPPPP_BW4,solar,Generator,Existing,75,-,-,-,2046,-,-,-,-,0%,872,0,-,-,-,-,-,-28.41492673,21.2219053
+base,Soetwater Wind Farm,REIPPPP_BW4,onwind,Generator,Under construction,139.4,-,-,2024,2042,-,-,-,-,0%,687,0,-,-,-,-,-,-32.40945174,20.66983649
+base,Solar Capital Orange,REIPPPP_BW4,solar,Generator,Under construction,75,-,-,2023,2047,-,-,-,-,0%,872,0,-,-,-,-,-,-30.91810861,19.44104346
+base,The Karusa Wind Farm,REIPPPP_BW4,onwind,Generator,Existing,139.8,-,-,-,2046,-,-,-,-,0%,687,0,-,-,-,-,-,-32.40945174,20.66983649
+base,Waterloo Solar Park,REIPPPP_BW4,solar,Generator,Existing,75,-,-,-,2046,-,-,-,-,0%,872,0,-,-,-,-,-,-26.93816488,24.70485455
+base,Wesley Ciskei,REIPPPP_BW4,onwind,Generator,Existing,32.7,-,-,-,2041,-,-,-,-,0%,687,0,-,-,-,-,-,-33.28239705,27.4298131
+base,Zeerust,REIPPPP_BW4,solar,Generator,Existing,75,-,-,-,2046,-,-,-,-,0%,872,0,-,-,-,-,-,-25.23658001,26.08241936
+base,Kelvin,other,coal,Generator,Existing,160,-,-,-,2027,12.372,15.6,0.5,0.5,30%,80,0,-,-,-,-,-,-26.658,28.1138
+base,Sasol SSF,other,coal,Generator,Existing,600,-,-,-,beyond 2050,12.372,15.6,0.5,0.5,0%,900,0,-,-,-,-,-,-26.5036,29.1803
+base,Avon,other,diesel,Generator,Existing,670,167.5,4,-,2046,11.519,263.4,11,11,0%,3,169,-,-,-,-,-,-29.251,31.0941
+base,Dedisa,other,diesel,Generator,Existing,335,167.5,2,-,2046,11.519,263.4,11,11,0%,3,169,-,-,-,-,-,-33.4433,25.4022
+base,Sasol Infrach Engines,other,gas,Generator,Existing,175,9.7,18,-,beyond 2050,7.6,75,8,8,30%,950,0,-,-,-,-,-,-26.8102,27.8277
+base,Sasol OCGT,other,gas,Generator,Existing,250,50,5,-,beyond 2050,11.519,75,2,2,0%,950,0,-,-,-,-,-,-26.8102,27.8277
+base,CahoraBassa,other,hydro-import,Generator,Existing,1764,250,6,-,beyond 2050,-,-,-,-,0%,300,0,-,-,-,-,-,,
+base,ColleyWobbles,other,hydro,Generator,Existing,65,65,1,-,beyond 2050,-,-,-,-,0%,300,0,-,-,-,-,-,-32.05,28.58333
+base,Mondi,other,biomass,Generator,Existing,120,30,4,-,beyond 2050,-,-,0.5,0.5,30%,500,0,-,-,-,-,-,,
+base,Sappi,other,biomass,Generator,Existing,144,36,4,-,beyond 2050,-,-,0.5,0.5,30%,500,0,-,-,-,-,-,-25.3447,30.394
+base,Steenbras,other,PHS,StorageUnit,Existing,180,45,4,-,beyond 2050,-,-,-,-,0%,300,222,72%,4,45,2.7,-,-34.153,18.9

@@ -22,17 +22,19 @@ base_network
 .. automodule:: base_network
     :members:
 
-build_bus_regions
--------------------------------
-
-.. automodule:: build_bus_regions
-    :members:
 
 build_cutout
 -------------------------------
 
 .. automodule:: build_cutout
     :members:
+
+..
+    build_inflow_per_country
+    -------------------------------
+
+    .. automodule:: build_inflow_per_country
+        :members:
 
 build_natura_raster
 -------------------------------
@@ -46,44 +48,52 @@ build_renewable_profiles
 .. automodule:: build_renewable_profiles
     :members:
 
-build_shapes
+build_topology
 -------------------------------
 
-.. automodule:: build_shapes
+.. automodule:: build_topology
     :members:
 
-cluster_network
+..
+    extract_summaries
+    -------------------------------
+
+    .. automodule:: extract_summaries
+        :members:
+
+..
+    make_summary
+    -------------------------------
+
+    .. automodule:: make_summary
+        :members:
+
+    plot_comparisons
+    -------------------------------
+
+    .. automodule:: plot_comparisons
+        :members:
+
+plot_network
 -------------------------------
 
-.. automodule:: cluster_network
+.. automodule:: plot_network
     :members:
 
-build_osm_network
+prepare_network
 -------------------------------
 
-.. automodule:: build_osm_network
+.. automodule:: prepare_network
     :members:
+..
+    scenario_comparison
+    -------------------------------
 
-clean_osm_data
+    .. automodule:: scenario_comparison
+        :members:
+
+solve_network
 -------------------------------
 
-.. automodule:: clean_osm_data
-    :members:
-
-config_osm_data
--------------------------------
-
-.. automodule:: config_osm_data
-    :members:
-
-download_osm_data
--------------------------------
-
-.. automodule:: download_osm_data
-    :members:
-
-simplify_network
--------------------------------
-
-.. automodule:: simplify_network
+.. automodule:: solve_network
     :members:

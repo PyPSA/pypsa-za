@@ -1,0 +1,11 @@
+,Unit,Values,Description
+version,--,0.x.x,"Version of PyPSA-ZA"
+logging,,,
+-- level,--,"Any of {'INFO', 'WARNING', 'ERROR'}","Restrict console outputs to all infos, warning or errors only"
+-- format,--,"","Custom format for log messages. See `LogRecord <https://docs.python.org/3/library/logging.html#logging.LogRecord>`_ attributes."
+-- build_natura_raster,bool,"{true, false}","Switch to enable the creation of the raster ``natura.tiff`` via the rule :mod:`build_natura_raster`."
+-- build_topology,bool,"{true, false}","Switch to build the base network into specific regions via the rule :mod:`build_topology` or whether to keep use a pre-build base network."
+-- build_cutout,bool,"{true, false}","Switch to enable the building of cutouts via the rule :mod:`build_cutout`."
+-- use_eskom_wind_solar,bool,"{true, false}","Model defaults to Eskom hourly pu profiles for all wind and solar generators via :mod:`add_electricity`."
+-- use_excel_wind_solar,bool,"{true, false}","Model defaults to excel input hourly pu profiles for all wind and solar generators."
+-- build_renewable_profiles,bool,"{true, false}","Switch to enable calculation of renewable profiles using atlite and Global Wind Atlas."

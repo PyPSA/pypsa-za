@@ -1,8 +1,17 @@
 version: 2.0
+tutorial: true
 
 logging:
   level: INFO
   format: "%(levelname)s:%(name)s:%(message)s"
+
+scenario:
+  regions: [1-supply]
+  resarea: [redz]
+  simpl: ['']
+  ll: ['copt']
+  clusters: [5]
+  opts: [Co2L-24H]
 
 # General inputs
 data:
@@ -15,6 +24,7 @@ crs:
   geo_crs: EPSG:4326  # general geographic projection, not used for metric measures. "EPSG:4326" is the standard used by OSM and google maps
   distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
+
 
 # When running the model for the first time it is necessary to enable the following scripts:
 # build_natura_raster, build_population, build_topology, build_cutout. For subsequent model
@@ -23,33 +33,11 @@ crs:
 # re-runs of the snakemake workflow, where you may not necessarily want to rebuild everything
 enable:
   build_natura_raster: true # Rasters natural protection areas onto all cutout regions
-  build_topology: true # Base network topology
-  build_cutout: true #false # Atlite cutout 
+  build_topology: true # Build base network topology
+  build_cutout: true # Atlite cutout 
   use_eskom_wind_solar: false # Model defaults to Eskom hourly pu profiles for all wind and solar generators
   use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"] # Model defaults to excel input hourly pu profiles for all wind and solar generators  
   build_renewable_profiles: true #false # Enable calculation of renewable profiles
-
-scenario:
-  resarea: [redz]
-  regions: [27-supply]
-  ll: ['copt']
-  model_file: ['IRP_2019','validation_4']
-  opts: [Co2L-3H,LC-1H]
-
-# General inputs
-data:
-  resarea:
-    redz: REDZ_DEA_Unpublished_Draft_2015
-    corridors: Power_corridors
-
-# definition of the Coordinate Reference Systems
-crs:
-  geo_crs: EPSG:4326  # general geographic projection, not used for metric measures. "EPSG:4326" is the standard used by OSM and google maps
-  distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
-  area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
-
-
-
 
 # Specification of relevent years for the model
 years: 
@@ -63,16 +51,16 @@ years:
     # can be single or multiple years if multiple years are specified these are applied 
     # sequencially to the simulation years
     CSP: [2021] 
-    biomass: [2021]
     hydro: [2021]
-    hydro-import: [2021]
+    biomass: [2021]
+    imports: [2021]
 
 electricity:
-  co2limit: 2.e+9    # Cumulative CO2 emissions budget for all simulation years combined
-  renewable_carriers: [solar, onwind, CSP, biomass, hydro, hydro-import] # defines renewable carriers
+  co2limit: 2.e+9    # 470.9e+5  Cumulative CO2 emissions budget for all simulation years combined
+  renewable_carriers: [solar, onwind, CSP, biomass, hydro] # defines renewable carriers
   generator_availability: # generator planned and unplanned outages are included based on Eskom data
     implement_availability: true
-    reference_years: [2019] #if multiple years specified an average is used
+    reference_years: [2021] #if multiple years specified an average is used
     new_unit_ref: 
     # New generator availability is based on an existing Eskom generator
     # in the format [generator, ref year/s (avg), rescale e.g 10% higher]
@@ -87,15 +75,15 @@ electricity:
     OCGT: 0 
     CCGT: 0
     nuclear: 0
-    biomass: 0
 
   min_capacity_factor: # Minimum annual capacity factor 
+    # TODO make per week
     CCGT: 0.3 
     nuclear: 0.5
 
   extendable_carriers:
     Renewables: ['onwind', solar]
-    Generator: [CCGT, OCGT, coal, nuclear, hydro-import]
+    Generator: [CCGT, OCGT, coal, nuclear]
     StorageUnit: [battery, PHS] 
 
   buses:
@@ -112,20 +100,16 @@ electricity:
       nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
       imports: [POLOKWANE]
   
+  SAFE_reservemargin: 0.1
 
-  reserve_margin:
-    coal: 0.8
-    OCGT: 1
-    CCGT: 1
-    diesel: 1
-    gas: 1
-    biomass: 1
-    onwind: 0.1 #.i.e only 10% of installed wind capacity is counted towards reserve_margin
-    PHS: 1
-    battery: 0.5
-
-  operating_reserves:
-      spinning: ['battery','PHS']
+  reserves:
+    reserve_margin: # like https://genxproject.github.io/GenX/dev/core/#Reserves
+      activate: false
+      epsilon_load: 0.02 # share of total load
+      epsilon_vres: 0.02 # share of total renewable supply
+      contingency: 0 # fixed capacity in MW
+    operating_reserves:
+      fast: ['battery','PHS']
       total: ['diesel','gas','OCGT','CCGT','battery','PHS'] 
   max_hours:
     battery: 3
@@ -163,16 +147,6 @@ atlite:
       dx: 0.3
       dy: 0.3
       time: ['2012', '2012']
-    # RSA-2012-sarah:
-    #  module: [sarah, era5] # in priority order
-    #  x: [16, 35]
-    #  y: [-35.,-21]
-    #  dx: 0.2
-    #  dy: 0.2
-    #  time: ['2012', '2012']
-    #  sarah_interpolate: false
-    #  sarah_dir:
-    #  features: [influx, temperature]
   apply_wind_correction: true
 
 renewable:
@@ -181,21 +155,14 @@ renewable:
     resource:
       method: wind
       turbine: NREL_ReferenceTurbine_2020ATB_4MW
-    capacity_per_sqkm: 3 # ScholzPhd Tab 4.3.1: 10MW/km^2 and assuming 30% fraction of the already restricted
+    capacity_per_sqkm: 3 
+    # ScholzPhd Tab 4.3.1: 10MW/km^2 and assuming 30% fraction of the already restricted
     # area is available for installation of wind generators due to competing land use and likely public
     # acceptance issues.
-    # correction_factor: 0.93
     salandcover:
       grid_codes: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 32]
       distance: 1000
       distance_grid_codes: [1, 2, 3, 4, 5, 6]
-
-    #corine:
-      # Scholz, Y. (2012). Renewable energy based electricity supply at low costs:
-      #  development of the REMix model and application for Europe. ( p.42 / p.28)
-    #  grid_codes: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 32]
-    #  distance: 1000
-    #  distance_grid_codes: [1, 2, 3, 4, 5, 6]
     natura: true
     excluder_resolution: 100
     potential: simple # or conservative
@@ -207,9 +174,8 @@ renewable:
       method: pv
       panel: CSi
       orientation: latitude_optimal
-        #slope: 35.
-        #azimuth: 0.
-    capacity_per_sqkm: 1.7 # ScholzPhd Tab 4.3.1: 170 MW/km^2 and assuming 1% of the area can be used for solar PV panels
+    capacity_per_sqkm: 1.7 
+    # ScholzPhd Tab 4.3.1: 170 MW/km^2 and assuming 1% of the area can be used for solar PV panels
     # Correction factor determined by comparing uncorrected area-weighted full-load hours to those
     # published in Supplementary Data to
     # Pietzcker, Robert Carl, et al. "Using the sun to decarbonize the power
@@ -217,8 +183,6 @@ renewable:
     # power." Applied Energy 135 (2014): 704-720.
     # This correction factor of 0.854337 may be in order if using reanalysis data.
     # for discussion refer to https://github.com/PyPSA/pypsa-eur/pull/304
-    # correction_factor: 0.854337
-  #  corine: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 26, 31, 32]
     natura: true
     excluder_resolution: 100
     potential: simple # or conservative
@@ -227,12 +191,6 @@ renewable:
       grid_codes: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 32]
       distance: 1000
       distance_grid_codes: [1, 2, 3, 4, 5, 6]
-  # hydro:
-  #   cutout: RSA-2013-era5
-  #   carriers: [ror, PHS, hydro]
-  #   PHS_max_hours: 6
-  #   hydro_max_hours: "energy_capacity_totals_by_country" # one of energy_capacity_totals_by_country, estimate_by_large_installations or a float
-  #   clip_min_inflow: 1.0
 
 hydro_inflow:
   disable: false #true
@@ -298,7 +256,7 @@ costs:
     investment: 0
     lifetime: 25
     "CO2 intensity": 0
-    "discount rate": 0.082
+    "discount rate": 0.07
 
   emission_prices: # only used with the option Ep (emission prices)
     # Externality costs from Integrated Energy Plan by the ZA DOE
@@ -314,8 +272,7 @@ tsam_clustering:
   rescaleClusterPeriods: False
   hoursPerPeriod: 24
   clusterMethod: 'hierarchical'
-  nprocesses: 15
-  solver: 'cbc' #need to use open source solver here due to parallel processing of years
+  solver: 'cbc'
 
 solving:
   tmpdir: /tmp
@@ -327,16 +284,11 @@ solving:
     min_iterations: 1
     max_iterations: 10
     formulation: kirchhoff
-    # max_iterations: 1
-    # nhours: 10
   solver:
-    name: xpress
+    name: cbc
     lpflags: 4
     crossover: 0
     bargapstop: 1.e-5
-    # FeasibilityTol: 1.e-6
-    # LogToConsole: 0
-    # OutputFlag: 1
 
 plotting:
   map:
@@ -348,7 +300,7 @@ plotting:
 
   costs_max: 1000
 
-  vre_techs: ["onwind","solar", "hydro", "hydro-import"]
+  vre_techs: ["onwind","solar", "ror"]
   conv_techs: ["OCGT", "CCGT", "nuclear", "coal"]
   storage_techs: ["hydro", "CAES", "battery", "PHS", "hydro+PHS"]
   store_techs: ["Li ion", "water tanks"]
@@ -369,7 +321,6 @@ plotting:
     "offwind-dc": "#77D1E4"
     "offshore wind dc": "#77D1E4"
     "hydro": "#004F95"
-    "hydro-import": "#004F95"
     "hydro+PHS": "#004F95"
     "PHS": "#004F95"
     "hydro reservoir": "#004F95"

@@ -1,0 +1,42 @@
+Scenario,Power Station Name,Carrier,Type,Status,Capacity (MW),Unit size (MW),Number units,Future Commissioning Date,Decommissioning Date,Heat Rate (GJ/MWh),Fuel Price (R/GJ),Max Ramp Up (MW/min),Max Ramp Down (MW/min),Min Stable Level (%),Variable O&M Cost (R/MWh),Fixed O&M Cost (R/kW/yr),Pump Efficiency (%),Pump Units,Pump Load per unit (MW),Pumped Storage - Max Storage (GWh),CSP Storage (hours),Diesel Storage (Ml),Gas storage (MCM),GPS Latitude,GPS Longitude
+base,Arnot*,coal,Generator,Existing,1116,372,3,-,2027,13.397,25.9,2.1,2.1,30%,98,1133,-,-,-,-,-,,,-25.94444,29.79166
+base,Arnot**,coal,Generator,Existing,1116,372,3,-,2030,13.397,25.9,2.1,2.1,30%,98,1133,-,-,-,-,-,0,0,-25.94444,29.79166
+base,Camden*,coal,Generator,Existing,740,370,2,-,2022,14,32,1,1,30%,98,1133,-,-,-,-,-,,,-26.62007,30.09113
+base,Camden**,coal,Generator,Existing,370,370,1,-,2024,14,32,1,1,30%,98,1133,-,-,-,-,-,,,-26.62007,30.09113
+base,Duvha*,coal,Generator,Existing,1150,575,2,-,2032,12.685,18,3.3,3.3,30%,98,1133,-,-,-,-,-,,,-25.95954,29.34094
+base,Duvha**,coal,Generator,Existing,1725,575,3,,2035,12.685,18,3.3,3.3,30%,98,1133,-,-,-,-,-,0,0,-25.95954,29.34094
+base,Grootvlei*,coal,Generator,Existing,286,143,2,-,2019,14.497,29.8,0.9,0.9,30%,98,1133,-,-,-,-,-,,,-26.76955,28.49951
+base,Grootvlei**,coal,Generator,Existing,286,143,2,,2020,14.497,29.8,0.9,0.9,30%,98,1133,-,-,-,-,-,0,0,-26.76955,28.49951
+base,Hendrina*,coal,Generator,Existing,440,110,4,-,2021,13.946,28.7,1.1,1.1,30%,98,1133,-,-,-,-,-,,,-26.03138,29.60138
+base,Hendrina**,coal,Generator,Existing,440,110,4,,2023,13.946,28.7,1.1,1.1,30%,98,1133,-,-,-,-,-,0,0,-26.03138,29.60138
+base,Kendal*,coal,Generator,Existing,1920,640,3,-,2041,12.385,24.3,1.8,1.8,30%,98,1133,-,-,-,-,-,,,-26.08805,28.96888
+base,Kendal**,coal,Generator,Existing,1920,640,3,,2044,12.385,24.3,1.8,1.8,30%,98,1133,-,-,-,-,-,0,0,-26.08805,28.96888
+base,Komati,coal,Generator,Existing,114,114,1,-,2022,15.898,34.7,0.5,0.5,30%,98,1133,-,-,-,-,-,,,-26.09078,29.47446
+base,Kriel*,coal,Generator,Existing,1425,475,3,-,2024,12.925,28.6,3.6,3.6,30%,98,1133,-,-,-,-,-,,,-26.25404,29.18008
+base,Kriel**,coal,Generator,Existing,1425,475,3,,2028,12.925,28.6,3.6,3.6,30%,98,1133,-,-,-,-,-,0,0,-26.25404,29.18008
+base,Kusile*,coal,Generator,Existing,2880,720,4,-,beyond 2050,9.812,31.6,7.2,7.2,30%,98,1133,-,-,-,-,-,,,-25.5459,28.5502
+base,Kusile**,coal,Generator,Existing,720,720,1,2023,beyond 2050,9.812,31.6,7.2,7.2,30%,98,1133,-,-,-,-,-,0,0,-25.5459,28.5502
+base,Kusile***,coal,Generator,Existing,720,720,1,2024,beyond 2050,9.812,31.6,7.2,7.2,30%,98,1133,-,-,-,-,-,0,0,-25.5459,28.5502
+base,Lethabo*,coal,Generator,Existing,1779,593,3,-,2039,11.566,14.4,5.9,5.9,30%,98,1133,-,-,-,-,-,,,-26.74027,27.975
+base,Lethabo**,coal,Generator,Existing,1779,593,3,,2042,11.566,14.4,5.9,5.9,30%,98,1133,-,-,-,-,-,0,0,-26.74027,27.975
+base,Majuba*,coal,Generator,Existing,1833,611,3,-,2031,12.385,32.1,1.7,1.7,30%,98,1133,-,-,-,-,-,,,-27.09555,29.77055
+base,Majuba**,coal,Generator,Existing,2010,670,3,-,2050,11.597,32.1,1.9,1.9,30%,98,1133,-,-,-,-,-,,,-27.09555,29.77055
+base,Matimba*,coal,Generator,Existing,1845,615,3,-,2040,12.281,17.5,3,3,30%,98,1133,-,-,-,-,-,,,-23.66777,27.61277
+base,Matimba**,coal,Generator,Existing,1845,615,3,,2043,12.281,17.5,3,3,30%,98,1133,-,-,-,-,-,0,0,-23.66777,27.61277
+base,Matla*,coal,Generator,Existing,1725,575,3,-,2032,12.685,30.2,2.4,2.4,30%,98,1133,-,-,-,-,-,,,-26.28036,29.14229
+base,Matla**,coal,Generator,Existing,1725,575,3,,2034,12.685,30.2,2.4,2.4,30%,98,1133,-,-,-,-,-,0,0,-26.28036,29.14229
+base,Medupi*,coal,Generator,Existing,3615,723,5,-,beyond 2050,9.812,21.4,7.2,7.2,30%,98,1133,-,-,-,-,-,,,-23.42,27.33
+base,Medupi**,coal,Generator,Existing,723,723,1,,beyond 2050,9.812,21.4,7.2,7.2,30%,98,1133,-,-,-,-,-,0,0,-23.42,27.33
+base,Tutuka*,coal,Generator,Existing,1755,585,3,-,2040,11.506,32.3,3.2,3.2,30%,98,1133,-,-,-,-,-,,,-26.77565,29.35212
+base,Tutuka**,coal,Generator,Existing,1755,585,3,,2042,11.506,32.3,3.2,3.2,30%,98,1133,-,-,-,-,-,0,0,-26.77565,29.35212
+base,Sere,onwind,Generator,Existing,100,2,50,-,2034,-,-,-,-,30%,737,0,-,-,-,-,-,,,-31.5018,18.1143
+base,Koeberg,nuclear,Generator,Existing,1854,930,2,-,2047,11.111,8.5,-,-,30%,45,1187,-,-,-,-,-,,,-33.67366,18.42811
+base,Drakensberg,PHS,StorageUnit,Existing,1000,250,4,-,beyond 2050,-,-,-,-,30%,0.0001,222,73.7%,4,250,21.7,-,,,-28.56283,29.08275
+base,Ingula,PHS,StorageUnit,Existing,1332,333,4,-,beyond 2050,-,-,-,-,30%,0.0002,2796,78.0%,4,333,27.4,-,,,-28.165,29.3512
+base,Palmiet,PHS,StorageUnit,Existing,400,200,2,-,beyond 2050,-,-,-,-,30%,0.0003,222,77.9%,2,200,10,-,,,-34.19722,18.97361
+base,Gariep,hydro,Generator,Existing,360,90,4,-,beyond 2050,-,-,-,-,30%,350,0,-,-,-,-,-,,,-30.62396,25.50403
+base,Vanderkloof,hydro,Generator,Existing,240,120,2,-,beyond 2050,-,-,-,-,30%,350,0,-,-,-,-,-,,,-29.99337,24.73384
+base,Acacia,diesel,Generator,Existing,171,57,3,-,2026,11.519,284.4,3.4,3.4,30%,3,196,-,-,-,-,-,,,-33.88408,18.53361
+base,Ankerlig,diesel,Generator,Existing,1332,148,9,-,2039,11.519,263.4,9,9,30%,3,196,-,-,-,-,-,,,-33.592,18.4607
+base,Gourikwa,diesel,Generator,Existing,740,148,5,-,2038,11.519,263.4,9,9,30%,3,196,-,-,-,-,-,,,-34.16526,21.96077
+base,PortRex,diesel,Generator,Existing,171,57,3,-,2026,11.519,284.4,3.4,3.4,30%,3,196,-,-,-,-,-,,,-33.02739,27.88382

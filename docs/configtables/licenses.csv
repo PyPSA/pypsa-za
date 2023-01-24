@@ -1,14 +1,16 @@
 "Files","BY","NC","SA","Mark Changes",Detail
-"supply_regions/*","x",,,"x",https://land.copernicus.eu/pan-european/corine-land-cover/clc-2012?tab=metadata
-"SAPAD_OR_2017_Q2/*","x","x","x",,http://www.marineregions.org/disclaimer.php
-"SACAD_OR_2017_Q2/*","x",,,,https://www.eea.europa.eu/data-and-maps/data/natura-10#tab-metadata
-"REDZ_DEA_Unpublished_Draft_2015/*",,,,,http://www.naturalearthdata.com/about/terms-of-use/
-"Phase2_REDZs/*","x","x",,"x",https://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/administrative-units-statistical-units
-"Power_corridors","x",,"x",, RSA DEA, REDZs Strategic Transmission Corridors (Apr 2017)
-"SystemEnergy2009_13.csv","x",,,,https://www.eia.gov/about/copyrights_reuse.php
-"ZAF_wind-speed_100m.tif","x",,,,https://www.gebco.net/data_and_products/gridded_bathymetry_data/documents/gebco_2014_historic.pdf
-"Supply_area_normalised power feed-in for PV.xlsx ","x",,,D. S. Bofinger, B. Zimmermann, A.-K. Gerlach, D. T. Bischof-Niemz, C. Mushwana, Wind and Solar PV Resource Aggregation Study for South Africa. (2016).,
-"Supply_area_normalised power feed-in for Wind.xlsx","x","x",,,D. S. Bofinger, B. Zimmermann, A.-K. Gerlach, D. T. Bischof-Niemz, C. Mushwana, Wind and Solar PV Resource Aggregation Study for South Africa. (2016).
-costs.csv","x",,,"x",https://ec.europa.eu/eurostat/about/policies/copyright
-"EIA_hydro_generation","x",,,"x",https://ec.europa.eu/eurostat/about/policies/copyright
-"time_series_60min _singleindex_filtered.csv","x",,,,https://data.open-power-system-data.org/time_series/2019-06-05/README.md
+"supply_regions/11-supply.shp","x","x","x","x",https://www.eskom.co.za/eskom-divisions/tx/gcca/
+"supply_regions/RSA.shp","x","x","x","x",https://www.eskom.co.za/eskom-divisions/tx/gcca/
+"SAPAD_OR_2017_Q2/*","x","x","x",,https://egis.environment.gov.za/protected_and_conservation_areas_database
+"SACAD_OR_2017_Q2/*","x","x",x,,https://egis.environment.gov.za/protected_and_conservation_areas_database
+"REDZ_DEA_Unpublished_Draft_2015/*","x","x","x",,https://egis.environment.gov.za/redz
+"Phase2_REDZs/*","x","x","x",,https://egis.environment.gov.za/redz
+"Power_corridors","x","x","x",,https://egis.environment.gov.za/egi
+"SystemEnergy2009_13.csv","x",,,,Eskom System Energy 2009-13 Hourly available from Eskom on request
+"ZAF_wind-speed_100m.tif","x",,,,https://globalwindatlas.info/en/area/South%20Africa
+"Supply_area_normalised power feed-in for PV.xlsx ","x",,,,https://www.csir.co.za/csir-energy-centre-documents
+"Supply_area_normalised power feed-in for Wind.xlsx","x",,,,https://www.csir.co.za/csir-energy-centre-documents
+"Existing Power Stations SA.xlsx","x","x",,,https://www.energy.gov.za/IRP/2016/Draft-IRP-2016-Assumptions-Base-Case-and-Observations-Revision1.pdf
+"SALandCover_OriginalUTM35North_2013_GTI_72Classes","x","x",,,https://egis.environment.gov.za/sa_national_land_cover_datasets
+"data/EIA_hydro_generation_2011_2014.csv","x","x",,, U.S. EIA Hydroelectricity Net Generation ZA and MZ 2011-2014 (2017).
+"data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif","x","x",,, https://hub.worldpop.org/doi/10.5258/SOTON/WP00246
