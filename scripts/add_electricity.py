@@ -644,10 +644,10 @@ def attach_extendable_generators(n, costs):
     carriers = elec_opts['extendable_carriers']['Generator']
     if snakemake.wildcards.regions=='RSA':
         buses = dict(zip(carriers,['RSA']*len(carriers)))
-    elif snakemake.wildcards.regions=='27-supply':
-        buses = elec_opts['buses']['27-supply']
+    elif snakemake.wildcards.regions=='30-supply':
+        buses = elec_opts['buses']['30-supply']
     else:
-        buses = elec_opts['buses']['9_10_11-supply']
+        buses = elec_opts['buses']['11-supply']
 
     _add_missing_carriers_from_costs(n, costs[n.investment_periods[0]], carriers)
 
@@ -750,7 +750,7 @@ if __name__ == "__main__":
         snakemake = mock_snakemake(
             'add_electricity', 
             **{
-                'model_file':'val-LC-SMOOTH',
+                'model_file':'val-2Gt-UNC-1',
                 'regions':'RSA',
                 'resarea':'redz',
                 'll':'copt',

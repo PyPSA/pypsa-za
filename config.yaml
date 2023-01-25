@@ -46,7 +46,7 @@ years:
     hydro-import: [2021]
 
 electricity:
-  co2limit: 2.e+9    # Cumulative CO2 emissions budget for all simulation years combined
+  co2limit: 2.2e+9    # Cumulative CO2 emissions budget for all simulation years combined
   renewable_carriers: [solar, onwind, CSP, biomass, hydro, hydro-import] # defines renewable carriers
   generator_availability: # generator planned and unplanned outages are included based on Eskom data
     implement_availability: true
@@ -77,13 +77,13 @@ electricity:
     StorageUnit: [battery, PHS] 
 
   buses:
-    9_10_11-supply: 
+    11-supply: 
       OCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE] # Saldana Bay, Richards Bay, Coega
       CCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE]
       coal: [GAUTENG, LIMPOPO] # Johannesburg, Waterberg
       nuclear: [EASTERN CAPE, WESTERN CAPE] # Thyspunt, Koeberg
       imports: [LIMPOPO]         
-    27-supply:
+    30-supply:
       OCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
       CCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH]
       coal: [JOHANNESBURG, WATERBERG]
