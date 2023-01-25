@@ -5,34 +5,45 @@
 
 PyPSA-ZA: An open Optimisation Model of the South African Power System
 =======================================================================
-.. image:: ../imgs/network_csir-moderate_redz_E_LC_p_nom_ext.png
-   :width: 50%
+
+PyPSA-ZA is an open model dataset of the South African power system at three spatial resolutions namely;
+
+- ``1-supply``: A single node for the entire South Africa.
+- ``11-supply``: 11 nodes based on the `Eskom Generation Connection Capacity Assessment of the 2024 Transmission Network (GCCA – 2024)  <https://www.eskom.co.za/eskom-divisions/tx/gcca/>`_ regions.
+- ``27-supply``: 27 nodes based on Eskom 27 supply regions.
+
+.. image:: img/1-supply.png
+   :width: 500
    :align: center
+   :alt: 1-supply
 
-An initial PyPSA-ZA model of the South African power system called was developed by `Hörsch 
-and Calitz <https://arxiv.org/pdf/1710.11199.pdf>`_ who studied a future renewable energy based 
-South African electricity network for a single reference year (in other words, it was not an 
-intertemporally optimised power system development model – showing an optimised transition 
-over time – it only provided a snapshot of an optimised high renewables system at a particular 
-point in time – 2040, albeit with reasonable spatial (network) resolution.
+.. image:: img/11-supply.png
+   :width: 500
+   :align: center
+   :alt: 9-supply
 
-The PyPSA-ZA model has been designed to handle high spatial resolution 
-(detailed network specification, i.e. grid constraints), but it does not perform multi-year 
-optimisation and instead analyses a single year snapshot. Currently, there is no existing PyPSA model 
-for South Africa that can be used to address the multi-year, least cost optimised, transition path to 
-a decarbonised power sector over the coming decades. Therefore, an updated and expanded PyPSA-ZA model 
-is required that is comparable with the existing, mostly proprietary, modelling approaches that are 
-used in the country. 
+.. image:: img/27-supply.png
+   :width: 500
+   :align: center
+   :alt: 27-supply
 
-Although the experience from `PyPSA-Eur <https://github.com/PyPSA/pypsa-eur>`_, PyPSA-ZA and 
-`PyPSA meets Earth <https://pypsa-meets-earth.github.io/>`_ has be leveraged to significantly shorten 
-the development timeframe for the new model, there remains extensive work that is required in terms 
-of input datasets, model development, and validation against existing results from commercial 
-tools to establish its credibility to ensure that the outcomes can be trusted to support policy decisions.
+PyPSA-ZA is a high temporal resolution multi-horizon expansion planning model for a least cost optimised transition path to 
+a decarbonised power sector over the coming decades for South Africa.
 
-.. PyPSA model of the South African electricity system at the level of ESKOM's supply regions.
-   The model is described and evaluated in the paper PyPSA-ZA: Investment and operation co-optimization of integrating wind and solar in South Africa at high spatial and temporal detail, 2017, arXiv:1710.11199. 
-   This repository contains the scripts to automatically reproduce the analysis.
+PyPSA-ZA makes use of freely available and open data which encourages the open exchange of model data developments and eases the comparison of model results. 
+It provides a full, automated software pipeline to assemble the load-flow-ready model from the original datasets, which enables easy replacement and 
+improvement of the individual parts.
+
+PyPSA-ZA is designed to be imported into the open toolbox `PyPSA <https://pypsa.org/>`_ for which `documentation <https://pypsa.readthedocs.io/en/latest/index.html>`_ is available as well.
+
+This project is currently maintained by `Meridian Economics <https://meridianeconomics.co.za/>`_. Previous versions were developed within the Energy Centre 
+at the `Council for Scientific and Industrial Research (CSIR) <https://www.csir.co.za/>`_ as part of the `CoNDyNet project <https://fias.institute/en/projects/condynet/>`_, which is supported by the 
+`German Federal Ministry of Education and Research <https://www.bmbf.de/bmbf/en/home/home_node.html>`_ under grant no. 03SF0472C.
+
+The model is currently under development and has been validated for the single node (`1-supply`), for more information on the capability of the moel please see the :ref:`release-notes`. 
+
+.. note::
+  Credits to `PyPSA-Eur <https://github.com/PyPSA/pypsa-eur>`_ and `PyPSA-Meets-Earth <https://github.com/pypsa-meets-earth/pypsa-earth>`_ developers for the initial drafting of the documentation here reported and adapted where necessary
 
 =============
 Documentation
@@ -42,6 +53,7 @@ Documentation
 
 * :doc:`introduction`
 * :doc:`installation`
+* :doc:`workflow`
 * :doc:`tutorials`
 * :doc:`data_workflow`
 
@@ -51,7 +63,8 @@ Documentation
    :caption: Getting Started
 
    introduction
-   installation  
+   installation
+   workflow  
    tutorials
    data_workflow    
 
@@ -70,20 +83,17 @@ Documentation
    configuration
    costs
 
-**Work flow and API**
+**API**
 
-* :doc:`structure`
-* :doc:`rules_overview`
 * :doc:`api_reference`
 
 .. toctree::
    :hidden:
    :maxdepth: 2
-   :caption: Work flow and API
+   :caption: API
 
-   structure
-   rules_overview
    api_reference
+
 
 **Help and References**
 

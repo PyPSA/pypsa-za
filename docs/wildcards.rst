@@ -21,9 +21,9 @@ Detailed explanations of how wildcards work in ``snakemake`` can be found in the
 .. _resarea:
 
 The ``{resarea}`` wildcard
-========================
+==========================
 
-The ``{resarea}`` wildcard specifies whether to contrain renewable generators to REDZ or transmission CORRIDORS.
+The ``{resarea}`` wildcard specifies whether to contrain renewable generators to `Renewable Energy Development Zones <https://egis.environment.gov.za/redz>`_  or strategic transmission corridors.
 
 .. csv-table::
    :header-rows: 1
@@ -33,10 +33,15 @@ The ``{resarea}`` wildcard specifies whether to contrain renewable generators to
 .. _model_file:
 
 The ``{model_file}`` wildcard
-===========================
+=============================
 
 The ``{model_file}`` wildcard specifies the technology cost assumptions to use from the input spreadsheet.  
-Cost assumptions in technology_costs.xlsz
+Cost assumptions in model_file.xlsx
+
+.. csv-table::
+   :header-rows: 1
+   :widths: 10,20,10,10
+   :file: configtables/model_setup.csv
 
 .. _ll:
 
@@ -90,20 +95,11 @@ It may hold multiple triggers separated by ``-``, i.e. ``Co2L-3H`` contains the
 The ``{regions}`` wildcard
 ==========================
 
-The rules :mod:`make_summary` and :mod:`plot_summary` (generating summaries of all or a subselection
-of the solved networks) as well as :mod:`plot_p_nom_map` (for plotting the cumulative
-generation potentials for renewable technologies) can be narrowed to
-individual countries using the ``{country}`` wildcard.
+The PyPSA-ZA models can be narrowed to various number of nodes using the ``{regions}`` wildcard.
 
-If ``regions=27-supply``, then the rule acts on the network for all countries
-defined in ``config.yaml``. If otherwise ``regions=RSA`` or another 2-letter
-country code, then the network is narrowed to buses of this country
-for the rule. For example to get a summary of the energy generated
-in Germany (in the solution for Europe) use:
+If ``regions=27-supply``, then the rule :mod:`build_topology` setups 27 nodes  based on the shape files. 
+If otherwise ``regions=RSA``, ``regions=9-supply``, ``regions=10-supply``, then the network is narrowed to n number of buses for the South African network. 
 
-.. code:: bash
-
-    snakemake -j 1 results/summaries/elec_s_all_lall_Co2L-3H_DE
 
 .. _cutout_wc:
 
@@ -121,7 +117,7 @@ The ``{technology}`` wildcard
 
 The ``{technology}`` wildcard specifies for which renewable energy technology to produce availability time
 series and potentials using the rule :mod:`build_renewable_profiles`.
-It can take the values ``onwind``, ``offwind-ac``, ``offwind-dc``, and ``solar`` but **not** ``hydro``
+It can take the values ``onwind`` and ``solar`` but **not** ``hydro``
 (since hydroelectric plant profiles are created by a different rule).
 
 The wildcard can moreover be used to create technology specific figures and summaries.
@@ -144,7 +140,7 @@ The ``{ext}`` wildcard
 ======================
 
 The ``{ext}`` wildcard specifies the file type of the figures the
-rule :mod:`plot_network`, :mod:`plot_summary`, and :mod:`plot_p_nom_max` produce.
+rule :mod:`plot_network` produce.
 Typical examples are ``pdf`` and ``png``. The list of supported file
 formats depends on the used backend. To query the supported file types on your system, issue:
 

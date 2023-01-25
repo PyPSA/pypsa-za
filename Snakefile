@@ -11,7 +11,13 @@ wildcard_constraints:
     model_file="[-a-zA-Z0-9]+",
     regions="[-+a-zA-Z0-9]+",
     opts="[-+a-zA-Z0-9]+"
-
+rule solve_all_networks:
+    input:
+        expand(
+            "results/networks/"+"elec_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc",
+            **config["scenario"]
+        ),
+        
 if config["enable"]["build_natura_raster"]:
     rule build_natura_raster:
         input:

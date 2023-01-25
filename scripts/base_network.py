@@ -4,9 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 """
-Creates the network topology from a `ENTSO-E map extract.
-
-<https://github.com/PyPSA/GridKit/tree/master/entsoe>`_ (March 2022) as a PyPSA
+Creates the network topology for South Africa from either South Africa's shape file, GCCA map extract for 10 supply regions or 27-supply regions shape file as a PyPSA
 network.
 
 Relevant Settings
@@ -16,7 +14,7 @@ Relevant Settings
 
     snapshots:
 
-    countries:
+    supply_regions:
 
     electricity:
         voltages:
@@ -45,20 +43,17 @@ Inputs
 ------
 
 - ``data/bundle/supply_regions/{regions}.shp``:  Shape file for different supply regions.
-- ``data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif``: Raster file of South African population from 
-- ``data/num_lines.xlsx``: confer :ref:`links`
+- ``data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif``: Raster file of South African population from https://hub.worldpop.org/doi/10.5258/SOTON/WP00246
+- ``data/num_lines.xlsx``: confer :ref:`lines`
 
 
 Outputs
 -------
 
-- ``networks/base.nc``
+- ``networks/base_{model_file}_{regions}.nc``
 
     .. image:: ../img/base.png
         :scale: 33 %
-- ``resources/buses_{regions}.geojson``
-- ``resources/lines_{regions}.geojson``
-
 """
 
 import networkx as nx

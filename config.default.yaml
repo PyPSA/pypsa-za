@@ -4,18 +4,6 @@ logging:
   level: INFO
   format: "%(levelname)s:%(name)s:%(message)s"
 
-# General inputs
-data:
-  resarea:
-    redz: REDZ_DEA_Unpublished_Draft_2015
-    corridors: Power_corridors
-
-# definition of the Coordinate Reference Systems
-crs:
-  geo_crs: EPSG:4326  # general geographic projection, not used for metric measures. "EPSG:4326" is the standard used by OSM and google maps
-  distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
-  area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
-
 # When running the model for the first time it is necessary to enable the following scripts:
 # build_natura_raster, build_population, build_topology, build_cutout. For subsequent model
 # runs these scripts can be diabled to save time. Although snakemake will skip the execution
@@ -24,7 +12,7 @@ crs:
 enable:
   build_natura_raster: true # Rasters natural protection areas onto all cutout regions
   build_topology: true # Base network topology
-  build_cutout: true #false # Atlite cutout 
+  build_cutout: false #false # Atlite cutout 
   use_eskom_wind_solar: false # Model defaults to Eskom hourly pu profiles for all wind and solar generators
   use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"] # Model defaults to excel input hourly pu profiles for all wind and solar generators  
   build_renewable_profiles: true #false # Enable calculation of renewable profiles
@@ -33,6 +21,7 @@ scenario:
   resarea: [redz]
   regions: [27-supply]
   ll: ['copt']
+  clusters: ['']
   model_file: ['IRP_2019','validation_4']
   opts: [Co2L-3H,LC-1H]
 
@@ -63,16 +52,16 @@ years:
     # can be single or multiple years if multiple years are specified these are applied 
     # sequencially to the simulation years
     CSP: [2021] 
-    biomass: [2021]
     hydro: [2021]
-    hydro-import: [2021]
+    biomass: [2021]
+    imports: [2021]
 
 electricity:
-  co2limit: 2.2e+9    # Cumulative CO2 emissions budget for all simulation years combined
-  renewable_carriers: [solar, onwind, CSP, biomass, hydro, hydro-import] # defines renewable carriers
+  co2limit: 2.e+9    # 470.9e+5  Cumulative CO2 emissions budget for all simulation years combined
+  renewable_carriers: [solar, onwind, CSP, biomass, hydro] # defines renewable carriers
   generator_availability: # generator planned and unplanned outages are included based on Eskom data
     implement_availability: true
-    reference_years: [2019] #if multiple years specified an average is used
+    reference_years: [2021] #if multiple years specified an average is used
     new_unit_ref: 
     # New generator availability is based on an existing Eskom generator
     # in the format [generator, ref year/s (avg), rescale e.g 10% higher]
@@ -87,45 +76,41 @@ electricity:
     OCGT: 0 
     CCGT: 0
     nuclear: 0
-    biomass: 0
 
   min_capacity_factor: # Minimum annual capacity factor 
+    # TODO make per week
     CCGT: 0.3 
     nuclear: 0.5
 
   extendable_carriers:
     Renewables: ['onwind', solar]
-    Generator: [CCGT, OCGT, coal, nuclear, hydro-import]
+    Generator: [CCGT, OCGT, coal, nuclear]
     StorageUnit: [battery, PHS] 
 
   buses:
-    11-supply: 
+    9_10_11-supply: 
       OCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE] # Saldana Bay, Richards Bay, Coega
       CCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE]
       coal: [GAUTENG, LIMPOPO] # Johannesburg, Waterberg
       nuclear: [EASTERN CAPE, WESTERN CAPE] # Thyspunt, Koeberg
       imports: [LIMPOPO]         
-    30-supply:
+    27-supply:
       OCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
       CCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH]
       coal: [JOHANNESBURG, WATERBERG]
       nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
       imports: [POLOKWANE]
   
+  SAFE_reservemargin: 0.1
 
-  reserve_margin:
-    coal: 0.8
-    OCGT: 1
-    CCGT: 1
-    diesel: 1
-    gas: 1
-    biomass: 1
-    onwind: 0.1 #.i.e only 10% of installed wind capacity is counted towards reserve_margin
-    PHS: 1
-    battery: 0.5
-
-  operating_reserves:
-      spinning: ['battery','PHS']
+  reserves:
+    reserve_margin: # like https://genxproject.github.io/GenX/dev/core/#Reserves
+      activate: false
+      epsilon_load: 0.02 # share of total load
+      epsilon_vres: 0.02 # share of total renewable supply
+      contingency: 0 # fixed capacity in MW
+    operating_reserves:
+      fast: ['battery','PHS']
       total: ['diesel','gas','OCGT','CCGT','battery','PHS'] 
   max_hours:
     battery: 3
@@ -298,7 +283,7 @@ costs:
     investment: 0
     lifetime: 25
     "CO2 intensity": 0
-    "discount rate": 0.082
+    "discount rate": 0.07
 
   emission_prices: # only used with the option Ep (emission prices)
     # Externality costs from Integrated Energy Plan by the ZA DOE
@@ -314,8 +299,7 @@ tsam_clustering:
   rescaleClusterPeriods: False
   hoursPerPeriod: 24
   clusterMethod: 'hierarchical'
-  nprocesses: 15
-  solver: 'cbc' #need to use open source solver here due to parallel processing of years
+  solver: 'xpress'
 
 solving:
   tmpdir: /tmp
@@ -348,7 +332,7 @@ plotting:
 
   costs_max: 1000
 
-  vre_techs: ["onwind","solar", "hydro", "hydro-import"]
+  vre_techs: ["onwind","solar", "ror"]
   conv_techs: ["OCGT", "CCGT", "nuclear", "coal"]
   storage_techs: ["hydro", "CAES", "battery", "PHS", "hydro+PHS"]
   store_techs: ["Li ion", "water tanks"]
@@ -369,7 +353,6 @@ plotting:
     "offwind-dc": "#77D1E4"
     "offshore wind dc": "#77D1E4"
     "hydro": "#004F95"
-    "hydro-import": "#004F95"
     "hydro+PHS": "#004F95"
     "PHS": "#004F95"
     "hydro reservoir": "#004F95"

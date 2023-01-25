@@ -52,25 +52,20 @@ Relevant Settings
 
 Inputs
 ------
-
-- ``data/costs.csv``: The database of cost assumptions for all included technologies for specific years from various sources; e.g. discount rate, lifetime, investment (CAPEX), fixed operation and maintenance (FOM), variable operation and maintenance (VOM), fuel costs, efficiency, carbon-dioxide intensity.
-- ``data/bundle/hydro_capacities.csv``: Hydropower plant store/discharge power capacities, energy storage capacity, and average hourly inflow by country.  Not currently used!
-
-    .. image:: ../img/hydrocapacities.png
-        :scale: 34 %
-
-- ``data/geth2015_hydro_capacities.csv``: alternative to capacities above; not currently used!
-- ``resources/ssp2-2.6/2030/era5_2013/Africa.nc`` Hourly country load profiles produced by GEGIS
+- ``model_file.xlsx``: The database to setup different scenarios based on cost assumptions for all included technologies for specific years from various sources; e.g. discount rate, lifetime, investment (CAPEX), fixed operation and maintenance (FOM), variable operation and maintenance (VOM), fuel costs, efficiency, carbon-dioxide intensity.
+- ``data/Eskom EAF data.xlsx``: Hydropower plant store/discharge power capacities, energy storage capacity, and average hourly inflow by country.  Not currently used!
+- ``data/eskom_pu_profiles.csv``: alternative to capacities above; not currently used!
+- ``data/bundle/SystemEnergy2009_22.csv`` Hourly country load profiles produced by GEGIS
 - ``resources/regions_onshore.geojson``: confer :ref:`busregions`
 - ``resources/gadm_shapes.geojson``: confer :ref:`shapes`
-- ``resources/powerplants.csv``: confer :ref:`powerplants`
-- ``resources/profile_{}.nc``: all technologies in ``config["renewables"].keys()``, confer :ref:`renewableprofiles`.
-- ``networks/base.nc``: confer :ref:`base`
+- ``data/bundle/supply_regions/{regions}.shp``: confer :ref:`powerplants`
+- ``resources/profile_{}_{regions}_{resarea}.nc``: all technologies in ``config["renewables"].keys()``, confer :ref:`renewableprofiles`.
+- ``networks/base_{model_file}_{regions}.nc``: confer :ref:`base`
 
 Outputs
 -------
 
-- ``networks/elec.nc``:
+- ``networks/elec_{model_file}_{regions}_{resarea}.nc``:
 
     .. image:: ../img/elec.png
             :scale: 33 %
