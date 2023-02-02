@@ -24,7 +24,7 @@ crs:
 enable:
   build_natura_raster: true # Rasters natural protection areas onto all cutout regions
   build_topology: true # Base network topology
-  build_cutout: true #false # Atlite cutout 
+  build_cutout: false #false # Atlite cutout 
   use_eskom_wind_solar: false # Model defaults to Eskom hourly pu profiles for all wind and solar generators
   use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"] # Model defaults to excel input hourly pu profiles for all wind and solar generators  
   build_renewable_profiles: true #false # Enable calculation of renewable profiles
@@ -47,8 +47,6 @@ crs:
   geo_crs: EPSG:4326  # general geographic projection, not used for metric measures. "EPSG:4326" is the standard used by OSM and google maps
   distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
   area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
-
-
 
 
 # Specification of relevent years for the model
@@ -105,7 +103,7 @@ electricity:
       coal: [GAUTENG, LIMPOPO] # Johannesburg, Waterberg
       nuclear: [EASTERN CAPE, WESTERN CAPE] # Thyspunt, Koeberg
       imports: [LIMPOPO]         
-    30-supply:
+    27-supply:
       OCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
       CCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH]
       coal: [JOHANNESBURG, WATERBERG]
