@@ -1,13 +1,46 @@
-# PyPSA-ZA
+# PyPSA-ZA: An open Optimisation Model of the South African Power System
+The accelerating development of open-source energy system modelling tools in recent years has now reached the point where it opens up a credible alternative approach to closed source exclusivity. An ever increasing number of studies are demonstrating that it is possible to produce analysis of a high quality using open-source energy system models, whilst building a wider participating modelling community. This builds confidence in results by enabling more effective peer review of work and therefore more effective feedback loops. It also builds a consistent stream of new talent entering the space to ensure that energy sector analytical capacity can be retained and steadily expanded.
 
-[PyPSA](https://pypsa.org/) model of the South African electricity system at the level of ESKOM's supply regions.
+PyPSA-ZA is an open energy model of the South African power system that can be utilised for both operational studies and generation and transmission expansion planning studies. PyPSA-ZA is built upon the the open toolbox [PyPSA](https://pypsa.org/) for which [documentation is available](https://pypsa.readthedocs.io/en/latest/index.html).
 
-![Visualisation of optimal capacities and costs in the least cost scenario](imgs/network_csir-moderate_redz_E_LC_p_nom_ext.png)
+This model makes use of freely available and open data which encourages the open exchange of model data developments and eases the comparison of model results. It provides a full, automated software pipeline to assemble the load-flow-ready model from the original datasets, which enables easy replacement and improvement of the individual parts.
 
-The model is described and evaluated in the paper [PyPSA-ZA: Investment and operation co-optimization of integrating wind and solar in South Africa at high spatial and temporal detail](https://arxiv.org/abs/1710.11199), 2017, [arXiv:1710.11199](https://arxiv.org/abs/1710.11199).
+PyPSA-ZA has been designed to conduct capacity expansion planning studies at differing spatial and temporal resolutions. 
+Three different spatial resolutions are available in the model:
 
-This repository contains the scripts to automatically reproduce the analysis.
+- ``1-supply``: A single node for the entire South Africa.
+- ``11-supply``: 11 nodes based on the [Eskom Generation Connection Capacity Assessment of the 2024 Transmission Network (GCCA – 2024)](https://www.eskom.co.za/eskom-divisions/tx/gcca/) regions.
+- ``27-supply``: 27 nodes based on Eskom 27 supply regions as per the original PyPSA-ZA model.
 
+
+![1-supply](docs/img/1-supply.png)
+
+![11-supply](docs/img/11-supply.png)
+
+![27-supply](docs/img/27-supply.png)
+
+PyPSA-ZA can be solved for a single year, or for multiple years, with perfect foresight.
+Multi-horizon capacity expansion planning is compuationally intensive, and therefore 
+the spatial resolution will typically need to be reduced to ``1-supply`` or ``11-supply``
+depending on the number of years modelled. By defualt PyPSA-ZA uses full chronology
+(8760h per year), but the number of snapshots can be reduced through the use of time-series 
+segmentation through the open-source [Time Series Aggregation Module]( https://github.com/FZJ-IEK3-VSA/tsam/). 
+
+This project is currently maintained by [Meridian Economics]( https://meridianeconomics.co.za/). Previous versions were developed within the Energy Centre 
+at the [Council for Scientific and Industrial Research (CSIR)](https://www.csir.co.za/) as part of the [CoNDyNet project](https://fias.institute/en/projects/condynet/), which is supported by the 
+[German Federal Ministry of Education and Research](https://www.bmbf.de/bmbf/en/home/home_node.html) under grant no. 03SF0472C. 
+
+The model is currently under development and has been validated for the single node (`1-supply`), for more information on the capability of the moel please see the [documentation](https://pypsa-za.readthedocs.io/en/latest/). 
+
+
+**NOTE**
+   
+  Credits to Jonas Hörsch and Joanne Calitz who developed the original [PyPSA-ZA model](https://arxiv.org/pdf/1710.11199.pdf), 
+  [Meridian Economics](http://meridianeconomics.co.za) who extended the PyPSA-ZA model.
+  PyPSA-ZA is relies on a number of functions from the [PyPSA-Eur](https://github.com/PyPSA/pypsa-eur) and [PyPSA-Meets-Earth](https://github.com/pypsa-meets-earth/pypsa-earth).
+
+
+<!---
 ## Instructions
 
 To build and solve the model, a computer with about 20GB of memory with a strong
@@ -53,24 +86,4 @@ specific scenario like `csir-aggressive_redz_E_LC`:
 ```shell
 .../pypsa-za % snakemake results/version-0.5/plots/network_csir-aggressive_redz_E_LC_p_nom
 ```
-
-## Data dependencies
-
-For ease of installation and reproduction we provide a bundle
-[`pypsa-za-bundle.7z`](https://vfs.fias.science/d/f204668ef2/files/?p=/pypsa-za-bundle.7z&dl=1)
-with the necessary data files:
-
-| File                                               | Citation                                                                                                                                                                                                       |
-|----------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| South_Africa_100m_Population                       | WorldPop, South Africa 100m Population (2013). [doi:10.5258/soton/wp00246](https://doi.org/10.5258/soton/wp00246)                                                                                             |
-| Supply area normalised power feed-in for PV.xlsx   | D. S. Bofinger, B. Zimmermann, A.-K. Gerlach, D. T. Bischof-Niemz, C. Mushwana, [Wind and Solar PV Resource Aggregation Study for South Africa](https://www.csir.co.za/csir-energy-centre-documents). (2016). |
-| Supply area normalised power feed-in for Wind.xlsx | same as above                                                                                                                                                                                                 |
-| EIA_hydro_generation_2011_2014.csv                 | U.S. EIA, [Hydroelectricity Net Generation ZA and MZ 2011-2014](http://tinyurl.com/EIA-hydro-gen-ZA-MZ-2011-2014) (2017).                                                                                     |
-| Existing Power Stations SA.xlsx                    | Compiled by CSIR from [Eskom Holdings](https://www.eskom.co.za/) (Jan 2017) and RSA DOE, [IRP2016](http://www.energy.gov.za/IRP/2016/Draft-IRP-2016-Assumptions-Base-Case-and-Observations-Revision1.pdf)     |
-| Power_corridors                                    | RSA DEA, [REDZs Strategic Transmission Corridors](https://egis.environment.gov.za/) (Apr 2017)                                                                                                                |
-| REDZ_DEA_Unpublished_Draft_2015                    | RSA DEA, [Wind and Solar PV Energy Strategic Environmental Assessment REDZ Database](https://egis.environment.gov.za/) (Mar 2017)                                                                             |
-| SACAD_OR_2017_Q2                                   | RSA DEA, [South Africa Conservation Areas Database (SACAD)](https://egis.environment.gov.za/) (Jun 2017)                                                                                                      |
-| SAPAD_OR_2017_Q2                                   | RSA DEA, [South Africa Protected Areas Database (SAPAD)](https://egis.environment.gov.za/) (Jun 2017)                                                                                                         |
-| SystemEnergy2009_13.csv                            | Eskom, System Energy 2009-13 Hourly, available from Eskom on request                                                                                                                                          |
-| SALandCover_OriginalUTM35North_2013_GTI_72Classes  | GEOTERRAIMAGE (South Africa), [2013-14 South African National Land-Cover Dataset](https://egis.environment.gov.za/data_egis/node/109) (2017)                                                                  |
-
+--->
