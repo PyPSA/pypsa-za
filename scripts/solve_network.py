@@ -120,6 +120,8 @@ from pypsa.descriptors import (
     get_non_extendable_i,
     nominal_attrs,
 )
+
+
 idx = pd.IndexSlice
 from vresutils.benchmark import memory_logger
 
@@ -128,6 +130,155 @@ warnings.simplefilter(action='ignore', category=FutureWarning) # Comment out for
 
 logger = logging.getLogger(__name__)
 
+def local_ilopf(
+    n,
+    snapshots=None,
+    msq_threshold=0.05,
+    min_iterations=1,
+    max_iterations=100,
+    track_iterations=False,
+    **kwargs,
+):
+    """
+    Iterative linear optimization updating the line parameters for passive AC
+    and DC lines. This is helpful when line expansion is enabled. After each
+    sucessful solving, line impedances and line resistance are recalculated
+    based on the optimization result. If warmstart is possible, it uses the
+    result from the previous iteration to fasten the optimization.
+
+    Parameters
+    ----------
+    snapshots : list or index slice
+        A list of snapshots to optimise, must be a subset of
+        network.snapshots, defaults to network.snapshots
+    msq_threshold: float, default 0.05
+        Maximal mean square difference between optimized line capacity of
+        the current and the previous iteration. As soon as this threshold is
+        undercut, and the number of iterations is bigger than 'min_iterations'
+        the iterative optimization stops
+    min_iterations : integer, default 1
+        Minimal number of iteration to run regardless whether the msq_threshold
+        is already undercut
+    max_iterations : integer, default 100
+        Maximal number of iterations to run regardless whether msq_threshold
+        is already undercut
+    track_iterations: bool, default False
+        If True, the intermediate branch capacities and values of the
+        objective function are recorded for each iteration. The values of
+        iteration 0 represent the initial state.
+    **kwargs
+        Keyword arguments of the lopf function which runs at each iteration
+    """
+
+    n.lines["carrier"] = n.lines.bus0.map(n.buses.carrier)
+    ext_i = get_extendable_i(n, "Line")
+    typed_i = n.lines.query('type != ""').index
+    ext_untyped_i = ext_i.difference(typed_i)
+    ext_typed_i = ext_i.intersection(typed_i)
+    base_s_nom = (
+        np.sqrt(3)
+        * n.lines["type"].map(n.line_types.i_nom)
+        * n.lines.bus0.map(n.buses.v_nom)
+    )
+    n.lines.loc[ext_typed_i, "num_parallel"] = (n.lines.s_nom / base_s_nom)[ext_typed_i]
+
+    def update_line_params(n, s_nom_prev):
+        factor = n.lines.s_nom_opt / s_nom_prev
+        for attr, carrier in (("x", "AC"), ("r", "DC")):
+            ln_i = n.lines.query("carrier == @carrier").index.intersection(
+                ext_untyped_i
+            )
+            n.lines.loc[ln_i, attr] /= factor[ln_i]
+        ln_i = ext_i.intersection(typed_i)
+        n.lines.loc[ln_i, "num_parallel"] = (n.lines.s_nom_opt / base_s_nom)[ln_i]
+
+    def msq_diff(n, s_nom_prev):
+        lines_err = (
+            np.sqrt((s_nom_prev - n.lines.s_nom_opt).pow(2).mean())
+            / n.lines["s_nom_opt"].mean()
+        )
+        logger.info(
+            f"Mean square difference after iteration {iteration} is " f"{lines_err}"
+        )
+        return lines_err
+
+    def save_optimal_capacities(n, iteration, status):
+        for c, attr in pd.Series(nominal_attrs)[n.branch_components].items():
+            n.df(c)[f"{attr}_opt_{iteration}"] = n.df(c)[f"{attr}_opt"]
+        setattr(n, f"status_{iteration}", status)
+        setattr(n, f"objective_{iteration}", n.objective)
+        n.iteration = iteration
+        n.global_constraints = n.global_constraints.rename(
+            columns={"mu": f"mu_{iteration}"}
+        )
+
+    if track_iterations:
+        for c, attr in pd.Series(nominal_attrs)[n.branch_components].items():
+            n.df(c)[f"{attr}_opt_0"] = n.df(c)[f"{attr}"]
+    iteration = 1
+    kwargs["store_basis"] = True
+    diff = msq_threshold
+    while diff >= msq_threshold or iteration < min_iterations:
+        if iteration > max_iterations:
+            logger.info(
+                f"Iteration {iteration} beyond max_iterations "
+                f"{max_iterations}. Stopping ..."
+            )
+            break
+
+        s_nom_prev = n.lines.s_nom_opt.copy() if iteration else n.lines.s_nom.copy()
+        kwargs["warmstart"] = snakemake.config['solving']['options']['warmstart']#bool(iteration and ("basis_fn" in n.__dir__()))
+        status, termination_condition = network_lopf(n, snapshots, **kwargs)
+        assert status == "ok", (
+            f"Optimization failed with status {status}"
+            f"and termination {termination_condition}"
+        )
+        if track_iterations:
+            save_optimal_capacities(n, iteration, status)
+        update_line_params(n, s_nom_prev)
+        diff = msq_diff(n, s_nom_prev)
+        iteration += 1
+    logger.info("Running last lopf with fixed branches (HVDC links and HVAC lines)")
+    ext_dc_links_b = n.links.p_nom_extendable & (n.links.carrier == "DC")
+    s_nom_orig = n.lines.s_nom.copy()
+    p_nom_orig = n.links.p_nom.copy()
+
+    n.lines.loc[ext_i, ["s_nom", "s_nom_extendable"]] = pd.DataFrame(
+        {"s_nom": n.lines.loc[ext_i, "s_nom_opt"], "s_nom_extendable": False}
+    )
+    # n.lines.loc[ext_i, ["s_nom", "s_nom_extendable"]] = (
+    #     n.lines.loc[ext_i, "s_nom_opt"],
+    #     False,
+    # )
+    n.links.loc[ext_dc_links_b, ["p_nom", "p_nom_extendable"]] = pd.DataFrame(
+        {"p_nom": n.links.loc[ext_dc_links_b, "p_nom_opt"], "p_nom_extendable": False}
+    )    
+    # n.links.loc[ext_dc_links_b, ["p_nom", "p_nom_extendable"]] = (
+    #     n.links.loc[ext_dc_links_b, "p_nom_opt"],
+    #     False,
+    # )
+    kwargs["warmstart"] = False
+    network_lopf(n, snapshots, **kwargs)
+
+    # n.lines.loc[ext_i, ["s_nom", "s_nom_extendable"]] = s_nom_orig.loc[ext_i], True
+    n.lines.loc[ext_i, ["s_nom", "s_nom_extendable"]] = pd.DataFrame(
+        {"s_nom": s_nom_orig.loc[ext_i], "s_nom_extendable": True}
+    )
+    # n.links.loc[ext_dc_links_b, ["p_nom", "p_nom_extendable"]] = (
+    #     p_nom_orig.loc[ext_dc_links_b],
+    #     True,
+    # )
+    n.links.loc[ext_dc_links_b, ["p_nom", "p_nom_extendable"]] = pd.DataFrame(
+        {"p_nom": p_nom_orig.loc[ext_dc_links_b], "p_nom_extendable": True}
+    )
+
+    ## add costs of additional infrastructure to objective value of last iteration
+    obj_links = (
+        n.links[ext_dc_links_b].eval("capital_cost * (p_nom_opt - p_nom_min)").sum()
+    )
+    obj_lines = n.lines.eval("capital_cost * (s_nom_opt - s_nom_min)").sum()
+    n.objective += obj_links + obj_lines
+    n.objective_constant -= obj_links + obj_lines
 
 def prepare_network(n, solve_opts):
 
@@ -510,7 +661,7 @@ def solve_network(n, config, opts="", **kwargs):
     n.config = config
     n.opts = opts
 
-    if (snakemake.wildcards.regions=='RSA') | (cf_solving.get("skip_iterations", False)):
+    if (snakemake.wildcards.regions=='1-supply') | (cf_solving.get("skip_iterations", False)):
         network_lopf(
             n,
             solver_name=solver_name,
@@ -520,11 +671,12 @@ def solve_network(n, config, opts="", **kwargs):
             **kwargs
         )
     else:
-        ilopf(
+        local_ilopf(
             n,
             solver_name=solver_name,
             solver_options=solver_options,
             track_iterations=track_iterations,
+            msq_threshold=snakemake.config["solving"]["options"]["msq_threshold"],
             min_iterations=min_iterations,
             max_iterations=max_iterations,
             multi_investment_periods=multi_investment_periods,
@@ -533,6 +685,9 @@ def solve_network(n, config, opts="", **kwargs):
         )
 
     return n
+
+
+
 
 
 if __name__ == "__main__":
@@ -544,11 +699,11 @@ if __name__ == "__main__":
         snakemake = mock_snakemake(
             'solve_network', 
             **{
-                'model_file':'val-LC-UNC',
-                'regions':'RSA',
+                'model_file':'grid-2040',
+                'regions':'11-supply',
                 'resarea':'redz',
                 'll':'copt',
-                'opts':'LC-4380SEG',
+                'opts':'LC',
                 'attr':'p_nom'
             }
         )
