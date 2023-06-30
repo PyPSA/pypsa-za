@@ -324,9 +324,14 @@ def attach_load(n, annual_demand):
     for y in n.investment_periods:
             demand.loc[y]=profile_demand.values*annual_demand[y]
     
-    n.madd("Load", n.buses.index,
-           bus=n.buses.index,
-           p_set=pdbcast(demand, normed(n.buses.population)))
+    if snakemake.wildcards.regions == '1-supply':
+        n.add("Load", n.buses.index,
+            bus='RSA',
+            p_set=demand)
+    else:
+        n.madd("Load", n.buses.index,
+            bus=n.buses.index,
+            p_set=pdbcast(demand, normed(n.buses[snakemake.config['electricity']['demand_disaggregation']])))
 
 
 ### Generate pu profiles for other_re based on Eskom data
@@ -365,11 +370,12 @@ def generate_excel_wind_solar_profiles(n,ref_years):
     profiles['solar'] = pd.DataFrame(0,index=n.snapshots,columns=n.buses.index)
     # wind and solar resources can be explicitly specified in excel format
     for carrier in ['onwind','solar']:
-        raw_profiles= (pd.read_excel(snakemake.config["enable"]["use_excel_wind_solar"][1],
-                                    sheet_name=carrier+'_pu',
-                                    skiprows=[1], 
-                                    index_col=0,parse_dates=True)
-                                    .resample('1h').mean()
+        raw_profiles= (
+            pd.read_excel(snakemake.config["enable"]["use_excel_wind_solar"][1],
+            sheet_name=snakemake.wildcards.regions+'_'+carrier+'_pu',
+            skiprows=[1], 
+            index_col=0,parse_dates=True)
+            .resample('1h').mean()
         )
         raw_profiles = remove_leap_day(raw_profiles)
 
@@ -390,7 +396,6 @@ def generate_excel_wind_solar_profiles(n,ref_years):
 
 
 ### Set line costs
-
 def update_transmission_costs(n, costs, length_factor=1.0, simple_hvdc_costs=False):
     for y in n.investment_periods:
         n.lines["capital_cost"] = (
@@ -457,7 +462,6 @@ def attach_wind_and_solar(n, costs,input_profiles, model_setup, eskom_profiles):
     pos = gpd.GeoSeries([Point(o.x, o.y) for o in gens[['x', 'y']].itertuples()], index=gens.index)
     regions = gpd.read_file(
         snakemake.input.supply_regions,
-        layer = snakemake.wildcards.regions
     ).to_crs(snakemake.config["crs"]["geo_crs"]).set_index('name')
 
     for bus, region in regions.geometry.items():
@@ -503,6 +507,7 @@ def attach_wind_and_solar(n, costs,input_profiles, model_setup, eskom_profiles):
                 p_min_pu=resource_carrier[plant_data.loc[group].index]*0.95, # for existing PPAs force to buy all energy produced
                 )
         
+
     # Add new generators
         for y in n.investment_periods:
             #TODO add check here to exclude buses where p_nom_max = 0 
@@ -554,7 +559,6 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
     pos = gpd.GeoSeries([Point(o.x, o.y) for o in gens[['x', 'y']].itertuples()], index=gens.index)
     regions = gpd.read_file(
         snakemake.input.supply_regions,
-        layer = snakemake.wildcards.regions
     ).to_crs(snakemake.config["crs"]["geo_crs"]).set_index('name')
 
     for bus, region in regions.geometry.items():
@@ -565,10 +569,13 @@ def attach_existing_generators(n, costs, eskom_profiles, model_setup):
 
     if snakemake.wildcards.regions=='1-supply':
         CahoraBassa['bus'] = "RSA"
+    elif snakemake.wildcards.regions=='11-supply':
+        CahoraBassa['bus'] = "Limpopo"
     elif snakemake.wildcards.regions=='27-supply':
-        CahoraBassa['bus'] = "POLOKWANE"
-    else:
-        CahoraBassa['bus'] = "LIMPOPO"
+        CahoraBassa['bus'] = "Polokwane"
+    elif snakemake.wildcards.regions=='30-supply':
+        CahoraBassa['bus'] = "Polokwane"
+
     gens = pd.concat([gens,CahoraBassa])
 
     gen_index=gens[gens.carrier.isin(['coal','nuclear','gas','diesel','hydro','hydro-import'])].index
@@ -647,17 +654,19 @@ def attach_extendable_generators(n, costs):
     carriers = elec_opts['extendable_carriers']['Generator']
     if snakemake.wildcards.regions=='1-supply':
         buses = dict(zip(carriers,['RSA']*len(carriers)))
+    elif snakemake.wildcards.regions=='11-supply':
+        buses = elec_opts['buses']['11-supply']
     elif snakemake.wildcards.regions=='27-supply':
         buses = elec_opts['buses']['27-supply']
-    else:
-        buses = elec_opts['buses']['11-supply']
+    elif snakemake.wildcards.regions=='30-supply':
+        buses = elec_opts['buses']['30-supply']
 
     _add_missing_carriers_from_costs(n, costs[n.investment_periods[0]], carriers)
 
     for y in n.investment_periods: 
         for carrier in carriers:
             buses_i = buses.get(carrier, n.buses.index)
-            if buses_i=='RSA':
+            if snakemake.wildcards.regions == '1-supply':
                 n.add("Generator", buses_i + " " + carrier + "_"+str(y),
                     bus=buses_i,
                     p_nom_extendable=True,
@@ -753,8 +762,8 @@ if __name__ == "__main__":
         snakemake = mock_snakemake(
             'add_electricity', 
             **{
-                'model_file':'val-2Gt-UNC-1',
-                'regions':'RSA',
+                'model_file':'grid-2040',
+                'regions':'11-supply',
                 'resarea':'redz',
                 'll':'copt',
                 'attr':'p_nom'

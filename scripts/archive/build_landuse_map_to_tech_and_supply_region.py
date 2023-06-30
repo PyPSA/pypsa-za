@@ -16,10 +16,10 @@ if 'snakemake' not in globals():
                         'opts':'LC'})
 
 
-if snakemake.wildcards.regions == 'RSA':    # Solve available area in 10 or 27 supply regions and then sum to RSA to save memory
+if snakemake.wildcards.regions == '1-supply':    # Solve available area in 10 or 27 supply regions and then sum to RSA to save memory
     RSA_flag=True
-    snakemake.wildcards.regions='10-supply'
-    snakemake.input.supply_regions = "data/supply_regions/supply_regions_10-supply.shp"              
+    snakemake.wildcards.regions='11-supply'
+    snakemake.input.supply_regions = "data/supply_regions/supply_regions_11-supply.shp"              
 else:
     RSA_flag=False
 

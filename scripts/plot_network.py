@@ -116,8 +116,8 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
     linewidth_factor = opts['map'][snakemake.wildcards.attr]['linewidth_factor']
     bus_size_factor  = opts['map'][snakemake.wildcards.attr]['bus_size_factor']
 
-    vplot.shapes(supply_regions.geometry, facecolors='k', outline='k', ax=ax, rasterized=True)
-    vplot.shapes(resarea.geometry, facecolors='gray', alpha=0.2, ax=ax, rasterized=True)
+    supply_regions.plot(ax=ax, facecolor = (0, 0, 0, 0), edgecolor='darkgray', linewidth=0.5)
+    resarea.plot(ax=ax, facecolor='gray', alpha=0.2, linewidth=0.5)
     ## PLOT
     flow = pd.Series(5, index=n.branches().index)
 
@@ -127,7 +127,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
         bus_sizes=bus_sizes/bus_size_factor,
         bus_colors=tech_colors,
         boundaries=map_boundaries,
-        color_geomap=False,
+        color_geomap=True,
         geomap=True,
         #flow=flow,
         ax=ax)
@@ -137,7 +137,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
         bus_sizes=0,
         bus_colors=tech_colors,
         boundaries=map_boundaries,
-        color_geomap=False,
+        color_geomap=True,
         geomap=True,
         #flow=flow,
         ax=ax)
@@ -159,7 +159,7 @@ def plot_map(n, opts, ax=None, attribute='p_nom'):
                 loc="upper left", bbox_to_anchor=(0.6,1.3),#(0.24, 1.01),
                 frameon=False,
                 labelspacing=0.8, handletextpad=1.5,
-                title='Transmission Exist./Exp.             ')
+                title='Transmission Exist./Exp.')
     ax.add_artist(l1_1)
 
     handles = []
@@ -292,8 +292,8 @@ if __name__ == "__main__":
         snakemake = mock_snakemake(
             'plot_network', 
             **{
-                'model_file':'validation-4',
-                'regions':'RSA',
+                'model_file':'grid-2040',
+                'regions':'27-supply',
                 'resarea':'redz',
                 'll':'copt',
                 'opts':'LC',
@@ -322,7 +322,10 @@ if __name__ == "__main__":
     )
     scenario_opts = wildcards.opts.split('-')
 
-    supply_regions = gpd.read_file(snakemake.input.supply_regions).buffer(-0.005) #.to_crs(n.crs)
+    supply_regions = gpd.read_file(
+        snakemake.input.supply_regions,
+        layer=snakemake.wildcards.regions,
+    ).buffer(-0.005) #.to_crs(n.crs)
     resarea = gpd.read_file(snakemake.input.resarea).to_crs(supply_regions.crs)
 
     fig, ax = plt.subplots(figsize=map_figsize, subplot_kw={"projection": ccrs.PlateCarree()})

@@ -68,6 +68,7 @@ import geopandas as gpd
 import pandas as pd
 import numpy as np
 import pypsa
+from _helpers import save_to_geojson
 
 def create_network():
     n = pypsa.Network()
@@ -109,12 +110,11 @@ def set_investment_periods(n,years):
 
 def set_line_capacity(lines, line_config):
     v_nom = line_config['v_nom']
-    line_type = line_config["types"][380.]
-    lines['capacity'] = np.sqrt(3) * v_nom * n.line_types.loc[line_type, 'i_nom'] * lines.num_parallel
+    lines['capacity'] = np.sqrt(3) * v_nom * n.line_types.loc[line_config['type'], 'i_nom'] * lines.num_parallel
     return lines
 
 def add_components_to_network(n, buses, lines, line_config):
-    line_type = line_config["types"][380.]
+    line_type = line_config['type']
     lines = lines.rename(columns={"capacity": "s_nom_min"})
     lines = lines.assign(s_nom_extendable=True, type=line_type,
                          num_parallel=lambda df: df.num_parallel.clip(lower=0.5))
@@ -127,8 +127,8 @@ if __name__ == "__main__":
         snakemake = mock_snakemake(
                         'base_network', 
                         **{
-                            'model_file':'val-LC-UNC',
-                            'regions':'1-supply',
+                            'model_file':'grid-2040',
+                            'regions':'30-supply',
                             'resarea':'redz',
                             'll':'copt',
                             'opts':'LC',
@@ -142,23 +142,29 @@ if __name__ == "__main__":
         
     # Set snapshots and investment periods
     years = (
-                pd.read_excel(
-                    snakemake.input.model_file,
-                    sheet_name="model_setup",
-                    index_col=0
-                )
-                .loc[snakemake.wildcards.model_file,"simulation_years"]
+        pd.read_excel(
+            snakemake.input.model_file,
+            sheet_name="model_setup",
+            index_col=0
+        )
+        .loc[snakemake.wildcards.model_file,"simulation_years"]
     )
-
-    years = list(map(int, years.strip('[]').split(',')))
+    if isinstance(years, int):
+        # convert years into a list 
+        years = [years]
+    else:
+        years = list(map(int, years.strip('[]').split(',')))
+    
     set_snapshots(n,years)
     set_investment_periods(n,years)
     
     # Set line capacity and add components to network
     line_config = snakemake.config['lines']
+    save_to_geojson(buses.to_crs(snakemake.config["crs"]["geo_crs"]),snakemake.input.buses)
     buses.drop('geometry',axis=1,inplace=True)
     if not lines.empty:
         lines = set_line_capacity(lines, line_config)
+        save_to_geojson(lines.to_crs(snakemake.config["crs"]["geo_crs"]),snakemake.input.lines)
         lines.drop('geometry',axis=1,inplace=True)
     add_components_to_network(n, buses, lines, line_config)
     

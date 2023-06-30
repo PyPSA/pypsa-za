@@ -327,10 +327,11 @@ def aggregate_costs(n):
                 },
                 axis=1,
             )
-        marginal_costs = (
-                get_as_dense(n, c.name, "marginal_cost", n.snapshots)
-                .mul(n.snapshot_weightings.objective, axis=0)
-        )
+        if c.name not in ["Line", "Transformer"]: 
+            marginal_costs = (
+                    get_as_dense(n, c.name, "marginal_cost", n.snapshots)
+                    .mul(n.snapshot_weightings.objective, axis=0)
+            )
 
         fixed_cost_tmp=pd.DataFrame(0,index=n.df(c.name).carrier.unique(),columns=n.investment_periods)
         variable_cost_tmp=pd.DataFrame(0,index=n.df(c.name).carrier.unique(),columns=n.investment_periods)
@@ -539,7 +540,7 @@ def to_csv_nafix(df, path, **kwargs):
             pass
 
 
-def save_to_geojson(df, fn):
+def save_to_geojson(df, fn, crs = 'EPSG:4326'):
     if os.path.exists(fn):
         os.unlink(fn)  # remove file if it exists
 
@@ -550,7 +551,7 @@ def save_to_geojson(df, fn):
             pass
     else:
         # save file
-        df.to_file(fn, driver="GeoJSON")
+        df.to_file(fn, driver="GeoJSON",crs=crs)
 
 
 def read_geojson(fn):
