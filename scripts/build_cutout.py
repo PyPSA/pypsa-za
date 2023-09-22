@@ -1,7 +1,7 @@
+# SPDX-FileCopyrightText:  PyPSA-ZA2, PyPSA-ZA, PyPSA-Earth and PyPSA-Eur Authors
+# # SPDX-License-Identifier: MIT
 # -*- coding: utf-8 -*-
-# SPDX-FileCopyrightText: : 2017-2022 The PyPSA-Eur Authors
-#
-# SPDX-License-Identifier: MIT
+
 
 """
 Create cutouts with `atlite <https://atlite.readthedocs.io/en/latest/>`_.
@@ -95,8 +95,8 @@ if __name__ == "__main__":
     if "snakemake" not in globals():
         from _helpers import mock_snakemake
         snakemake = mock_snakemake("build_cutout", 
-                                    cutout="RSA-2012-era5",
-                                    **{'regions':'9-supply'})
+                                    cutout="RSA-2017_2019-era5",
+                                    **{'regions':'30-supply'})
     configure_logging(snakemake)
 
     cutout_params = snakemake.config["atlite"]["cutouts"][snakemake.wildcards.cutout]

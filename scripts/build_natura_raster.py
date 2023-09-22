@@ -1,7 +1,7 @@
+# SPDX-FileCopyrightText:  PyPSA-Eur Authors
+# # SPDX-License-Identifier: MIT
 # -*- coding: utf-8 -*-
-# SPDX-FileCopyrightText: : 2017-2022 The PyPSA-Eur Authors
-#
-# SPDX-License-Identifier: MIT
+
 
 """
 Rasters the vector data of the `SACAD and SAPAD.

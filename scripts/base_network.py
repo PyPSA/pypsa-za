@@ -1,7 +1,6 @@
+# SPDX-FileCopyrightText:  PyPSA-ZA2, PyPSA-ZA, PyPSA-Earth and PyPSA-Eur Authors
+# # SPDX-License-Identifier: MIT
 # -*- coding: utf-8 -*-
-# SPDX-FileCopyrightText: : 2017-2022 The PyPSA-Eur and PyPSA-ZA Authors
-#
-# SPDX-License-Identifier: MIT
 
 """
 Creates the network topology for South Africa from either South Africa's shape file, GCCA map extract for 10 supply regions or 27-supply regions shape file as a PyPSA
@@ -108,16 +107,25 @@ def set_investment_periods(n,years):
         n.investment_period_weightings["years"] = [1]
         n.investment_period_weightings["objective"] = [1]
 
-def set_line_capacity(lines, line_config):
-    v_nom = line_config['v_nom']
-    lines['capacity'] = np.sqrt(3) * v_nom * n.line_types.loc[line_config['type'], 'i_nom'] * lines.num_parallel
+def set_line_capacity(lines, parallel_lines, line_config):
+
+    # Calculate the cumlative transfer capacity for each of the parallel lines base on thermal limits and dreating by s_nom
+    for row in lines.index:
+        row_p = parallel_lines[(parallel_lines['bus0']==lines.loc[row,'bus0']) & (parallel_lines['bus1']==lines.loc[row,'bus1'])]
+        transf_cap = 0
+        for v in [vn for vn in [220, 275, 400, 765] if vn in row_p.columns]:
+            transf_cap += np.sqrt(3) * v * n.line_types.loc[line_config['type'][v], 'i_nom'] * row_p[v]*line_config['s_derating'][v]
+        lines.loc[row,'capacity'] = transf_cap.values
+
+    lines['DESIGN_VOL'] = 400
+    # drop duplicate rows where bus0, bus1 are same rows
+    lines = lines.drop_duplicates(subset=['bus0', 'bus1'])
     return lines
 
 def add_components_to_network(n, buses, lines, line_config):
-    line_type = line_config['type']
+    line_type = line_config['type'][line_config['v_nom']]
     lines = lines.rename(columns={"capacity": "s_nom_min"})
-    lines = lines.assign(s_nom_extendable=True, type=line_type,
-                         num_parallel=lambda df: df.num_parallel.clip(lower=0.5))
+    lines = lines.assign(s_nom_extendable=True, type=line_type)
     n.import_components_from_dataframe(buses, "Bus")
     n.import_components_from_dataframe(lines, "Line")
 
@@ -128,18 +136,16 @@ if __name__ == "__main__":
                         'base_network', 
                         **{
                             'model_file':'grid-2040',
-                            'regions':'30-supply',
-                            'resarea':'redz',
-                            'll':'copt',
-                            'opts':'LC',
-                            'attr':'p_nom',
+                            'regions':'11-supply',
                         }
                     )
 
     # Create network and load buses and lines data
     n = create_network()
     buses, lines = load_buses_and_lines(n)
-        
+    parallel_lines = pd.read_csv(snakemake.input.parallel_lines,index_col=0)
+    parallel_lines.columns = ['bus0','bus1']+list(parallel_lines.columns.drop(['bus0','bus1']).astype(float).astype(int))
+
     # Set snapshots and investment periods
     years = (
         pd.read_excel(
@@ -163,7 +169,7 @@ if __name__ == "__main__":
     save_to_geojson(buses.to_crs(snakemake.config["crs"]["geo_crs"]),snakemake.input.buses)
     buses.drop('geometry',axis=1,inplace=True)
     if not lines.empty:
-        lines = set_line_capacity(lines, line_config)
+        lines = set_line_capacity(lines, parallel_lines, line_config)
         save_to_geojson(lines.to_crs(snakemake.config["crs"]["geo_crs"]),snakemake.input.lines)
         lines.drop('geometry',axis=1,inplace=True)
     add_components_to_network(n, buses, lines, line_config)

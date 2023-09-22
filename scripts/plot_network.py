@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: : 2017-2022 The PyPSA-Eur Authors
-#
-# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText:  PyPSA-ZA2, PyPSA-ZA, PyPSA-Earth and PyPSA-Eur Authors
+# # SPDX-License-Identifier: MIT
+
 """
 Plots map with pie charts and cost box bar charts.
 Relevant Settings
@@ -293,10 +293,10 @@ if __name__ == "__main__":
             'plot_network', 
             **{
                 'model_file':'grid-2040',
-                'regions':'27-supply',
+                'regions':'11-supply',
                 'resarea':'redz',
                 'll':'copt',
-                'opts':'LC',
+                'opts':'LC-500SEG',
                 'attr':'p_nom',
                 'ext':'pdf'
             }

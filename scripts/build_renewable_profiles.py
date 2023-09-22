@@ -1,9 +1,8 @@
+# SPDX-FileCopyrightText:  PyPSA-ZA2, PyPSA-ZA, PyPSA-Earth and PyPSA-Eur Authors
+# # SPDX-License-Identifier: MIT
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# SPDX-FileCopyrightText: : 2017-2022 The PyPSA-Eur Authors
-#
-# SPDX-License-Identifier: MIT
+
 
 """
 Calculates for each network node the (i) installable capacity (based on land-

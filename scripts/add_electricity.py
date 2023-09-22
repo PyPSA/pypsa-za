@@ -1,5 +1,5 @@
-# SPDX-FileCopyrightText: : 2017-2022 The PyPSA-EUR Authors, The PyPSA-Earth Authors, The PyPSA-ZA Authors
-# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText:  PyPSA-ZA2, PyPSA-ZA, PyPSA-Earth and PyPSA-Eur Authors
+# # SPDX-License-Identifier: MIT
 
 # coding: utf-8
 

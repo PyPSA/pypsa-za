@@ -1,5 +1,12 @@
 version: 2.0
 
+scenario_matrix:
+  model_file: ['spd_test']
+  regions: [1-supply] #, 11-supply]
+  resarea: [redz]
+  ll: ['copt']
+  opts: [LC]
+
 logging:
   level: INFO
   format: "%(levelname)s:%(name)s:%(message)s"
@@ -24,30 +31,10 @@ crs:
 enable:
   build_natura_raster: true # Rasters natural protection areas onto all cutout regions
   build_topology: true # Base network topology
-  build_cutout: false #false # Atlite cutout 
+  build_cutout: true #false # Atlite cutout 
   use_eskom_wind_solar: false # Model defaults to Eskom hourly pu profiles for all wind and solar generators
   use_excel_wind_solar: [true,"data/wind_solar_profiles.xlsx"] # Model defaults to excel input hourly pu profiles for all wind and solar generators  
   build_renewable_profiles: true #false # Enable calculation of renewable profiles
-
-scenario:
-  resarea: [redz]
-  regions: [27-supply]
-  ll: ['copt']
-  model_file: ['IRP_2019','validation_4']
-  opts: [Co2L-3H,LC-1H]
-
-# General inputs
-data:
-  resarea:
-    redz: REDZ_DEA_Unpublished_Draft_2015
-    corridors: Power_corridors
-
-# definition of the Coordinate Reference Systems
-crs:
-  geo_crs: EPSG:4326  # general geographic projection, not used for metric measures. "EPSG:4326" is the standard used by OSM and google maps
-  distance_crs: EPSG:3857  # projection for distance measurements only. Possible recommended values are "EPSG:3857" (used by OSM and Google Maps)
-  area_crs: ESRI:54009  # projection for area measurements only. Possible recommended values are Global Mollweide "ESRI:54009"
-
 
 # Specification of relevent years for the model
 years: 
@@ -66,6 +53,7 @@ years:
     hydro-import: [2021]
 
 electricity:
+  demand_disaggregation: 'GVA2016' # used to split the demand across supply regions in absence of Eskom data 
   co2limit: 2.2e+9    # Cumulative CO2 emissions budget for all simulation years combined
   renewable_carriers: [solar, onwind, CSP, biomass, hydro, hydro-import] # defines renewable carriers
   generator_availability: # generator planned and unplanned outages are included based on Eskom data
@@ -98,18 +86,23 @@ electricity:
 
   buses:
     11-supply: 
-      OCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE] # Saldana Bay, Richards Bay, Coega
-      CCGT: [GAUTENG, WESTERN CAPE, KZN, EASTERN CAPE]
-      coal: [GAUTENG, LIMPOPO] # Johannesburg, Waterberg
-      nuclear: [EASTERN CAPE, WESTERN CAPE] # Thyspunt, Koeberg
-      imports: [LIMPOPO]         
+      OCGT: [Gauteng, Western Cape, KwaZulu Natal, Eastern Cape] # Saldana Bay, Richards Bay, Coega
+      CCGT: [Gauteng, Western Cape, KwaZulu Natal, Eastern Cape]
+      coal: [Gauteng, Limpopo] # Johannesburg, Waterberg
+      nuclear: [Eastern Cape, Western Cape] # Thyspunt, Koeberg
+      imports: [Limpopo]         
     27-supply:
-      OCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH] # Saldana Bay, Richards Bay, Coega
-      CCGT: [JOHANNESBURG, WEST COAST, EMPANGENI, PORT ELIZABETH]
-      coal: [JOHANNESBURG, WATERBERG]
-      nuclear: [PORT ELIZABETH, PENINSULA] # Thyspunt, Koeberg
-      imports: [POLOKWANE]
-  
+      OCGT: [Johannesburg, West Coast, Empangeni, Port Elizabeth] # Saldana Bay, Richards Bay, Coega
+      CCGT: [Johannesburg, West Coast, Empangeni, Port Elizabeth]
+      coal: [Johannesburg, Waterberg]
+      nuclear: [Port Elizabeth, Peninsula] # Thyspunt, Koeberg
+      imports: [Polokwane]
+    30-supply:
+      OCGT: [Witbank, West Coast, Empangeni, Port Elizabeth] # Saldana Bay, Richards Bay, Coega
+      CCGT: [Witbank, West Coast, Empangeni, Port Elizabeth]
+      coal: [Witbank, Lephalale]
+      nuclear: [Port Elizabeth, Peninsula] # Thyspunt, Koeberg
+      imports: [Polokwane]  
 
   reserve_margin:
     coal: 0.8
@@ -149,18 +142,18 @@ respotentials:
 
 atlite:
   cutout_snapshots:
-    start: "2012-01-01"
-    end: "2013-01-01"
-    closed: 'left' # end is not inclusive
-  nprocesses: 1
+    start: "2017-01-01"
+    end: "2018-01-01"
+    #closed: 'left' # end is not inclusive
+  nprocesses: 10
   cutouts:
-    RSA-2012-era5:
+    RSA-2017-era5:
       module: era5 # in priority order
       x: [16, 35]
       y: [-35., -21]
       dx: 0.3
       dy: 0.3
-      time: ['2012', '2012']
+      time: ['2017','2017']
     # RSA-2012-sarah:
     #  module: [sarah, era5] # in priority order
     #  x: [16, 35]
@@ -175,7 +168,7 @@ atlite:
 
 renewable:
   onwind:
-    cutout: RSA-2012-era5
+    cutout: RSA-2017-era5
     resource:
       method: wind
       turbine: NREL_ReferenceTurbine_2020ATB_4MW
@@ -200,7 +193,7 @@ renewable:
     clip_p_max_pu: 1.e-2
 
   solar:
-    cutout: RSA-2012-era5
+    cutout: RSA-2017-era5
     resource:
       method: pv
       panel: CSi
@@ -239,37 +232,30 @@ hydro_inflow:
   cutout: za-mz-2012 # only applicable to atlite
 
 lines:
+  threshold: 220 # only voltages >=220kV are considered in network capacity calculations
   v_nom: 400. #changed from 380kV from PyPSA-EUR to 400kV for South Africa
-  #type: 'Al/St 240/40 4-bundle 400.0' 
-#lines:
-  types:
-    220.: "Al/St 240/40 2-bundle 220.0"
-    300.: "Al/St 240/40 3-bundle 300.0"
-    380.: "Al/St 240/40 4-bundle 380.0"
-    400.: "Al/St 240/40 4-bundle 400.0" # network voltage set to 400kV
-  dc_type: "DC_custom_linetype"
-  s_max_pu: 0.7
-  s_nom_factor: 0.7
+  type: 
+    220: 'Al/St 240/40 2-bundle 220.0' # proxy line properties from pypsa defaults
+    275: 'Al/St 240/40 2-bundle 220.0' # proxy line properties from pypsa defaults
+    400: 'Al/St 240/40 4-bundle 380.0' # proxy line properties from pypsa defaults
+    765: 'Al/St 560/50 4-bundle 750.0' # proxy line properties from pypsa defaults
+  s_max_pu: 0.7 # n-1 approximation
+  s_derating: # derating factor from thermal limits
+    220: 0.248 # adjust from thermal rating to SIL at 400kV => 122MW/492MW 
+    275: 0.255 # adjust from thermal rating to SIL at 400kV => 245MW/921MW   
+    400: 0.337 # adjust from thermal rating to SIL at 400kV => 602MW/1788MW  
+    765: 0.414 # adjust from thermal rating to SIL at 400kV => 2280MW/5512MW  
   s_nom_max: .inf
   length_factor: 1.25
-  under_construction: "zero" # 'zero': set capacity to zero, 'remove': remove, 'keep': with full capacity
+  dc_type: "DC_custom_linetype"
+  status: ["existing"] # 'zero': set capacity to zero, 'remove': remove, 'keep': with full capacity
+  extend_topology: true # if true, lines between adjacent regions that do not exist are added for expansion
 
 links:
   p_max_pu: 1.0
   p_nom_max: .inf
-  include_tyndp: true
   under_construction: "zero" # 'zero': set capacity to zero, 'remove': remove, 'keep': with full capacity
-  # costs
-  s_nom_factor: 0.7
   length_factor: 1.25
-
-augmented_line_connection:
-  add_to_snakefile: true  # If True, includes this rule to the workflow
-  connectivity_upgrade: 2  # Min. lines connection per node, https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.connectivity.edge_augmentation.k_edge_augmentation.html#networkx.algorithms.connectivity.edge_augmentation.k_edge_augmentation
-  new_line_type: ["HVAC", "HVDC"]  # Expanded lines can be either ["HVAC"] or ["HVDC"] or both ["HVAC", "HVDC"]
-  min_expansion: 1  # [MW] New created line expands by float/int input
-  min_DC_length: 600  # [km] Minimum line length of DC line
-
 
 costs:
   # costs come from data/technology_costs.xlsx
@@ -324,7 +310,9 @@ solving:
     skip_iterations: false
     min_iterations: 1
     max_iterations: 10
+    msq_threshold: 0.05 # mean squared error threshold for convergence of iterations
     formulation: kirchhoff
+    warmstart: false
     # max_iterations: 1
     # nhours: 10
   solver:
@@ -332,17 +320,20 @@ solving:
     lpflags: 4
     crossover: 0
     bargapstop: 1.e-5
+    barstart: -1 #use xpress warmstart
+    #baralg: 2 
+    #barstartweight: 1
     # FeasibilityTol: 1.e-6
     # LogToConsole: 0
     # OutputFlag: 1
 
 plotting:
   map:
-    figsize: [8, 8]
+    figsize: [10, 10]
     boundaries: [14, 34, -35, -22] #[x1,x2,y1,y2]
     p_nom:
       bus_size_factor: 5.e+4
-      linewidth_factor: 2.e+3 #1.e+3 # 1.e+3  #3.e+3
+      linewidth_factor: 3.e+3 #1.e+3 # 1.e+3  #3.e+3
 
   costs_max: 1000
 

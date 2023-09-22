@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText:  PyPSA-ZA2, PyPSA-ZA Authors
+# # SPDX-License-Identifier: MIT
 # coding: utf-8
 
 """
@@ -46,7 +48,7 @@ Outputs
 import networkx as nx
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Point
 import numpy as np
 # import rasterstats
 from operator import attrgetter
@@ -75,7 +77,6 @@ def check_centroid_in_region(regions,centroids):
     for i in idx:
         # Initialize a variable to store the minimum distance
         min_distance = np.inf
-
         # Iterate over a range of distances along the boundary
         for d in np.arange(0, boundary[i].length, 200):
             # Interpolate a point at the current distance
@@ -89,36 +90,86 @@ def check_centroid_in_region(regions,centroids):
         centroids[i] = closest_point
     return centroids
 
+def build_line_topology(lines, regions):
+    # Extract starting and ending points of each line
+    lines = lines.explode()
+    start_points = lines["geometry"].apply(lambda line: line.coords[0])
+    end_points = lines["geometry"].apply(lambda line: line.coords[-1])
+
+    # Convert start and end points to Point geometries
+    start_points = start_points.apply(Point)
+    end_points = end_points.apply(Point)
+
+    # Map starting and ending points to regions
+    lines["bus0"] = start_points.apply(
+        lambda point: regions[regions.geometry.contains(point)].index.values[0] 
+        if len(regions[regions.geometry.contains(point)].index.values) > 0 else None
+    )
+    lines["bus1"] = end_points.apply(
+        lambda point: regions[regions.geometry.contains(point)].index.values[0] 
+        if len(regions[regions.geometry.contains(point)].index.values) > 0 else None
+    )
+    lines['id']=range(0,len(lines))
+    lines = lines[lines['bus0']!=lines['bus1']]
+    lines = lines.dropna(subset=['bus0','bus1'])
+    lines.reset_index(drop=True,inplace=True)       
+    lines['bus0'], lines['bus1'] = np.sort(lines[['bus0', 'bus1']].values, axis=1).T # sort bus0 and bus1 alphabetically
+
+    return lines
+
+def calc_parallel_lines(lines):
+    parallel_lines = lines.groupby(['bus0','bus1','DESIGN_VOL']).count()['id'].reset_index().rename(columns={'id':'count'})
+    parallel_lines = parallel_lines[parallel_lines['bus0']!=parallel_lines['bus1']]
+    parallel_lines['bus0'], parallel_lines['bus1'] = np.sort(parallel_lines[['bus0', 'bus1']].values, axis=1).T
+    parallel_lines = parallel_lines.pivot_table(index=["bus0", "bus1"], columns="DESIGN_VOL", values="count", aggfunc='sum',fill_value=0).reset_index()
+    return parallel_lines
+
+def extend_topology(lines, regions, centroids):
+    # get a list of lines between all adjacent regions
+    adj_lines = gpd.sjoin(regions, regions, op='touches')['index_right'].reset_index()
+    adj_lines.columns = ['bus0', 'bus1']
+    adj_lines['bus0'], adj_lines['bus1'] = np.sort(adj_lines[['bus0', 'bus1']].values, axis=1).T # sort bus0 and bus1 alphabetically
+
+    adj_lines = adj_lines.drop_duplicates(subset=['bus0', 'bus1'])
+    missing_lines = adj_lines.merge(lines, on=['bus0', 'bus1'], how='left', indicator=True)
+    missing_lines = missing_lines[missing_lines['_merge'] == 'left_only'][['bus0', 'bus1']]
+    missing_lines['DESIGN_VOL'] = 0
+    missing_lines['status'] = 'missing'
+    missing_lines['geometry'] = missing_lines.apply(lambda row: LineString([centroids[row['bus0']],centroids[row['bus1']]]),axis=1)
+    missing_lines = missing_lines.drop_duplicates(subset=['bus0', 'bus1'])
+    lines = pd.concat([lines,missing_lines])
+
+    return lines
 
 def build_topology():
-    # Load num_parallel data and calculate num_parallel column for lines dataframe
-    gcca_lines = pd.read_excel(
-        snakemake.input.gcca_lines,
-        sheet_name = snakemake.wildcards.regions, 
-        index_col=0
-    )#.set_index(['bus0', 'bus1'])
+    # Read in Eskom GIS data for existing and planned transmission lines
+    lines = gpd.read_file(snakemake.input.existing_lines)
+    lines['status'] = 'existing'
+    lines = lines.to_crs(snakemake.config["crs"]["distance_crs"])
+
+    if 'planned' in snakemake.config["lines"]["status"]:
+        planned_lines = gpd.read_file(snakemake.input.planned_lines)
+        planned_lines = planned_lines.to_crs(snakemake.config["crs"]["distance_crs"])
+        planned_lines['DESIGN_VOL'] = planned_lines['Voltage']
+        planned_lines['status'] = 'planned'
+        lines = pd.concat([lines[['status','DESIGN_VOL','geometry']],planned_lines[['status','DESIGN_VOL','geometry']]])
 
     # Load supply regions and calculate population per region
-    regions = gpd.read_file(snakemake.input.supply_regions,
+    regions = gpd.read_file(
+        snakemake.input.supply_regions,
         layer=snakemake.wildcards.regions,
-    ).to_crs(snakemake.config["crs"]["distance_crs"])
-
+    ).to_crs(snakemake.config["crs"]["distance_crs"])  
     index_column = 'name' if 'name' in regions.columns else 'Name' # some layers use Name or name
     regions = regions.set_index(index_column)
+    regions.index.name = 'name'
 
     centroids = regions['geometry'].centroid
     centroids = check_centroid_in_region(regions,centroids)
     centroids = centroids.to_crs(snakemake.config["crs"]["geo_crs"])
 
-    # Find edges between touching regions using spatial join
-    lines = gcca_lines[['bus0','bus1']]
-    #lines = gpd.sjoin(regions, regions, op='touches')['index_right']
-    # lines = lines.reset_index()
-    # lines.columns = ['bus0', 'bus1']
-    # drop rows from lines where bus0 not in regions.index or bus1 not in regions.index
-
-    lines = lines[lines['bus0'].isin(regions.index) & lines['bus1'].isin(regions.index)]
-    # Calculate length of lines
+    lines = build_line_topology(lines, regions)
+  
+    # Line length between regions if lines is empty, return empty dataframe
     def haversine_length(row):
         lon1, lat1, lon2, lat2 = map(np.radians, [centroids[row['bus0']].x, centroids[row['bus0']].y, centroids[row['bus1']].x, centroids[row['bus1']].y])
         dlon = lon2 - lon1
@@ -126,15 +177,18 @@ def build_topology():
         a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
         c = 2 * np.arcsin(np.sqrt(a))
         return c * 6371
+    
+    line_config = snakemake.config['lines']
+    if line_config['extend_topology']:
+        lines = extend_topology(lines, regions, centroids)
 
-    # If lines is empty, return empty dataframes
     if lines.empty:
-        lines = pd.DataFrame(index=[],columns=['name','bus0','bus1','length','total_capacity',f"equiv. {int(line_config['v_nom'])}kV num_parallel"])
+        lines = pd.DataFrame(index=[],columns=['name','bus0','bus1','length','transfer_capacity',f"equiv. {int(line_config['v_nom'])}kV num_parallel"])
     else:
         lines['length'] = lines.apply(haversine_length, axis=1) * snakemake.config['lines']['length_factor']
-               
-    # Initialize buses dataframe
-    line_config = snakemake.config['lines']
+    
+    parallel_lines = calc_parallel_lines(lines)
+
     v_nom = line_config['v_nom']
     buses = (
         regions.assign(
@@ -143,31 +197,12 @@ def build_topology():
             v_nom=v_nom
         )
     )
-    # if column name is not 'name' or 'Name', rename it to 'name'
-    if 'name' not in buses.columns:
-        buses = buses.rename(columns={'Name': 'name'})
-
-
-    
-    gcca_lines[f"equiv. {int(line_config['v_nom'])}kV num_parallel"] = sum(
-        gcca_lines[f"num_parallel_{int(v)}kV_ac"] 
-        * (v/line_config['v_nom'])**2
-                    for v in (132, 220, 275, 400, 765)
-    )
-
-    if not lines.empty:
-        lines['num_parallel'] = line_config['s_nom_factor'] * gcca_lines[f"equiv. {int(line_config['v_nom'])}kV num_parallel"]
-        # lines = (
-        #     lines
-        #         .join(gcca_lines[f"equiv. {int(line_config['v_nom'])}kV num_parallel"].rename('num_parallel'), on=['bus0', 'bus1'])
-        #         .join(gcca_lines[f"equiv. {int(line_config['v_nom'])}kV num_parallel"].rename("num_parallel_i"), on=['bus1', 'bus0'])
-        # )
-        # lines['num_parallel'] = line_config['s_nom_factor'] * (lines['num_parallel'].fillna(lines.pop('num_parallel_i'))).fillna(0)     
-        # check for lines in gcca_lines that are not in lines, i.e. not joining touching regions, excluding MZ,ZM,BW,SW
-        #lines.reset_index(drop=True,inplace=True)
-        lines = convert_lines_to_gdf(lines,centroids)
     buses.index.name='name' # ensure consistency for other scripts
-    return buses, lines
+   
+    if not lines.empty:
+        lines = convert_lines_to_gdf(lines,centroids)
+
+    return buses, lines, parallel_lines
 
 if __name__ == "__main__":
     if 'snakemake' not in globals():
@@ -175,14 +210,15 @@ if __name__ == "__main__":
         snakemake = mock_snakemake(
             'build_topology', 
             **{
-                'regions':'30-supply',
+                'regions':'11-supply',
             }
         )
 
-    buses, lines = build_topology()
+    buses, lines, parallel_lines = build_topology()
     save_to_geojson(buses.to_crs(snakemake.config["crs"]["geo_crs"]),snakemake.output.buses)
     
     if not lines.empty:
         save_to_geojson(lines.to_crs(snakemake.config["crs"]["geo_crs"]),snakemake.output.lines)
     else:
         save_to_geojson(buses.to_crs(snakemake.config["crs"]["geo_crs"]),snakemake.output.lines) # Dummy file will not get used if single node model  
+    parallel_lines.to_csv(snakemake.output.parallel_lines)

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText:  PyPSA-ZA Authors
+# # SPDX-License-Identifier: MIT
+
 import pandas as pd
 import atlite
 

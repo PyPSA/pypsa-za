@@ -2,8 +2,6 @@ configfile: "config.yaml"
 
 from os.path import normpath, exists, isdir
 
-localrules: base_network, add_electricity, plot_network # , extract_summaries, add_sectors
-
 ATLITE_NPROCESSES = config["atlite"].get("nprocesses", 4)
 
 wildcard_constraints:
@@ -11,13 +9,14 @@ wildcard_constraints:
     model_file="[-a-zA-Z0-9]+",
     regions="[-+a-zA-Z0-9]+",
     opts="[-+a-zA-Z0-9]+"
-rule solve_all_networks:
+
+rule solve_scenario_matrix:
     input:
         expand(
-            "results/networks/"+"elec_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc",
-            **config["scenario"]
+            "results/networks/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc",
+            **config["scenario_matrix"]
         ),
-        
+
 if config["enable"]["build_natura_raster"]:
     rule build_natura_raster:
         input:
@@ -58,25 +57,28 @@ if not config['hydro_inflow']['disable']:
         resources: mem_mb=1000
         script: "scripts/build_inflow_per_country.py"
 
+
 if config['enable']['build_topology']: 
     rule build_topology:
         input:
             supply_regions='data/bundle/rsa_supply_regions.gpkg',
-            population='data/bundle/South_Africa_100m_Population/ZAF15adjv4.tif',
-            num_lines='data/num_lines.xlsx',
+            existing_lines='data/bundle/Eskom/Existing_Lines.shp',
+            planned_lines='data/bundle/Eskom/Planned_Lines.shp',        
         output:
             buses='resources/buses_{regions}.geojson',
             lines='resources/lines_{regions}.geojson',
+            parallel_lines='resources/parallel_lines_{regions}.csv',
         threads: 1
         script: "scripts/build_topology.py"
 
 
 rule base_network:
     input:
-        model_file="model_file.xlsx",
+        model_file="data/model_file.xlsx",
         buses='resources/buses_{regions}.geojson',
         lines='resources/lines_{regions}.geojson',
-    output: "networks/base_{model_file}_{regions}.nc"
+        parallel_lines='resources/parallel_lines_{regions}.csv',
+    output: "networks/base_{model_file}_{regions}.nc",
     benchmark: "benchmarks/base_{model_file}_{regions}"
     threads: 1
     resources: mem_mb=1000
@@ -88,7 +90,7 @@ if config['enable']['build_renewable_profiles'] & ~config['enable']['use_eskom_w
             regions = 'resources/buses_{regions}.geojson',#'resources/onshore_shapes_{regions}.geojson',
             resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea],
             natura=lambda w: (
-                "resources/landuse_without_protected_conservation.tiff"
+                "data/bundle/landuse_without_protected_conservation.tiff"
                 if config["renewable"][w.technology]["natura"]
                 else []
             ),
@@ -122,12 +124,12 @@ rule add_electricity:
             for tech in renewable_carriers
         },
         base_network='networks/base_{model_file}_{regions}.nc',
-        supply_regions='data/bundle/rsa_supply_regions.gpkg',
+        supply_regions='resources/buses_{regions}.geojson',
         load='data/bundle/SystemEnergy2009_22.csv',
         #onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         #solar_area='resources/area_solar_{regions}_{resarea}.csv',
         eskom_profiles="data/eskom_pu_profiles.csv",
-        model_file="model_file.xlsx",
+        model_file="data/model_file.xlsx",
         existing_generators_eaf="data/Eskom EAF data.xlsx",
     output: "networks/elec_{model_file}_{regions}_{resarea}.nc",
     benchmark: "benchmarks/add_electricity/elec_{model_file}_{regions}_{resarea}"
@@ -136,7 +138,7 @@ rule add_electricity:
 rule prepare_network:
     input:
         network="networks/elec_{model_file}_{regions}_{resarea}.nc",
-        model_file="model_file.xlsx",
+        model_file="data/model_file.xlsx",
         #onwind_area='resources/area_wind_{regions}_{resarea}.csv',
         #solar_area='resources/area_solar_{regions}_{resarea}.csv',
 
@@ -149,7 +151,7 @@ rule prepare_network:
 rule solve_network:
     input: 
         network="networks/pre_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc",
-        model_file="model_file.xlsx",
+        model_file="data/model_file.xlsx",
     output: "results/networks/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc"
     shadow: "shallow"
     log:
@@ -165,7 +167,7 @@ rule solve_network:
 rule plot_network:
     input:
         network='results/networks/solved_{model_file}_{regions}_{resarea}_l{ll}_{opts}.nc',
-        model_file="model_file.xlsx",
+        model_file="data/model_file.xlsx",
         supply_regions='data/bundle/rsa_supply_regions.gpkg',
         resarea = lambda w: "data/bundle/" + config['data']['resarea'][w.resarea]
     output:
